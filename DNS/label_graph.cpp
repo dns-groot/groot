@@ -116,7 +116,7 @@ void LabelGraphBuilder(vector<ResourceRecord>& rrs, LabelGraph& g, const VertexD
 	}
 }
 
-std::optional<std::bitset<RRType::N>> CNAMELookup(const LabelGraph& g, VertexDescriptor  start, std::unordered_set<VertexDescriptor> visited_nodes) {
+boost::optional<std::bitset<RRType::N>> CNAMELookup(const LabelGraph& g, VertexDescriptor  start, std::unordered_set<VertexDescriptor> visited_nodes) {
 	VertexDescriptor current = start;
 	auto before = visited_nodes.size();
 	visited_nodes.insert(current);
@@ -130,7 +130,7 @@ std::optional<std::bitset<RRType::N>> CNAMELookup(const LabelGraph& g, VertexDes
 		if (g[edge].type == cname) {
 			found = true;
 			if (g[edge.m_target].rrTypesPresent[RRType::CNAME] == 1) {
-				std::optional<std::bitset<RRType::N>> typesReturned = CNAMELookup(g, edge.m_target, visited_nodes);
+				boost::optional<std::bitset<RRType::N>> typesReturned = CNAMELookup(g, edge.m_target, visited_nodes);
 				if (typesReturned) {
 					types = types | typesReturned.value();
 				}
@@ -184,7 +184,7 @@ void DFSVisit(LabelGraph& g, VertexDescriptor  start, vector<Label> parentDomain
 	g[start].len = nodeLen;
 	std::vector<Label> childrenLabels;
 	std::optional<std::bitset<RRType::N>> wildcardTypes;
-	std::optional<std::bitset<RRType::N>> cnameTypes;
+	boost::optional<std::bitset<RRType::N>> cnameTypes;
 	VertexDescriptor wildcardNode{};
 	for (EdgeDescriptor edge : boost::make_iterator_range(out_edges(start, g))) {
 		if (g[edge].type == normal) {

@@ -377,7 +377,7 @@ void WildCardChildEC(std::vector<Label>& childrenLabels, vector<Label>& labels, 
 	}
 }
 
-void NodeEC(LabelGraph& g, VertexDescriptor& node, vector<Label>& name, std::optional<std::bitset<RRType::N>>& cnameTypes, std::bitset<RRType::N>& typesReq, vector<std::function<void(const InterpreterGraph&, const vector<InterpreterVertexDescriptor>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions) {
+void NodeEC(LabelGraph& g, VertexDescriptor& node, vector<Label>& name, boost::optional<std::bitset<RRType::N>>& cnameTypes, std::bitset<RRType::N>& typesReq, vector<std::function<void(const InterpreterGraph&, const vector<InterpreterVertexDescriptor>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions) {
 
 	// Node and the types present at it if the node is not skipped.
 	if ((g[node].rrTypesPresent & typesReq).count() > 0) {
@@ -436,7 +436,7 @@ void SubDomainECGeneration(LabelGraph& g, VertexDescriptor  start, vector<Label>
 	g[start].len = nodeLen;
 	std::vector<Label> childrenLabels;
 	std::optional<std::bitset<RRType::N>> wildcardTypes;
-	std::optional<std::bitset<RRType::N>> cnameTypes;
+	boost::optional<std::bitset<RRType::N>> cnameTypes;
 	VertexDescriptor wildcardNode{};
 
 	for (EdgeDescriptor edge : boost::make_iterator_range(out_edges(start, g))) {
@@ -509,7 +509,7 @@ void GenerateECAndCheckProperties(LabelGraph& g, VertexDescriptor root, string u
 				SubDomainECGeneration(g, closetEncloser.value(), parentDomainName, typesReq, false, nodeFunctions, pathFunctions);
 			}
 			else {
-				std::optional<std::bitset<RRType::N>> cnameTypes;
+				boost::optional<std::bitset<RRType::N>> cnameTypes;
 				if (g[closetEncloser.value()].rrTypesPresent[RRType::CNAME]) {
 					cnameTypes = CNAMELookup(g, closetEncloser.value(), std::unordered_set<VertexDescriptor>());
 				}

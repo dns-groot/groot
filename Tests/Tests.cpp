@@ -1,11 +1,12 @@
 #define BOOST_TEST_MODULE mytests
 #include <boost/test/unit_test.hpp>
-#include "../DNS/zone.h"
 #include "../DNS/RR.h"
 #include <cassert>
 #include <iomanip>
 #include <vector>
+#include <iostream>
 #include "../DNS/graph.h"
+#include "../DNS/zone.h"
 #include "../DNS/interpreter.h"
 
 BOOST_AUTO_TEST_SUITE(ExampleTestSuite)
@@ -25,9 +26,9 @@ BOOST_AUTO_TEST_CASE(my_boost_test)
 
 	vector<EC> allQueries;
 	ECGenerator(g, root, allQueries);
-	BOOST_TEST(allQueries.size() == 154);
-	BOOST_TEST(num_edges(g) == 43);
-	BOOST_TEST(num_vertices(g) == 42);
+	BOOST_TEST(allQueries.size() == 142);
+	BOOST_TEST(num_edges(g) == 41);
+	BOOST_TEST(num_vertices(g) == 40);
 }
 
 BOOST_AUTO_TEST_CASE(small_zone_test)

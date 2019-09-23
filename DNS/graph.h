@@ -87,4 +87,4 @@ private:
 typedef struct EC EC;
 
 void ECGenerator(LabelGraph& g, const VertexDescriptor root, vector<EC>& allQueries);
-std::optional<std::bitset<RRType::N>> CNAMELookup(const LabelGraph& g, VertexDescriptor  start, std::unordered_set<VertexDescriptor> visited_nodes);
+boost::optional<std::bitset<RRType::N>> CNAMELookup(const LabelGraph& g, VertexDescriptor  start, std::unordered_set<VertexDescriptor> visited_nodes);
