@@ -1,0 +1,1 @@
+22 serialization::archive 17 0 0 0 0 2 1 0 0 0  0 0 11 mtn.net.sy. 0 0 10 1111111111 20 0 1 1 0 0 8 0 7 mipda01 7 mipda02 3 ns1 3 ns2 3 foo 3 bar 3 baz 5 child 0 1 0 11 ns1.tld.sy. 11 mtn.net.sy. 10 1111111111 20 1 8 0 7 mipda01 7 mipda02 3 ns1 3 ns2 3 foo 3 bar 3 baz 5 child 1 0 0 0 0 0 1 0 0 0 1 0 0 0 0

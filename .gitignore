@@ -347,3 +347,5 @@ healthchecksdb
 *.diagsession
 *.dot
 *.png
+/DNS/EC.txt
+/DNS/zoneGraph.txt

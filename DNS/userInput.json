@@ -1,0 +1,40 @@
+[
+	{
+		"Domain": "child.mtn.net.sy.",
+		"SubDomain": false,
+		"Properties":[
+			{
+				"PropertyName": "DelegationConsistency"
+			}
+		]
+	},
+	{
+		"Domain": "foo.mtn.net.sy.",
+		"SubDomain": false,
+		"Properties":[
+			{
+				"PropertyName": "ResponseConsistency",
+				"Types": ["A"]
+			},
+			{
+				"PropertyName": "ResponseValue",
+				"Types": ["A"],
+				"Value": ["2.2.2.1"]
+			}
+		]
+	},
+	{
+		"Domain": "bar.mtn.net.sy.",
+		"SubDomain": false,
+		"Properties":[
+			{
+				"PropertyName": "ResponseConsistency",
+				"Types": ["A","MX"]
+			},
+			{
+				"PropertyName": "ResponseReturned",
+				"Types": ["CNAME","TXT"]
+			}
+		]
+	}
+]
