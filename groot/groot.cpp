@@ -7,12 +7,13 @@
 #include "boost/graph/adjacency_list.hpp"
 #include "boost/graph/topological_sort.hpp"
 #include <boost/graph/graphviz.hpp>
+#include <nlohmann/json.hpp>
 #include "../groot_lib/zone.h"
 #include "../groot_lib/graph.h"
 #include "../groot_lib/graph.h"
 #include "../groot_lib/interpreter.h"
 #include "../groot_lib/properties.h"
-#include <nlohmann/json.hpp>
+#include "docopt/docopt.h"
 
 
 using namespace std;
@@ -307,11 +308,62 @@ void profiling_net() {
 	}*/
 }
 
-int main(int argc, char* argv[]) {
 
-	string directory(argv[1]);
-	string input(argv[2]);
+static const char USAGE[] =
+R"(groot 1.0
+   
+Groot is a static verification tool for DNS. Groot consumes
+a collection of zone files along with a collection of user- 
+defined properties and systematically checks if any input to
+DNS can lead to a property violation for the properties.
+
+Usage: groot [--verbose] <zone_directory> <properties_file>
+
+Options:
+  -h --help     Show this help screen.
+  --version     Show groot version.
+  --verbose     Print more information.
+)";
+
+
+int main(int argc, const char** argv)
+{
+	auto args = docopt::docopt(USAGE, { argv + 1, argv + argc }, true, "groot 1.0");
+	
+	string zone_directory;
+	string properties_file;
+	
+	auto z = args.find("<zone_directory>");
+	if (z == args.end())
+	{
+		cout << "Error: missing parameter <zone_directory>" << endl;
+		cout << USAGE[0];
+		exit(0);
+	}
+	else
+	{
+		zone_directory = z->second.asString();
+	}
+
+	auto p = args.find("<properties_file>");
+	if (p == args.end())
+	{
+		cout << "Error: missing parameter <properties_file>" << endl;
+		cout << USAGE[0];
+		exit(0);
+	}
+	else
+	{
+		properties_file = p->second.asString();
+	}
+
+	bool verbose = args.find("--verbose")->second.asBool();
+
+	// TODO: validate that the directory and property files exist
+
 	//profiling_net();
-	demo(directory, input);
+	demo(zone_directory, properties_file);
+	return 0;
+
 	return 0;
 }
