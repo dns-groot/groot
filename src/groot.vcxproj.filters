@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="DNS.cpp">
+    <ClCompile Include="groot.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="zone_parser.cpp">
