@@ -1,19 +1,19 @@
 #define BOOST_TEST_MODULE mytests
 #include <boost/test/unit_test.hpp>
-#include "../DNS/RR.h"
+#include "../src/RR.h"
 #include <cassert>
 #include <iomanip>
 #include <vector>
 #include <iostream>
-#include "../DNS/graph.h"
-#include "../DNS/zone.h"
-#include "../DNS/interpreter.h"
+#include "../src/graph.h"
+#include "../src/zone.h"
+#include "../src/interpreter.h"
 
 BOOST_AUTO_TEST_SUITE(ExampleTestSuite)
 
 BOOST_AUTO_TEST_CASE(my_boost_test)
 {
-	std::string directory = "..\\Tests\\ExampleZones\\";
+	std::string directory = "..\\tests\\ExampleZones\\";
 	LabelGraph g;
 	VertexDescriptor root = boost::add_vertex(g);
 	g[root].name.set(".");
@@ -33,7 +33,7 @@ BOOST_AUTO_TEST_CASE(my_boost_test)
 
 BOOST_AUTO_TEST_CASE(small_zone_test)
 {
-	std::string directory = "..\\Tests\\ExampleZones\\";
+	std::string directory = "..\\tests\\ExampleZones\\";
 	LabelGraph g;
 	VertexDescriptor root = boost::add_vertex(g);
 	g[root].name.set(".");
@@ -54,7 +54,7 @@ BOOST_AUTO_TEST_CASE(small_zone_test)
 
 BOOST_AUTO_TEST_CASE(cname_zone_test)
 {
-	std::string directory = "..\\Tests\\ExampleZones\\";
+	std::string directory = "..\\tests\\ExampleZones\\";
 	LabelGraph g;
 	VertexDescriptor root = boost::add_vertex(g);
 	g[root].name.set(".");
@@ -80,7 +80,7 @@ BOOST_AUTO_TEST_CASE(cname_zone_test)
 
 BOOST_AUTO_TEST_CASE(lexerTest)
 {
-	std::string directory = "..\\Tests\\ExampleZones\\";
+	std::string directory = "..\\tests\\ExampleZones\\";
 	LabelGraph g;
 	VertexDescriptor root = boost::add_vertex(g);
 	g[root].name.set(".");

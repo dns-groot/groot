@@ -125,7 +125,7 @@ void BuildZoneLabelGraphs(string filePath, string nameServer, LabelGraph& g, con
 		zoneName += label.get() + ".";
 	}
 	zoneName += "--" + nameServer + ".txt";
-	//serialize(zoneGraph, "..\\Tests\\SerializedGraphs\\" + zoneName);
+	//serialize(zoneGraph, "..\\tests\\SerializedGraphs\\" + zoneName);
 	std::vector<Zone> zones;
 	auto it = nameServer_Zone_Map.find(nameServer);
 	if (it == nameServer_Zone_Map.end()) {
