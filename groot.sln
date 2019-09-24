@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "groot_lib", "groot_lib\groo
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tests", "tests\tests.vcxproj", "{BD35F99A-458A-4D58-8F11-3A0222979FFF}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "groot", "groot\groot.vcxproj", "{87121386-9CBC-4701-9985-C3353B67FFA9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -31,6 +33,14 @@ Global
 		{BD35F99A-458A-4D58-8F11-3A0222979FFF}.Release|x64.Build.0 = Release|x64
 		{BD35F99A-458A-4D58-8F11-3A0222979FFF}.Release|x86.ActiveCfg = Release|Win32
 		{BD35F99A-458A-4D58-8F11-3A0222979FFF}.Release|x86.Build.0 = Release|Win32
+		{87121386-9CBC-4701-9985-C3353B67FFA9}.Debug|x64.ActiveCfg = Debug|x64
+		{87121386-9CBC-4701-9985-C3353B67FFA9}.Debug|x64.Build.0 = Debug|x64
+		{87121386-9CBC-4701-9985-C3353B67FFA9}.Debug|x86.ActiveCfg = Debug|Win32
+		{87121386-9CBC-4701-9985-C3353B67FFA9}.Debug|x86.Build.0 = Debug|Win32
+		{87121386-9CBC-4701-9985-C3353B67FFA9}.Release|x64.ActiveCfg = Release|x64
+		{87121386-9CBC-4701-9985-C3353B67FFA9}.Release|x64.Build.0 = Release|x64
+		{87121386-9CBC-4701-9985-C3353B67FFA9}.Release|x86.ActiveCfg = Release|Win32
+		{87121386-9CBC-4701-9985-C3353B67FFA9}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

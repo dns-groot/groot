@@ -7,10 +7,11 @@
 #include "boost/graph/adjacency_list.hpp"
 #include "boost/graph/topological_sort.hpp"
 #include <boost/graph/graphviz.hpp>
-#include "zone.h"
-#include "graph.h"
-#include "interpreter.h"
-#include "properties.h"
+#include "../groot_lib/zone.h"
+#include "../groot_lib/graph.h"
+#include "../groot_lib/graph.h"
+#include "../groot_lib/interpreter.h"
+#include "../groot_lib/properties.h"
 #include <nlohmann/json.hpp>
 
 
@@ -74,14 +75,14 @@ inline char const* TypeToString(EdgeType c) {
 
 template<class T>
 void serialize(T& data, string fileName) {
-	std::ofstream outputfile{fileName};
+	std::ofstream outputfile{ fileName };
 	boost::archive::text_oarchive oa{ outputfile };
 	oa << data;
 }
 
 template<class T>
 void deserialize(T& data, string fileName) {
-	std::ifstream file1{fileName};
+	std::ifstream file1{ fileName };
 	boost::archive::text_iarchive ia(file1);
 	ia >> data;
 }
@@ -92,7 +93,7 @@ void comTesting(string& file) {
 	std::string line;
 	while (std::getline(infile, line))
 	{
-		ResourceRecord RR(line,"A", RRClass::CLASS_IN, 86400, "10.12.14.16");
+		ResourceRecord RR(line, "A", RRClass::CLASS_IN, 86400, "10.12.14.16");
 		records.push_back(RR);
 	}
 
@@ -148,14 +149,14 @@ void propertySelector(vector<int>& indices, vector<EC>& allQueries) {
 					cout << " Enter the maximum number of rewrites allowed" << endl;
 					int num_rewrites;
 					cin >> num_rewrites;
-					auto l = [num_rewrites = std::move(num_rewrites)](InterpreterGraph& graph, Path& p) {NumberOfRewrites(graph, p, num_rewrites); };
+					auto l = [num_rewrites = std::move(num_rewrites)](InterpreterGraph & graph, Path & p) {NumberOfRewrites(graph, p, num_rewrites); };
 					pathFunctions.push_back(l);
 				}
 				if (s == 4) {
 					cout << " Enter the maximum number of hops allowed" << endl;
 					int num_hops;
 					cin >> num_hops;
-					auto l = [num_hops = std::move(num_hops)](InterpreterGraph& graph, Path& p) {NumberOfHops(graph, p, num_hops); };
+					auto l = [num_hops = std::move(num_hops)](InterpreterGraph & graph, Path & p) {NumberOfHops(graph, p, num_hops); };
 					pathFunctions.push_back(l);
 				}
 			}
@@ -172,6 +173,7 @@ void propertySelector(vector<int>& indices, vector<EC>& allQueries) {
 	//	CheckProperties(intGraphWrapper, intGraphWrapper.intG[intGraphWrapper.startVertex].query.rrTypes, nodeFunctions, pathFunctions);
 	//}
 }
+
 
 void selector(LabelGraph& g, vector<EC>& allQueries) {
 	cout << "Enter an integer from 1-3 to choose one of the following for the input zone files to check for properties:" << endl;
@@ -226,13 +228,13 @@ std::bitset<RRType::N> ProcessProperties(json j, vector<std::function<void(const
 		else {
 			typesReq.set(RRType::NS);
 		}
-		
+
 		if (name == "ResponseConsistency") {
-			auto la = [types = std::move(propertyTypes)](const InterpreterGraph& graph, const Path& p){ CheckSameResponseReturned(graph, p, types); };
+			auto la = [types = std::move(propertyTypes)](const InterpreterGraph & graph, const Path & p){ CheckSameResponseReturned(graph, p, types); };
 			nodeFunctions.push_back(la);
 		}
 		else if (name == "ResponseReturned") {
-			auto la = [types = std::move(propertyTypes)](const InterpreterGraph& graph, const Path& p){ CheckResponseReturned(graph, p, types); };
+			auto la = [types = std::move(propertyTypes)](const InterpreterGraph & graph, const Path & p){ CheckResponseReturned(graph, p, types); };
 			nodeFunctions.push_back(la);
 		}
 		else if (name == "ResponseValue") {
@@ -240,15 +242,15 @@ std::bitset<RRType::N> ProcessProperties(json j, vector<std::function<void(const
 			for (auto v : property["Value"]) {
 				values.push_back(v);
 			}
-			auto la = [types = std::move(propertyTypes), v = std::move(values)](const InterpreterGraph& graph, const Path& p){ CheckResponseValue(graph, p, types, v); };
+			auto la = [types = std::move(propertyTypes), v = std::move(values)](const InterpreterGraph & graph, const Path & p){ CheckResponseValue(graph, p, types, v); };
 			nodeFunctions.push_back(la);
 		}
 		else if (name == "Hops") {
-			auto l = [num_hops = property["Value"]](const InterpreterGraph& graph, const Path& p) {NumberOfHops(graph, p, num_hops); };
+			auto l = [num_hops = property["Value"]](const InterpreterGraph & graph, const Path & p) {NumberOfHops(graph, p, num_hops); };
 			pathFunctions.push_back(l);
 		}
 		else if (name == "Rewrites") {
-			auto l = [num_rewrites = property["Value"]](const InterpreterGraph& graph, const Path& p) {NumberOfRewrites(graph, p, num_rewrites); };
+			auto l = [num_rewrites = property["Value"]](const InterpreterGraph & graph, const Path & p) {NumberOfRewrites(graph, p, num_rewrites); };
 			pathFunctions.push_back(l);
 		}
 		else if (name == "DelegationConsistency") {
@@ -267,9 +269,9 @@ void demo(string directory, string input) {
 	BuildZoneLabelGraphs(directory + "mtn.net.sy.txt", "ns1.mtn.net.sy.", g, root, gNameServerZoneMap);
 	BuildZoneLabelGraphs(directory + "child.mtn.net.sy.txt", "ns1.child.mtn.net.sy.", g, root, gNameServerZoneMap);
 	BuildZoneLabelGraphs(directory + "child.mtn.net.sy (2).txt", "ns2.child.mtn.net.sy.", g, root, gNameServerZoneMap);
-	
+
 	std::ofstream dotfile("LabelGraph.dot");
-	write_graphviz(dotfile, g, make_vertex_writer(boost::get(&LabelVertex::name, g)), make_edge_writer(boost::get(&LabelEdge::type, g))); 
+	write_graphviz(dotfile, g, make_vertex_writer(boost::get(&LabelVertex::name, g)), make_edge_writer(boost::get(&LabelEdge::type, g)));
 
 	std::ifstream i(input);
 	json j;
@@ -295,7 +297,7 @@ void profiling_net() {
 	BuildZoneLabelGraphs(file_path, "e.gtld-servers.net.", g, root, gNameServerZoneMap);
 	vector<EC> allQueries;
 	ECGenerator(g, root, allQueries);
-	cout << "AllQueries:" << allQueries.size() << endl <<flush;
+	cout << "AllQueries:" << allQueries.size() << endl << flush;
 	/*vector<std::function<void(intGraph&, vector<intVertex_t>&, std::bitset<rr_type::N>)>> nodeFunctions;
 	for (auto& q : allQueries) {
 		interpretationGraph_wrapper intGraph_wrapper;
