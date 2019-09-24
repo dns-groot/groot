@@ -4,10 +4,10 @@
 #include <iomanip>
 #include <vector>
 #include <iostream>
-#include "../src/resource_record.h"
-#include "../src/graph.h"
-#include "../src/zone.h"
-#include "../src/interpreter.h"
+#include "../groot_lib/resource_record.h"
+#include "../groot_lib/graph.h"
+#include "../groot_lib/zone.h"
+#include "../groot_lib/interpreter.h"
 
 BOOST_AUTO_TEST_SUITE(ExampleTestSuite)
 

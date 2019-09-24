@@ -22,7 +22,7 @@
     <VCProjectVersion>16.0</VCProjectVersion>
     <ProjectGuid>{D2A89E18-94E6-474F-B0EB-F0881A5478B1}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>src</RootNamespace>
+    <RootNamespace>groot_lib</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
