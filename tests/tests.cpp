@@ -1,10 +1,10 @@
 #define BOOST_TEST_MODULE mytests
 #include <boost/test/unit_test.hpp>
-#include "../src/RR.h"
 #include <cassert>
 #include <iomanip>
 #include <vector>
 #include <iostream>
+#include "../src/resource_record.h"
 #include "../src/graph.h"
 #include "../src/zone.h"
 #include "../src/interpreter.h"

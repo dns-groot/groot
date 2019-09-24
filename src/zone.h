@@ -12,7 +12,7 @@
 #include <boost/serialization/bitset.hpp>
 #include <boost/graph/adj_list_serialize.hpp>
 #include <iostream>
-#include "RR.h"
+#include "resource_record.h"
 #include "graph.h"
 
 using namespace std;

@@ -1,8 +1,8 @@
-#include "RR.h"
 #include <cassert>
 #include <iomanip>
 #include <iostream>
 #include <set>
+#include "resource_record.h"
 
 
 ResourceRecord::ResourceRecord(string name, string type, uint16_t class_, uint32_t ttl, string rdata) : name_(GetLabels(name)), type_(ConvertToRRType(type)), class_(class_), ttl_(ttl), rdata_(rdata) {};

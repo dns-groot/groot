@@ -21,7 +21,7 @@
     <ClCompile Include="zone_parser.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="RR.cpp">
+    <ClCompile Include="resource_record.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="zone_graph.cpp">
@@ -41,7 +41,7 @@
     <Text Include="tests\test1.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="RR.h">
+    <ClInclude Include="resource_record.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="graph.h">

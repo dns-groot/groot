@@ -12,7 +12,7 @@
 #include <boost/graph/adj_list_serialize.hpp>
 #include <iostream>
 #include <map> 
-#include "RR.h"
+#include "resource_record.h"
 #include "graph.h"
 #include "zone.h"
 #include "interpreter.h"

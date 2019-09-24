@@ -10,7 +10,7 @@
 #include <boost\assign\list_of.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string.hpp>
-#include "RR.h"
+#include "resource_record.h"
 #include "zone.h"
 #include "graph.h"
 

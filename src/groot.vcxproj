@@ -157,7 +157,7 @@
     <ClCompile Include="interpreter.cpp" />
     <ClCompile Include="label_graph.cpp" />
     <ClCompile Include="properties.cpp" />
-    <ClCompile Include="RR.cpp" />
+    <ClCompile Include="resource_record.cpp" />
     <ClCompile Include="zone_graph.cpp" />
     <ClCompile Include="zone_parser.cpp" />
   </ItemGroup>
@@ -169,7 +169,7 @@
     <ClInclude Include="interpreter.h" />
     <ClInclude Include="properties.h" />
     <ClInclude Include="zone.h" />
-    <ClInclude Include="RR.h" />
+    <ClInclude Include="resource_record.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
