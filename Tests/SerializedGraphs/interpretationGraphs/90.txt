@@ -1,1 +1,0 @@
-22 serialization::archive 17 0 0 0 0 2 1 0 0 0  0 0 13 shell.net.sy. 0 0 10 1111111111 27 0 1 1 0 0 0 0 0 1 0 11 ns1.tld.sy. 13 shell.net.sy. 10 1111111111 27 1 0 0 1 0 0 0 0 0 1 0 0 0 1 0 0 0 0

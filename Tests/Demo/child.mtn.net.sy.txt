@@ -1,7 +1,0 @@
-child.mtn.net.sy. 	3600	IN	SOA	ns1.tld.sy. dns.tld.sy. 2016122620 3600 3600 2592000 3600
-child.mtn.net.sy.		IN	NS ns1.child.mtn.net.sy.
-child.mtn.net.sy.		IN	NS ns2.child.mtn.net.sy.
-ns1.child.mtn.net.sy.	IN	A	4.4.4.4
-ns2.child.mtn.net.sy.	IN	A 	5.5.5.5
-child.mtn.net.sy.		IN	A	6.6.6.6
-foo.child.mtn.net.sy.	IN	A	7.7.7.8
