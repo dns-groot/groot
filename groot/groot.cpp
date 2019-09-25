@@ -364,6 +364,4 @@ int main(int argc, const char** argv)
 	//profiling_net();
 	demo(zone_directory, properties_file);
 	return 0;
-
-	return 0;
 }
