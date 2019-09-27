@@ -67,7 +67,7 @@ make_vertex_writer(VertexMap w) {
 
 inline char const* TypeToString(EdgeType c) {
 	switch (c) {
-	case EdgeType::normal:   return "black";
+	case EdgeType::normal:  return "black";
 	case EdgeType::cname:   return "green";
 	case EdgeType::dname:   return "red";
 	}
@@ -269,7 +269,7 @@ void demo(string directory, string input) {
 	BuildZoneLabelGraphs(directory + "net.sy.txt", "ns1.tld.sy.", g, root, gNameServerZoneMap);
 	BuildZoneLabelGraphs(directory + "mtn.net.sy.txt", "ns1.mtn.net.sy.", g, root, gNameServerZoneMap);
 	BuildZoneLabelGraphs(directory + "child.mtn.net.sy.txt", "ns1.child.mtn.net.sy.", g, root, gNameServerZoneMap);
-	BuildZoneLabelGraphs(directory + "child.mtn.net.sy (2).txt", "ns2.child.mtn.net.sy.", g, root, gNameServerZoneMap);
+	BuildZoneLabelGraphs(directory + "child.mtn.net.sy-2.txt", "ns2.child.mtn.net.sy.", g, root, gNameServerZoneMap);
 
 	std::ofstream dotfile("LabelGraph.dot");
 	write_graphviz(dotfile, g, make_vertex_writer(boost::get(&LabelVertex::name, g)), make_edge_writer(boost::get(&LabelEdge::type, g)));
@@ -317,12 +317,13 @@ a collection of zone files along with a collection of user-
 defined properties and systematically checks if any input to
 DNS can lead to a property violation for the properties.
 
-Usage: groot [--verbose] <zone_directory> <properties_file>
+Usage: groot [-hdv] [--properties=<properties_file>] <zone_directory>
 
 Options:
   -h --help     Show this help screen.
   --version     Show groot version.
-  --verbose     Print more information.
+  -d --debug    Generate debugging dot files.
+  -v --verbose  Print more information.  
 )";
 
 
@@ -330,6 +331,10 @@ int main(int argc, const char** argv)
 {
 	auto args = docopt::docopt(USAGE, { argv + 1, argv + argc }, true, "groot 1.0");
 	
+	// for (auto const& arg : args) {
+	//	std::cout << arg.first << arg.second << std::endl;
+	// }
+
 	string zone_directory;
 	string properties_file;
 	
@@ -345,19 +350,14 @@ int main(int argc, const char** argv)
 		zone_directory = z->second.asString();
 	}
 
-	auto p = args.find("<properties_file>");
-	if (p == args.end())
-	{
-		cout << "Error: missing parameter <properties_file>" << endl;
-		cout << USAGE[0];
-		exit(0);
-	}
-	else
+	auto p = args.find("--properties");
+	if (p != args.end())
 	{
 		properties_file = p->second.asString();
 	}
 
 	bool verbose = args.find("--verbose")->second.asBool();
+	bool debug_dot = args.find("--debug")->second.asBool();
 
 	// TODO: validate that the directory and property files exist
 
