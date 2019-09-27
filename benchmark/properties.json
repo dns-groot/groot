@@ -1,0 +1,11 @@
+[
+	{
+		"Domain": ".",
+		"SubDomain": false,
+		"Properties":[
+			{
+				"PropertyName": "DelegationConsistency"
+			}
+		]
+	}
+]

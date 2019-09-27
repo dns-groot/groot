@@ -308,6 +308,26 @@ void profiling_net() {
 	}*/
 }
 
+void bench(string directory, string input) {
+	LabelGraph g;
+	VertexDescriptor root = boost::add_vertex(g);
+	g[root].name.set(".");
+	gTopNameServers.push_back(".");
+	BuildZoneLabelGraphs(directory + "root.txt", ".", g, root, gNameServerZoneMap);
+	std::ifstream i(input);
+	json j;
+	i >> j;
+	vector<std::function<void(const InterpreterGraph&, const vector<InterpreterVertexDescriptor>&)>> nodeFunctions;
+	vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions;
+	for (auto& query : j) {
+		nodeFunctions.clear();
+		pathFunctions.clear();
+		std::bitset<RRType::N> typesReq = ProcessProperties(query["Properties"], nodeFunctions, pathFunctions);
+		GenerateECAndCheckProperties(g, root, query["Domain"], typesReq, query["SubDomain"], nodeFunctions, pathFunctions);
+		cout << endl;
+	}
+}
+
 
 static const char USAGE[] =
 R"(groot 1.0
@@ -362,6 +382,6 @@ int main(int argc, const char** argv)
 	// TODO: validate that the directory and property files exist
 
 	//profiling_net();
-	demo(zone_directory, properties_file);
+	bench(zone_directory, properties_file);
 	return 0;
 }
