@@ -21,9 +21,7 @@ using namespace std;
 //Label Graph
 struct LabelVertex { 
 	Label name; 
-	std::bitset<RRType::N> rrTypesPresent;
 	int16_t	len = -1;
-	std::vector<int> ECindicies;
 private:
 	friend class boost::serialization::access;
 	template <typename Archive>
@@ -37,8 +35,7 @@ private:
 
 enum EdgeType {
 	normal = 1,
-	cname = 2,
-	dname = 3
+	dname = 2
 };
 
 struct LabelEdge { 
@@ -70,16 +67,12 @@ void LabelGraphBuilder(ResourceRecord&, LabelGraph&, const VertexDescriptor);
 struct EC {
 	boost::optional<std::vector<Label>> excluded;
 	vector<Label> name;
-	std::bitset<RRType::N> rrTypes;
-	VertexDescriptor id=0;
-	
+
 private:
 	friend class boost::serialization::access;
 	template <typename Archive>
 	void serialize(Archive& ar, const unsigned int version) {
 		ar& name;
-		ar& rrTypes;
-		ar& id;
 		ar& excluded;
 	}
 };
