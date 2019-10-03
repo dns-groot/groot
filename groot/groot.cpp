@@ -382,6 +382,6 @@ int main(int argc, const char** argv)
 	// TODO: validate that the directory and property files exist
 
 	//profiling_net();
-	bench(zone_directory, properties_file);
+	demo(zone_directory, properties_file);
 	return 0;
 }
