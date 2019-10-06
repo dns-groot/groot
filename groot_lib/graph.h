@@ -67,17 +67,16 @@ void LabelGraphBuilder(ResourceRecord&, LabelGraph&, const VertexDescriptor);
 struct EC {
 	boost::optional<std::vector<Label>> excluded;
 	vector<Label> name;
+	std::bitset<RRType::N> rrTypes;
 
 private:
 	friend class boost::serialization::access;
 	template <typename Archive>
 	void serialize(Archive& ar, const unsigned int version) {
 		ar& name;
+		ar& rrTypes;
 		ar& excluded;
 	}
 };
 
 typedef struct EC EC;
-
-void ECGenerator(LabelGraph& g, const VertexDescriptor root, vector<EC>& allQueries);
-boost::optional<std::bitset<RRType::N>> CNAMELookup(const LabelGraph& g, VertexDescriptor start, std::unordered_set<VertexDescriptor> visited_nodes);
