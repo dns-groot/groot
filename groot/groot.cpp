@@ -29,9 +29,6 @@ public:
 		if (type == normal) {
 			out << "[color=black]";
 		}
-		else if (type == cname) {
-			out << "[color=green]";
-		}
 		else {
 			out << "[color=red]";
 		}
@@ -68,7 +65,6 @@ make_vertex_writer(VertexMap w) {
 inline char const* TypeToString(EdgeType c) {
 	switch (c) {
 	case EdgeType::normal:  return "black";
-	case EdgeType::cname:   return "green";
 	case EdgeType::dname:   return "red";
 	}
 	return ""; // not known
@@ -86,32 +82,6 @@ void deserialize(T& data, string fileName) {
 	std::ifstream file1{ fileName };
 	boost::archive::text_iarchive ia(file1);
 	ia >> data;
-}
-
-void comTesting(string& file) {
-	vector<ResourceRecord> records;
-	std::ifstream infile(file);
-	std::string line;
-	while (std::getline(infile, line))
-	{
-		ResourceRecord RR(line, "A", RRClass::CLASS_IN, 86400, "10.12.14.16");
-		records.push_back(RR);
-	}
-
-	LabelGraph g;
-	//Add root node
-	VertexDescriptor root = boost::add_vertex(g);
-	g[root].name.set(".");
-	LabelGraphBuilder(records, g, root);
-
-	Zone z;
-	ZoneGraphBuilder(records, z);
-	serialize(z, "com_Zone.txt");
-
-	vector<EC> allQueries;
-	ECGenerator(g, root, allQueries);
-	serialize(allQueries, "com_EC.txt");
-
 }
 
 void propertySelector(vector<int>& indices, vector<EC>& allQueries) {
@@ -289,25 +259,6 @@ void demo(string directory, string input) {
 }
 
 
-void profiling_net() {
-	string file_path = "C:\\Users\\t-sikaka\\Desktop\\dns\\ZoneFiles\\net\\net_n.txt";
-	LabelGraph g;
-	VertexDescriptor root = boost::add_vertex(g);
-	g[root].name.set(".");
-	gTopNameServers.push_back("e.gtld-servers.net.");
-	BuildZoneLabelGraphs(file_path, "e.gtld-servers.net.", g, root, gNameServerZoneMap);
-	vector<EC> allQueries;
-	ECGenerator(g, root, allQueries);
-	cout << "AllQueries:" << allQueries.size() << endl << flush;
-	/*vector<std::function<void(intGraph&, vector<intVertex_t>&, std::bitset<rr_type::N>)>> nodeFunctions;
-	for (auto& q : allQueries) {
-		interpretationGraph_wrapper intGraph_wrapper;
-		build_interpreter_graph(q, intGraph_wrapper);
-		vector<intVertex_t> endNodes;
-		check_properties(intGraph_wrapper, intGraph_wrapper.intG[intGraph_wrapper.startVertex].query.rrTypes, nodeFunctions, pathFunctions);
-	}*/
-}
-
 void bench(string directory, string input) {
 	LabelGraph g;
 	VertexDescriptor root = boost::add_vertex(g);
@@ -382,6 +333,8 @@ int main(int argc, const char** argv)
 	// TODO: validate that the directory and property files exist
 
 	//profiling_net();
+	//bench(zone_directory, properties_file);
 	demo(zone_directory, properties_file);
+
 	return 0;
 }

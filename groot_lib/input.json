@@ -32,7 +32,7 @@
 				"Types": ["A","MX"]
 			}
 		]
-	}
+	},
 	{
 		"Domain": "bar.mtn.net.sy.",
 		"SubDomain": false,

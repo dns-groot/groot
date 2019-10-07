@@ -338,14 +338,7 @@ ASALocalRun/
 
 # BeatPulse healthcheck temp database
 healthchecksdb
-/DNS/exa.png
-/DNS/graph.dot
-/DNS/sample.dot
-/DNS/root.png
-/DNS/archive.txt
-/graph.dot
 *.diagsession
 *.dot
 *.png
-/DNS/EC.txt
-/DNS/zoneGraph.txt
+
