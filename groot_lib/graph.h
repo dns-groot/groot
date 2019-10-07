@@ -27,9 +27,7 @@ private:
 	template <typename Archive>
 	void serialize(Archive& ar, const unsigned int version) {
 		ar& name;
-		ar& rrTypesPresent;
 		ar& len;
-		ar& ECindicies;
 	}
 };
 
