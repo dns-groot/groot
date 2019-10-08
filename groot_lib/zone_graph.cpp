@@ -178,12 +178,30 @@ boost::optional<vector<ResourceRecord>> QueryLookUp(Zone& z, EC& query, bool& co
 	vector<ResourceRecord> answer;
 
 	if (query.name.size() != index) {
-		// WildCard child case is not possible as per the EC generation
+	
+		//WildCard Child case
+		for (ZoneVertexDescriptor v : boost::make_iterator_range(adjacent_vertices(closetEncloser, z.g))) {
+			if (z.g[v].name.get() == "*") {
+				completeMatch = true;
+				for (auto& record : z.g[v].rrs) {
+					if (record.get_type() == RRType::CNAME) {
+						answer.push_back(record);
+						return boost::make_optional(answer); //If CNAME then there will be no other record
+					}
+					if (query.rrTypes[record.get_type()] == 1) {
+						answer.push_back(record);
+					}
+					//NS records at a wildcard node are forbidden.
+				}
+				return boost::make_optional(answer);
+			}
+		}
+
 		completeMatch = false;
 		vector<ResourceRecord> NSRecords;
 		for (auto& record : z.g[closetEncloser].rrs) {
 			if (record.get_type() == RRType::DNAME ) {
-				//DNAME is a singleton type, there can be other records at this node but since we have labels to match still we return
+				//DNAME is a singleton type, there can be other records at this node but since we have labels left to match we return
 				answer.push_back(record);
 				return boost::make_optional(answer);
 			}
@@ -223,7 +241,6 @@ boost::optional<vector<ResourceRecord>> QueryLookUp(Zone& z, EC& query, bool& co
 				//If there is wildcard and non matching types then also its a NXDOMAIN case
 				for (ZoneVertexDescriptor v : boost::make_iterator_range(adjacent_vertices(closetEncloser, z.g))) {
 					if (z.g[v].name.get() == "*") {
-						vector<ResourceRecord> NSRecords;
 						for (auto& record : z.g[v].rrs) {
 							if (record.get_type() == RRType::CNAME) {
 								answer.push_back(record);

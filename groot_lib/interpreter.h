@@ -41,7 +41,7 @@ private:
 	}
 };
 
-typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS, InterpreterVertex, InterpreterEdge> InterpreterGraph;
+typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::bidirectionalS, InterpreterVertex, InterpreterEdge> InterpreterGraph;
 
 //Some typedefs for simplicity
 typedef boost::graph_traits<InterpreterGraph>::vertex_descriptor InterpreterVertexDescriptor;

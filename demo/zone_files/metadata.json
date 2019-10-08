@@ -1,0 +1,23 @@
+{
+	"TopNameServers":[
+		"ns1.tld.sy."
+	],
+	"ZoneFiles":[
+		{
+			"FileName": "net.sy.txt",
+			"NameServer": "ns1.tld.sy."
+		},
+		{
+			"FileName": "mtn.net.sy.txt",
+			"NameServer": "ns1.mtn.net.sy."
+		},
+		{
+			"FileName": "child.mtn.net.sy.txt",
+			"NameServer": "ns1.child.mtn.net.sy."
+		},
+		{
+			"FileName": "child.mtn.net.sy-2.txt",
+			"NameServer": "ns2.child.mtn.net.sy."
+		}
+	]
+}

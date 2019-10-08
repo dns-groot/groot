@@ -1,0 +1,11 @@
+{
+	"TopNameServers":[
+		"a.root-servers.net."
+	],
+	"ZoneFiles":[
+		{
+			"FileName": "root.txt",
+			"NameServer": "a.root-servers.net."
+		}
+	]
+}

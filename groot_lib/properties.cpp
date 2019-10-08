@@ -92,12 +92,6 @@ void CheckSameResponseReturned(const InterpreterGraph& graph, const vector<Inter
 
 void PrettyPrintResponseValue(vector<string>& response, vector<string>& value, const InterpreterGraph& graph, const InterpreterVertexDescriptor& node) {
 
-	/*if (graph[node].query.excluded) {
-		cout << "Response other than " << value << " was found for Q: ~{ }.";
-	}
-	else {
-		cout << "Response other than " << value << " was found for Q:";
-	}*/
 	std::string s = std::accumulate(value.begin(), value.end(), std::string{});
 	//printf(ANSI_COLOR_RED     "Response Mismatch:"     ANSI_COLOR_RESET "\n");
 	cout << "Response Mismatch:" << endl;
@@ -157,7 +151,6 @@ void NumberOfRewrites(const InterpreterGraph& graph, const Path& p, int num_rewr
 		else {
 			cout << " for Q: ";
 		}
-		//cout << graph[p[0]].query.name << " for T:" << RRTypesToString(graph[p[0]].query.rrTypes)<<endl;
 	}
 }
 
@@ -189,7 +182,8 @@ string QueryFormat(const EC& query) {
 
 void CheckDelegationConsistency(const InterpreterGraph& graph, const Path& p)
 {
-	if (p.size() > 1) {
+	//The path should have at least three nodes including the dummy node.
+	if (p.size() > 2) {
 		//TODO: Parent and Child should be answering for the user input query
 		InterpreterVertexDescriptor lastNode = p.back();
 		InterpreterVertexDescriptor parentNode = p[p.size() - 2];
@@ -230,20 +224,13 @@ void CheckLameDelegation(const InterpreterGraph& graph, const Path& p)
 void DFS(InterpreterGraph& graph, InterpreterVertexDescriptor start, Path p, vector<InterpreterVertexDescriptor>& endNodes, vector<std::function<void(const InterpreterGraph&, const Path&)>>& pathFunctions) {
 	EC& query = graph[start].query;
 	if (graph[start].ns != "") {
-		// If a request type disappers in the current query then it was resolved in the previous step (happens for CNAME only)
-		std::bitset<RRType::N> typesResolved;
-		EC& previousQuery = graph[p.back()].query;
-		for (int i = 0; i < RRType::N; i++) {
-			if (query.rrTypes[i] == 0 && previousQuery.rrTypes[i] == 1) {
-				typesResolved.set(i);
-			}
-		}
-		if (typesResolved.count() > 0) {
-			//CNAME got resolved in the previous step
-			//Path detected
-			endNodes.push_back(start);
-			for (auto& f : pathFunctions) {
-				f(graph, p);
+		//If the response is a CNAME and request type contains CNAME then it is resolved in this step
+		if (graph[start].answer && graph[start].answer.get().size()>0 && graph[start].answer.get()[0].get_type() == RRType::CNAME && query.rrTypes[RRType::CNAME]) {
+			if (endNodes.end() == std::find(endNodes.begin(), endNodes.end(), start)) {
+				endNodes.push_back(start);
+				for (auto& f : pathFunctions) {
+					f(graph, p);
+				}
 			}
 		}
 	}
@@ -254,22 +241,25 @@ void DFS(InterpreterGraph& graph, InterpreterVertexDescriptor start, Path p, vec
 		}
 	}
 	p.push_back(start);
-	for (EdgeDescriptor edge : boost::make_iterator_range(out_edges(start, graph))) {
+	for (InterpreterEdgeDescriptor edge : boost::make_iterator_range(out_edges(start, graph))) {
 		//TODO : Edges that have side query
 		DFS(graph, edge.m_target, p, endNodes, pathFunctions);
 	}
 	if (out_degree(start, graph) == 0) {
 		// Last node in the graph
-		endNodes.push_back(start);
-		//Path detected
-		for (auto& f : pathFunctions) {
-			f(graph, p);
+		if (endNodes.end() == std::find(endNodes.begin(), endNodes.end(), start)) {
+			endNodes.push_back(start);
+			//Path detected
+			for (auto& f : pathFunctions) {
+				f(graph, p);
+			}
 		}
 	}
 }
 
 void CheckPropertiesOnEC(EC& query, vector<std::function<void(const InterpreterGraph&, const vector<InterpreterVertexDescriptor>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions)
-{
+{	
+	cout<<QueryFormat(query)<<endl;
 	InterpreterGraphWrapper intGraphWrapper;
 	BuildInterpretationGraph(query, intGraphWrapper);
 	vector<InterpreterVertexDescriptor> endNodes;
@@ -284,6 +274,8 @@ void CheckPropertiesOnEC(EC& query, vector<std::function<void(const InterpreterG
 void SearchNode(LabelGraph& g, VertexDescriptor start, boost::optional<VertexDescriptor>& closestEncloser, vector<Label> labels, int& index) {
 	// Search for the closet node in the label graph for the user input by traversing DNAME edges also.
 	// We return only one node to be the closest Encloser.
+	// TODO: Return multiple closest enclosers?
+	// A wildcardNode on the way could encompass the query
 	closestEncloser = start;
 	if (labels.size() == index) {
 		return;
@@ -298,18 +290,19 @@ void SearchNode(LabelGraph& g, VertexDescriptor start, boost::optional<VertexDes
 	}
 	int16_t before_len = g[start].len;
 	g[start].len = index;
-	if (g[start].rrTypesPresent[RRType::DNAME] == 1) {
-		//DNAME found 
-		//TODO : Assumption single DNAME edge and the node does not have children. 
-		for (EdgeDescriptor edge : boost::make_iterator_range(out_edges(closestEncloser.get(), g))) {
-			if (g[edge].type == dname) {
-				closestEncloser = edge.m_target;
-				SearchNode(g, edge.m_target, closestEncloser, labels, index);
-				break;
-			}
+	bool foundDname = false;
+		
+	for (EdgeDescriptor edge : boost::make_iterator_range(out_edges(closestEncloser.get(), g))) {
+		if (g[edge].type == dname) {
+			//DNAME found 
+			//TODO : Assumption single DNAME edge and the node does not have children. 
+			closestEncloser = edge.m_target;
+			SearchNode(g, edge.m_target, closestEncloser, labels, index);
+			foundDname = true;
+			break;
 		}
 	}
-	else {
+	if (!foundDname) {
 		if (gDomainChildLabelMap.find(closestEncloser.get()) != gDomainChildLabelMap.end()) {
 			//Check if a hash-map exists for child labels.
 			LabelMap& m = gDomainChildLabelMap.find(closestEncloser.get())->second;
@@ -340,72 +333,29 @@ void SearchNode(LabelGraph& g, VertexDescriptor start, boost::optional<VertexDes
 	return;
 }
 
-void WildCardChildEC(std::vector<Label>& childrenLabels, vector<Label>& labels, std::bitset<RRType::N>& wildcardTypes, std::bitset<RRType::N>& typesReq, int index, vector<std::function<void(const InterpreterGraph&, const vector<InterpreterVertexDescriptor>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions) {
-	childrenLabels.push_back(Label("*"));
-	std::vector<Label> copied = childrenLabels;
-	if (wildcardTypes.count() > 0) {
-		// Cases matching wildcard
-		if ((wildcardTypes & typesReq).count() > 0) {
-			//If user has requested some type present
-			EC wildCardMatch;
-			wildCardMatch.name.clear();
-			for (int i = 0; i < index; i++) {
-				wildCardMatch.name.push_back(labels[i]);
-			}
-			wildCardMatch.rrTypes = wildcardTypes;
-			wildCardMatch.excluded = boost::make_optional(std::move(childrenLabels));
-			//EC generated
-			CheckPropertiesOnEC(wildCardMatch, nodeFunctions, pathFunctions);
-		}
+void WildCardChildEC(std::vector<Label>& childrenLabels, vector<Label>& labels, std::bitset<RRType::N>& typesReq, int index, vector<std::function<void(const InterpreterGraph&, const vector<InterpreterVertexDescriptor>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions) {
 
+	EC wildCardMatch;
+	wildCardMatch.name.clear();
+	for (int i = 0; i < index; i++) {
+		wildCardMatch.name.push_back(labels[i]);
 	}
-	if (wildcardTypes.count() < RRType::N) {
-		std::bitset<RRType::N> flipped = wildcardTypes;
-		flipped.flip();
-		if ((flipped & typesReq).count() > 0) {
-			// All other non-existent queries
-			EC nonExistent;
-			nonExistent.name.clear();
-			for (int i = 0; i < index; i++) {
-				nonExistent.name.push_back(labels[i]);
-			}
-			nonExistent.rrTypes = std::move(flipped);
-			nonExistent.excluded = boost::make_optional(std::move(copied));
-			//EC generated
-			CheckPropertiesOnEC(nonExistent, nodeFunctions, pathFunctions);
-		}
-	}
+	wildCardMatch.rrTypes = typesReq;
+	wildCardMatch.excluded = boost::make_optional(std::move(childrenLabels));
+	//EC generated
+	CheckPropertiesOnEC(wildCardMatch, nodeFunctions, pathFunctions);
 }
 
-void NodeEC(LabelGraph& g, VertexDescriptor& node, vector<Label>& name, boost::optional<std::bitset<RRType::N>>& cnameTypes, std::bitset<RRType::N>& typesReq, vector<std::function<void(const InterpreterGraph&, const vector<InterpreterVertexDescriptor>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions) {
+void NodeEC(LabelGraph& g, VertexDescriptor& node, vector<Label>& name, std::bitset<RRType::N>& typesReq, vector<std::function<void(const InterpreterGraph&, const vector<InterpreterVertexDescriptor>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions) {
 
-	// Node and the types present at it if the node is not skipped.
-	if ((g[node].rrTypesPresent & typesReq).count() > 0) {
-		EC present;
-		present.name = name;
-		present.rrTypes = g[node].rrTypesPresent;
-		if (cnameTypes) {
-			present.rrTypes |= cnameTypes.value();
-		}
-		//EC generated
-		CheckPropertiesOnEC(present, nodeFunctions, pathFunctions);
-	}
-	std::bitset<RRType::N> flipped = g[node].rrTypesPresent;
-	if (cnameTypes) {
-		flipped |= cnameTypes.value();
-	}
-	flipped.flip();
-	if ((flipped & typesReq).count() > 0) {
-		// Node and not the types present at it
-		EC absent;
-		absent.name = name;
-		absent.rrTypes = flipped;
-		//EC generated
-		CheckPropertiesOnEC(absent, nodeFunctions, pathFunctions);
-	}
+	EC present;
+	present.name = name;
+	present.rrTypes = typesReq;
+	//EC generated
+	CheckPropertiesOnEC(present, nodeFunctions, pathFunctions);
 }
 
-void SubDomainECGeneration(LabelGraph& g, VertexDescriptor  start, vector<Label> parentDomainName, std::bitset<RRType::N> typesReq, bool skipLabel, vector<std::function<void(const InterpreterGraph&, const vector<InterpreterVertexDescriptor>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions) {
+void SubDomainECGeneration(LabelGraph& g, VertexDescriptor start, vector<Label> parentDomainName, std::bitset<RRType::N> typesReq, bool skipLabel, vector<std::function<void(const InterpreterGraph&, const vector<InterpreterVertexDescriptor>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions) {
 
 	int len = 0;
 	for (Label l : parentDomainName) {
@@ -424,7 +374,7 @@ void SubDomainECGeneration(LabelGraph& g, VertexDescriptor  start, vector<Label>
 		//Empty name vector implies root
 		name.push_back(nodeLabel);
 	}
-	if (!skipLabel) {
+	else if (!skipLabel) {
 		//DNAME can not occur at the root.
 		name.push_back(nodeLabel);
 	}
@@ -435,32 +385,17 @@ void SubDomainECGeneration(LabelGraph& g, VertexDescriptor  start, vector<Label>
 	}
 	g[start].len = nodeLen;
 	std::vector<Label> childrenLabels;
-	std::optional<std::bitset<RRType::N>> wildcardTypes;
-	boost::optional<std::bitset<RRType::N>> cnameTypes;
-	VertexDescriptor wildcardNode{};
+	std::optional<VertexDescriptor>  wildcardNode;
 
 	for (EdgeDescriptor edge : boost::make_iterator_range(out_edges(start, g))) {
 		if (g[edge].type == normal) {
 			if (g[edge.m_target].name.get() == "*") {
 				wildcardNode = edge.m_target;
-				// If the child wildcard is a CNAME then perform the CNAME lookup to get the types possible
-				if (g[edge.m_target].rrTypesPresent[RRType::CNAME] == 1) {
-					auto types = CNAMELookup(g, edge.m_target, std::unordered_set<VertexDescriptor>());
-					if (types) {
-						wildcardTypes = make_optional(g[edge.m_target].rrTypesPresent | types.value());
-					}
-				}
-				else {
-					wildcardTypes = make_optional(g[edge.m_target].rrTypesPresent);
-				}
 			}
 			else {
 				childrenLabels.push_back(g[edge.m_target].name);
 			}
 			SubDomainECGeneration(g, edge.m_target, name, typesReq, false, nodeFunctions, pathFunctions);
-		}
-		if (g[edge].type == cname) {
-			cnameTypes = CNAMELookup(g, start, std::unordered_set<VertexDescriptor>());
 		}
 		if (g[edge].type == dname) {
 			SubDomainECGeneration(g, edge.m_target, name, typesReq, true, nodeFunctions, pathFunctions);
@@ -469,14 +404,14 @@ void SubDomainECGeneration(LabelGraph& g, VertexDescriptor  start, vector<Label>
 
 	g[start].len = beforeLen;
 	if (!skipLabel) {
-		// Node and the types present at it if the node is not skipped.
-		NodeEC(g, start, name, cnameTypes, typesReq, nodeFunctions, pathFunctions);
+		// EC for the node if the node is not skipped.
+		NodeEC(g, start, name, typesReq, nodeFunctions, pathFunctions);
 	}
-	if (wildcardTypes) {
-		WildCardChildEC(childrenLabels, name, wildcardTypes.value(), typesReq, name.size(), nodeFunctions, pathFunctions);
+	if (wildcardNode) {
+		WildCardChildEC(childrenLabels, name, typesReq, name.size(), nodeFunctions, pathFunctions);
 	}
 	else {
-		//The user input is part of non-existent child category
+		//Non-existent child category
 		EC nonExistent;
 		nonExistent.name = name;
 		nonExistent.rrTypes.flip();
@@ -509,11 +444,7 @@ void GenerateECAndCheckProperties(LabelGraph& g, VertexDescriptor root, string u
 				SubDomainECGeneration(g, closetEncloser.value(), parentDomainName, typesReq, false, nodeFunctions, pathFunctions);
 			}
 			else {
-				boost::optional<std::bitset<RRType::N>> cnameTypes;
-				if (g[closetEncloser.value()].rrTypesPresent[RRType::CNAME]) {
-					cnameTypes = CNAMELookup(g, closetEncloser.value(), std::unordered_set<VertexDescriptor>());
-				}
-				NodeEC(g, closetEncloser.value(), labels, cnameTypes, typesReq, nodeFunctions, pathFunctions);
+				NodeEC(g, closetEncloser.value(), labels, typesReq, nodeFunctions, pathFunctions);
 			}
 		}
 		else {
@@ -522,29 +453,21 @@ void GenerateECAndCheckProperties(LabelGraph& g, VertexDescriptor root, string u
 				cout << "The complete domain: " << userInput << " doesn't exist so sub-domain is not valid";
 			}
 			std::vector<Label> childrenLabels;
-			std::optional<std::bitset<RRType::N>> wildcardTypes;
+			std::optional<VertexDescriptor>  wildcardNode;
+
 			for (EdgeDescriptor edge : boost::make_iterator_range(out_edges(closetEncloser.get(), g))) {
 				if (g[edge].type == normal) {
 					if (g[edge.m_target].name.get() == "*") {
-						// If the child wildcard is a CNAME then perform the CNAME lookup to get the types possible
-						if (g[edge.m_target].rrTypesPresent[RRType::CNAME] == 1) {
-							auto types = CNAMELookup(g, edge.m_target, std::unordered_set<VertexDescriptor>());
-							if (types) {
-								wildcardTypes = make_optional(g[edge.m_target].rrTypesPresent | types.value());
-							}
-						}
-						else {
-							wildcardTypes = make_optional(g[edge.m_target].rrTypesPresent);
-						}
+						wildcardNode = edge.m_target;
 					}
 					else {
 						childrenLabels.push_back(g[edge.m_target].name);
 					}
 				}
 			}
-			if (wildcardTypes) {
+			if (wildcardNode) {
 				//The user input is matched by a wildcard
-				WildCardChildEC(childrenLabels, labels, wildcardTypes.value(), typesReq, index, nodeFunctions, pathFunctions);
+				WildCardChildEC(childrenLabels, labels, typesReq, index, nodeFunctions, pathFunctions);
 			}
 			else {
 				//The user input is part of non-existent child category
@@ -555,8 +478,8 @@ void GenerateECAndCheckProperties(LabelGraph& g, VertexDescriptor root, string u
 				}
 				nonExistent.rrTypes.flip();
 				nonExistent.excluded = boost::make_optional(std::move(childrenLabels));
-				CheckPropertiesOnEC(nonExistent, nodeFunctions, pathFunctions);
 				//EC generated
+				CheckPropertiesOnEC(nonExistent, nodeFunctions, pathFunctions);
 			}
 		}
 	}

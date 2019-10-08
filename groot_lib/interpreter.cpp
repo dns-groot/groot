@@ -453,19 +453,19 @@ void StartFromTop(InterpreterGraph& intG, InterpreterVertexDescriptor edgeStartN
 
 void BuildInterpretationGraph(EC& query, InterpreterGraphWrapper& intGraph_wrapper)
 {	
-	std::map<string, std::vector<InterpreterVertexDescriptor>> nameServer_nodes_map;
+	std::map<string, std::vector<InterpreterVertexDescriptor>> nameServerNodesMap;
 	//Add a dummy vertex as the start node over the top Name Servers
 	intGraph_wrapper.startVertex = boost::add_vertex(intGraph_wrapper.intG);
 	intGraph_wrapper.intG[intGraph_wrapper.startVertex].ns = "";
 	intGraph_wrapper.intG[intGraph_wrapper.startVertex].query = query;
-	nameServer_nodes_map.insert(std::pair<string, std::vector<InterpreterVertexDescriptor>>("", std::vector<InterpreterVertexDescriptor>()));
-	auto it = nameServer_nodes_map.find("");
-	if (it != nameServer_nodes_map.end()) {
+	nameServerNodesMap.insert(std::pair<string, std::vector<InterpreterVertexDescriptor>>("", std::vector<InterpreterVertexDescriptor>()));
+	auto it = nameServerNodesMap.find("");
+	if (it != nameServerNodesMap.end()) {
 		it->second.push_back(intGraph_wrapper.startVertex);
 	}
 	else {
 		cout << "Unable to insert into map" << endl;
 		std::exit(EXIT_FAILURE);
 	}
-	StartFromTop(intGraph_wrapper.intG, intGraph_wrapper.startVertex, query, nameServer_nodes_map);
+	StartFromTop(intGraph_wrapper.intG, intGraph_wrapper.startVertex, query, nameServerNodesMap);
 }
