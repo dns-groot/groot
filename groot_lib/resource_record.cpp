@@ -136,6 +136,12 @@ RRType	ConvertToRRType(string type) {
 	if (type == "SRV") {
 		return SRV;
 	}
+	if (type == "RRSIG") {
+		return SRV;
+	}
+	if (type == "NSEC") {
+		return SRV;
+	}
 	return N;
 }
 

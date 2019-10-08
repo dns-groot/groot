@@ -14,6 +14,8 @@
 #include "../groot_lib/interpreter.h"
 #include "../groot_lib/properties.h"
 #include "docopt/docopt.h"
+#include <boost/filesystem.hpp>
+
 
 
 using namespace std;
@@ -84,107 +86,6 @@ void deserialize(T& data, string fileName) {
 	ia >> data;
 }
 
-void propertySelector(vector<int>& indices, vector<EC>& allQueries) {
-	cout << "\nEnter a comma(,) separated list of integers to check the following properties" << endl;
-	cout << "1: Some reponse returned" << endl;
-	cout << "2: Same response returned" << endl;
-	cout << "3: Number of rewrites " << endl;
-	cout << "4: Number of hops" << endl;
-	string userInput;
-
-	vector<std::function<void(InterpreterGraph&, vector<InterpreterVertexDescriptor>&, std::bitset<RRType::N>)>> nodeFunctions;
-	vector<std::function<void(InterpreterGraph&, Path&)>> pathFunctions;
-	while (true) {
-		cin >> userInput;
-		vector<std::string> labels;
-		boost::algorithm::split(labels, userInput, boost::is_any_of(","));
-		bool found = false;
-		for (auto i : labels) {
-			int s = std::stoi(i);
-			if (s > 5 || s < 0) {
-				cout << "Enter comma separated list of integers or 0 to exit" << endl;
-				break;
-			}
-			else {
-				found = true;
-				if (s == 0) {
-					return;
-				}
-				if (s == 1) {
-					nodeFunctions.push_back(CheckResponseReturned);
-				}
-				if (s == 2) {
-					nodeFunctions.push_back(CheckSameResponseReturned);
-				}
-				if (s == 3) {
-					cout << " Enter the maximum number of rewrites allowed" << endl;
-					int num_rewrites;
-					cin >> num_rewrites;
-					auto l = [num_rewrites = std::move(num_rewrites)](InterpreterGraph & graph, Path & p) {NumberOfRewrites(graph, p, num_rewrites); };
-					pathFunctions.push_back(l);
-				}
-				if (s == 4) {
-					cout << " Enter the maximum number of hops allowed" << endl;
-					int num_hops;
-					cin >> num_hops;
-					auto l = [num_hops = std::move(num_hops)](InterpreterGraph & graph, Path & p) {NumberOfHops(graph, p, num_hops); };
-					pathFunctions.push_back(l);
-				}
-			}
-		}
-		if (found) {
-			break;
-		}
-	}
-
-	//for (auto& i : indices) {
-	//	InterpreterGraphWrapper intGraphWrapper;
-	//	BuildInterpretationGraph(allQueries[i], intGraphWrapper);
-	//	vector<InterpreterVertexDescriptor> endNodes;
-	//	CheckProperties(intGraphWrapper, intGraphWrapper.intG[intGraphWrapper.startVertex].query.rrTypes, nodeFunctions, pathFunctions);
-	//}
-}
-
-
-void selector(LabelGraph& g, vector<EC>& allQueries) {
-	cout << "Enter an integer from 1-3 to choose one of the following for the input zone files to check for properties:" << endl;
-	cout << "1: All possible queries" << endl;
-	cout << "2: Some sub-domain" << endl;
-	cout << "3: Particular domain" << endl;
-	int i = -1;
-	while (i < 0 || i > 3) {
-		cin >> i;
-		if (i < 0 || i > 3) {
-			cout << "Enter 0 to exit or an integer from 1-3" << endl;
-		}
-	}
-	string domain;
-	switch (i)
-	{
-	case 1:
-		break;
-	case 2:
-		cout << "Enter the parent domain" << endl;
-		cin >> domain;
-		//domain_to_EC(domain, g, true);
-		break;
-	case 3: {
-		cout << "Enter the domain name" << endl;
-		/*cin >> domain;
-		std::vector<int> relevant = DomainToEC(domain, g, false);
-		if (relevant.size() == 0) {
-			cout << "The domain entered doesn't exist in the input zone files"<<endl;
-		}
-		else {
-			propertySelector(relevant, allQueries);
-		}
-		break;*/
-	}
-	default:
-		return;
-	}
-}
-
 std::bitset<RRType::N> ProcessProperties(json j, vector<std::function<void(const InterpreterGraph&, const vector<InterpreterVertexDescriptor>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>>& pathFunctions) {
 	std::bitset<RRType::N> typesReq;
 	for (auto& property : j) {
@@ -231,20 +132,20 @@ std::bitset<RRType::N> ProcessProperties(json j, vector<std::function<void(const
 	return typesReq;
 }
 
-void demo(string directory, string input) {
+void demo(string directory, string properties) {
 	LabelGraph g;
 	VertexDescriptor root = boost::add_vertex(g);
 	g[root].name.set(".");
-	gTopNameServers.push_back("ns1.tld.sy.");
-	BuildZoneLabelGraphs(directory + "net.sy.txt", "ns1.tld.sy.", g, root, gNameServerZoneMap);
-	BuildZoneLabelGraphs(directory + "mtn.net.sy.txt", "ns1.mtn.net.sy.", g, root, gNameServerZoneMap);
-	BuildZoneLabelGraphs(directory + "child.mtn.net.sy.txt", "ns1.child.mtn.net.sy.", g, root, gNameServerZoneMap);
-	BuildZoneLabelGraphs(directory + "child.mtn.net.sy-2.txt", "ns2.child.mtn.net.sy.", g, root, gNameServerZoneMap);
-
-	std::ofstream dotfile("LabelGraph.dot");
-	write_graphviz(dotfile, g, make_vertex_writer(boost::get(&LabelVertex::name, g)), make_edge_writer(boost::get(&LabelEdge::type, g)));
-
-	std::ifstream i(input);
+	std::ifstream metadataFile((boost::filesystem::path{ directory } / boost::filesystem::path{ "metadata.json" }).string());
+	json metadata;
+	metadataFile >> metadata;
+	for (auto& server : metadata["TopNameServers"]) {
+		gTopNameServers.push_back(server);
+	}
+	for (auto& zone : metadata["ZoneFiles"]) {
+		BuildZoneLabelGraphs((boost::filesystem::path{ directory } / boost::filesystem::path{ string{zone["FileName"]} }).string(), zone["NameServer"], g, root, gNameServerZoneMap);
+	}
+	std::ifstream i(properties);
 	json j;
 	i >> j;
 	vector<std::function<void(const InterpreterGraph&, const vector<InterpreterVertexDescriptor>&)>> nodeFunctions;

@@ -92,12 +92,6 @@ void CheckSameResponseReturned(const InterpreterGraph& graph, const vector<Inter
 
 void PrettyPrintResponseValue(vector<string>& response, vector<string>& value, const InterpreterGraph& graph, const InterpreterVertexDescriptor& node) {
 
-	/*if (graph[node].query.excluded) {
-		cout << "Response other than " << value << " was found for Q: ~{ }.";
-	}
-	else {
-		cout << "Response other than " << value << " was found for Q:";
-	}*/
 	std::string s = std::accumulate(value.begin(), value.end(), std::string{});
 	//printf(ANSI_COLOR_RED     "Response Mismatch:"     ANSI_COLOR_RESET "\n");
 	cout << "Response Mismatch:" << endl;
@@ -157,7 +151,6 @@ void NumberOfRewrites(const InterpreterGraph& graph, const Path& p, int num_rewr
 		else {
 			cout << " for Q: ";
 		}
-		//cout << graph[p[0]].query.name << " for T:" << RRTypesToString(graph[p[0]].query.rrTypes)<<endl;
 	}
 }
 
@@ -189,7 +182,8 @@ string QueryFormat(const EC& query) {
 
 void CheckDelegationConsistency(const InterpreterGraph& graph, const Path& p)
 {
-	if (p.size() > 1) {
+	//The path should have at least three nodes including the dummy node.
+	if (p.size() > 2) {
 		//TODO: Parent and Child should be answering for the user input query
 		InterpreterVertexDescriptor lastNode = p.back();
 		InterpreterVertexDescriptor parentNode = p[p.size() - 2];
@@ -231,10 +225,12 @@ void DFS(InterpreterGraph& graph, InterpreterVertexDescriptor start, Path p, vec
 	EC& query = graph[start].query;
 	if (graph[start].ns != "") {
 		//If the response is a CNAME and request type contains CNAME then it is resolved in this step
-		if (graph[start].answer && graph[start].answer.get()[0].get_type() == RRType::CNAME && query.rrTypes[RRType::CNAME]) {
-			endNodes.push_back(start);
-			for (auto& f : pathFunctions) {
-				f(graph, p);
+		if (graph[start].answer && graph[start].answer.get().size()>0 && graph[start].answer.get()[0].get_type() == RRType::CNAME && query.rrTypes[RRType::CNAME]) {
+			if (endNodes.end() == std::find(endNodes.begin(), endNodes.end(), start)) {
+				endNodes.push_back(start);
+				for (auto& f : pathFunctions) {
+					f(graph, p);
+				}
 			}
 		}
 	}
@@ -251,21 +247,24 @@ void DFS(InterpreterGraph& graph, InterpreterVertexDescriptor start, Path p, vec
 	}
 	if (out_degree(start, graph) == 0) {
 		// Last node in the graph
-		endNodes.push_back(start);
-		//Path detected
-		for (auto& f : pathFunctions) {
-			f(graph, p);
+		if (endNodes.end() == std::find(endNodes.begin(), endNodes.end(), start)) {
+			endNodes.push_back(start);
+			//Path detected
+			for (auto& f : pathFunctions) {
+				f(graph, p);
+			}
 		}
 	}
 }
 
 void CheckPropertiesOnEC(EC& query, vector<std::function<void(const InterpreterGraph&, const vector<InterpreterVertexDescriptor>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions)
-{
+{	
+	cout<<QueryFormat(query)<<endl;
 	InterpreterGraphWrapper intGraphWrapper;
 	BuildInterpretationGraph(query, intGraphWrapper);
 	vector<InterpreterVertexDescriptor> endNodes;
 	DFS(intGraphWrapper.intG, intGraphWrapper.startVertex, Path{}, endNodes, pathFunctions);
-	//GenerateDotFileInterpreter("Int.dot", intGraphWrapper.intG);
+	GenerateDotFileInterpreter("Int.dot", intGraphWrapper.intG);
 	for (auto f : nodeFunctions) {
 		f(intGraphWrapper.intG, endNodes);
 	}

@@ -24,6 +24,16 @@
 		]
 	},
 	{
+		"Domain": "child.mtn.net.sy.",
+		"SubDomain": true,
+		"Properties":[
+			{
+				"PropertyName": "ResponseConsistency",
+				"Types": ["A","MX"]
+			}
+		]
+	},
+	{
 		"Domain": "bar.mtn.net.sy.",
 		"SubDomain": false,
 		"Properties":[

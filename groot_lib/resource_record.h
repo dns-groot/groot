@@ -33,6 +33,8 @@ enum RRType
 	TXT,
 	AAAA,
 	SRV,
+	RRSIG,
+	NSEC,
 	N
 };
 
