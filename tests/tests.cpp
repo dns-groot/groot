@@ -91,8 +91,8 @@ BOOST_AUTO_TEST_CASE(lexerTest)
 	VertexDescriptor root = boost::add_vertex(g);
 	g[root].name.set(".");
 	BuildZoneLabelGraphs(directory + "test_lexer.txt", "ns1.net.", g, root, gNameServerZoneMap);
-	BOOST_TEST(num_edges(g) == 12);
-	BOOST_TEST(num_vertices(g) == 12);
+	BOOST_TEST(num_edges(g) == 2);
+	BOOST_TEST(num_vertices(g) == 3);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

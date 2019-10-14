@@ -38,7 +38,7 @@ struct zone_file_tokens : lex::lexer<Lexer>
 		(";[^\n]+", ID_COMMENT)
 			("\\(", ID_LPAREN)
 			("\\)", ID_RPAREN)
-			("[^ ;\t\r\n]+", ID_WORD)
+			("[^ ;\t\r\n\\(\\)]+", ID_WORD)
 			("\n", ID_EOL)
 			("[ \t]+", ID_WHITESPACE)
 			(".", ID_OTHER)

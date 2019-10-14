@@ -228,9 +228,10 @@ void DFS(InterpreterGraph& graph, InterpreterVertexDescriptor start, Path p, vec
 		if (graph[start].answer && graph[start].answer.get().size()>0 && graph[start].answer.get()[0].get_type() == RRType::CNAME && query.rrTypes[RRType::CNAME]) {
 			if (endNodes.end() == std::find(endNodes.begin(), endNodes.end(), start)) {
 				endNodes.push_back(start);
-				for (auto& f : pathFunctions) {
-					f(graph, p);
-				}
+			}
+			// A path is seen only once
+			for (auto& f : pathFunctions) {
+				f(graph, p);
 			}
 		}
 	}
@@ -249,10 +250,10 @@ void DFS(InterpreterGraph& graph, InterpreterVertexDescriptor start, Path p, vec
 		// Last node in the graph
 		if (endNodes.end() == std::find(endNodes.begin(), endNodes.end(), start)) {
 			endNodes.push_back(start);
-			//Path detected
-			for (auto& f : pathFunctions) {
-				f(graph, p);
-			}
+		}
+		//Path detected
+		for (auto& f : pathFunctions) {
+			f(graph, p);
 		}
 	}
 }
