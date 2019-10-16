@@ -260,7 +260,7 @@ void DFS(InterpreterGraph& graph, InterpreterVertexDescriptor start, Path p, vec
 
 void CheckPropertiesOnEC(EC& query, vector<std::function<void(const InterpreterGraph&, const vector<InterpreterVertexDescriptor>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions)
 {	
-	cout<<QueryFormat(query)<<endl;
+	//cout<<QueryFormat(query)<<endl;
 	InterpreterGraphWrapper intGraphWrapper;
 	BuildInterpretationGraph(query, intGraphWrapper);
 	vector<InterpreterVertexDescriptor> endNodes;
