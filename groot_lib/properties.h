@@ -29,6 +29,7 @@ using namespace std;
 
 typedef std::function<void(const InterpreterGraph&, const vector<InterpreterVertexDescriptor>&)> NodeFunction;
 typedef std::function<void(const InterpreterGraph&, const Path&)> PathFunction;
+typedef std::pair <VertexDescriptor, int> closestNode;
 
 // End node functions
 void CheckResponseReturned(const InterpreterGraph& graph, const vector<InterpreterVertexDescriptor>& endNodes, std::bitset<RRType::N> typesReq);

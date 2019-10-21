@@ -1,6 +1,6 @@
 #include "properties.h"
 #include <numeric>
-
+#include <utility>
 
 void CheckResponseReturned(const InterpreterGraph& graph, const vector<InterpreterVertexDescriptor>& endNodes, std::bitset<RRType::N> typesReq) {
 	for (auto v : endNodes) {
@@ -272,66 +272,59 @@ void CheckPropertiesOnEC(EC& query, vector<std::function<void(const InterpreterG
 }
 
 
-void SearchNode(LabelGraph& g, VertexDescriptor start, boost::optional<VertexDescriptor>& closestEncloser, vector<Label> labels, int& index) {
-	// Search for the closet node in the label graph for the user input by traversing DNAME edges also.
-	// We return only one node to be the closest Encloser.
-	// TODO: Return multiple closest enclosers?
-	// A wildcardNode on the way could encompass the query
-	closestEncloser = start;
+vector<closestNode> SearchNode(LabelGraph& g, VertexDescriptor closestEncloser, vector<Label>& labels, int index) {
+
+	vector<closestNode> enclosers;
 	if (labels.size() == index) {
-		return;
+		enclosers.push_back(closestNode{ closestEncloser, index });
+		return enclosers;
 	}
-	if (index == g[start].len) {
+	if (index == g[closestEncloser].len) {
 		//Loop detected
-		closestEncloser = {};
-		return;
+		enclosers.push_back(closestNode{ closestEncloser, -1 });
+		return enclosers;
 	}
-	if (!closestEncloser) {
-		return;
-	}
-	int16_t before_len = g[start].len;
-	g[start].len = index;
-	bool foundDname = false;
-		
-	for (EdgeDescriptor edge : boost::make_iterator_range(out_edges(closestEncloser.get(), g))) {
+	
+	int16_t before_len = g[closestEncloser].len;
+	g[closestEncloser].len = index;
+
+	for (EdgeDescriptor edge : boost::make_iterator_range(out_edges(closestEncloser, g))) {
 		if (g[edge].type == dname) {
-			//DNAME found 
-			//TODO : Assumption single DNAME edge and the node does not have children. 
-			closestEncloser = edge.m_target;
-			SearchNode(g, edge.m_target, closestEncloser, labels, index);
-			foundDname = true;
-			break;
+			auto r = SearchNode(g, edge.m_target, labels, index);
+			enclosers.insert(enclosers.end(), r.begin(), r.end());
 		}
 	}
-	if (!foundDname) {
-		if (gDomainChildLabelMap.find(closestEncloser.get()) != gDomainChildLabelMap.end()) {
-			//Check if a hash-map exists for child labels.
-			LabelMap& m = gDomainChildLabelMap.find(closestEncloser.get())->second;
-			auto it = m.find(labels[index]);
-			if (it != m.end()) {
-				index++;
-				closestEncloser = it->second;
-				SearchNode(g, it->second, closestEncloser, labels, index);
-			}
-			else {
-				//label[index] does not exist
-			}
+	if (gDomainChildLabelMap.find(closestEncloser) != gDomainChildLabelMap.end()) {
+		//Check if a hash-map exists for child labels.
+		LabelMap& m = gDomainChildLabelMap.find(closestEncloser)->second;
+		auto it = m.find(labels[index]);
+		if (it != m.end()) {
+			index++;
+			auto r = SearchNode(g, it->second, labels, index);
+			enclosers.insert(enclosers.end(), r.begin(), r.end());
 		}
 		else {
-			for (EdgeDescriptor edge : boost::make_iterator_range(out_edges(closestEncloser.get(), g))) {
-				if (g[edge].type == normal) {
-					if (g[edge.m_target].name == labels[index]) {
-						closestEncloser = edge.m_target;
-						index++;
-						SearchNode(g, edge.m_target, closestEncloser, labels, index);
-						break;
-					}
+			//label[index] does not exist
+		}
+	}
+	else {
+		for (EdgeDescriptor edge : boost::make_iterator_range(out_edges(closestEncloser, g))) {
+			if (g[edge].type == normal) {
+				if (g[edge.m_target].name == labels[index]) {
+					index++;
+					auto r = SearchNode(g, edge.m_target, labels, index);
+					enclosers.insert(enclosers.end(), r.begin(), r.end());
+					break;
 				}
 			}
 		}
 	}
-	g[start].len = before_len;
-	return;
+	g[closestEncloser].len = before_len;
+	if (enclosers.size() == 0) {
+		// There was no DNAME edge and no child was found --> The current closestEncloser is the best node
+		enclosers.push_back(closestNode{ closestEncloser, index });
+	}
+	return enclosers;
 }
 
 void WildCardChildEC(std::vector<Label>& childrenLabels, vector<Label>& labels, std::bitset<RRType::N>& typesReq, int index, vector<std::function<void(const InterpreterGraph&, const vector<InterpreterVertexDescriptor>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions) {
@@ -434,10 +427,8 @@ void GenerateECAndCheckProperties(LabelGraph& g, VertexDescriptor root, string u
 			cout << userInput << " is an invalid domain name as " << l.get() << " exceedes length" << endl;
 		}
 	}
-	int index = 0;
-	boost::optional<VertexDescriptor> closetEncloser = root;
-	SearchNode(g, root, closetEncloser, labels, index);
-	if (closetEncloser) {
+	vector<closestNode> closestEnclosers = SearchNode(g, root, labels, 0);
+	if (closestEnclosers.size()) {
 		if (labels.size() == index) {
 			if (subdomain == true) {
 				vector<Label> parentDomainName = labels;
@@ -484,7 +475,5 @@ void GenerateECAndCheckProperties(LabelGraph& g, VertexDescriptor root, string u
 			}
 		}
 	}
-	else {
-		cout << "DNAME loop exists for the given input domain";
-	}
+	
 }

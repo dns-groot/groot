@@ -243,6 +243,7 @@ boost::optional<vector<ResourceRecord>> QueryLookUp(Zone& z, EC& query, bool& co
 					if (z.g[v].name.get() == "*") {
 						for (auto& record : z.g[v].rrs) {
 							if (record.get_type() == RRType::CNAME) {
+								answer.clear();
 								answer.push_back(record);
 								return boost::make_optional(answer); //If CNAME then there will be no other record
 							}
