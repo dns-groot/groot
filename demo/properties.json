@@ -38,12 +38,8 @@
 		"SubDomain": false,
 		"Properties":[
 			{
-				"PropertyName": "ResponseConsistency",
-				"Types": ["A","MX"]
-			},
-			{
 				"PropertyName": "ResponseReturned",
-				"Types": ["CNAME","TXT"]
+				"Types": ["CNAME","A"]
 			}
 		]
 	}

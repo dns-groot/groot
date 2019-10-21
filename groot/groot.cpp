@@ -143,7 +143,10 @@ void demo(string directory, string properties) {
 		gTopNameServers.push_back(server);
 	}
 	for (auto& zone : metadata["ZoneFiles"]) {
-		BuildZoneLabelGraphs((boost::filesystem::path{ directory } / boost::filesystem::path{ string{zone["FileName"]} }).string(), zone["NameServer"], g, root, gNameServerZoneMap);
+		string filename; 
+		zone["FileName"].get_to(filename);
+		auto zoneFilePath = (boost::filesystem::path{ directory } / boost::filesystem::path{ filename }).string();
+		BuildZoneLabelGraphs(zoneFilePath, zone["NameServer"], g, root, gNameServerZoneMap);
 	}
 	std::ifstream i(properties);
 	json j;
