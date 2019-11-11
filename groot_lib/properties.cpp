@@ -320,11 +320,22 @@ vector<closestNode> SearchNode(LabelGraph& g, VertexDescriptor closestEncloser, 
 		}
 	}
 	g[closestEncloser].len = before_len;
-	if (enclosers.size() == 0) {
-		// There was no DNAME edge and no child was found --> The current closestEncloser is the best node
-		enclosers.push_back(closestNode{ closestEncloser, index });
+	int max = -1;
+	for (auto& r : enclosers) {
+		if (r.second > max) {
+			max = r.second;
+		}
 	}
-	return enclosers;
+	vector<closestNode> actualEnclosers;
+	actualEnclosers.push_back(closestNode{ closestEncloser, index });
+	if (max != -1) {
+		for (auto& r : enclosers) {
+			if (r.second == max) {
+				actualEnclosers.push_back(r);
+			}
+		}
+	}
+	return actualEnclosers;
 }
 
 void WildCardChildEC(std::vector<Label>& childrenLabels, vector<Label>& labels, std::bitset<RRType::N>& typesReq, int index, vector<std::function<void(const InterpreterGraph&, const vector<InterpreterVertexDescriptor>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions) {
@@ -429,14 +440,24 @@ void GenerateECAndCheckProperties(LabelGraph& g, VertexDescriptor root, string u
 	}
 	vector<closestNode> closestEnclosers = SearchNode(g, root, labels, 0);
 	if (closestEnclosers.size()) {
-		if (labels.size() == index) {
+		//cross-check
+		int matchedIndex = closestEnclosers[0].second;
+		for (auto& r : closestEnclosers) {
+			if (r.second != matchedIndex) {
+				cout << "Error: ClosestEnclosers (Function: GenerateECAndCheckProperties)" << endl;
+				exit(0);
+			}
+		}
+		if (labels.size() == matchedIndex) {
 			if (subdomain == true) {
 				vector<Label> parentDomainName = labels;
 				parentDomainName.pop_back();
-				SubDomainECGeneration(g, closetEncloser.value(), parentDomainName, typesReq, false, nodeFunctions, pathFunctions);
+				for (auto& encloser : closestEnclosers) {
+					SubDomainECGeneration(g, encloser.first, parentDomainName, typesReq, false, nodeFunctions, pathFunctions);
+				}
 			}
 			else {
-				NodeEC(g, closetEncloser.value(), labels, typesReq, nodeFunctions, pathFunctions);
+				NodeEC(g, closestEnclosers[0].first, labels, typesReq, nodeFunctions, pathFunctions);
 			}
 		}
 		else {
@@ -447,32 +468,28 @@ void GenerateECAndCheckProperties(LabelGraph& g, VertexDescriptor root, string u
 			std::vector<Label> childrenLabels;
 			std::optional<VertexDescriptor>  wildcardNode;
 
-			for (EdgeDescriptor edge : boost::make_iterator_range(out_edges(closetEncloser.get(), g))) {
-				if (g[edge].type == normal) {
-					if (g[edge.m_target].name.get() == "*") {
-						wildcardNode = edge.m_target;
-					}
-					else {
-						childrenLabels.push_back(g[edge.m_target].name);
+			for (auto& encloser : closestEnclosers) {
+				for (EdgeDescriptor edge : boost::make_iterator_range(out_edges(encloser.first, g))) {
+					if (g[edge].type == normal) {
+						if (g[edge.m_target].name.get() == "*") {
+							wildcardNode = edge.m_target;
+						}
+						else {
+							childrenLabels.push_back(g[edge.m_target].name);
+						}
 					}
 				}
 			}
-			if (wildcardNode) {
-				//The user input is matched by a wildcard
-				WildCardChildEC(childrenLabels, labels, typesReq, index, nodeFunctions, pathFunctions);
+			// The query might match a wildcard or its part of non-existent child nodes.
+			EC nonExistent;
+			nonExistent.name.clear();
+			for (int i = 0; i < matchedIndex; i++) {
+				nonExistent.name.push_back(labels[i]);
 			}
-			else {
-				//The user input is part of non-existent child category
-				EC nonExistent;
-				nonExistent.name.clear();
-				for (int i = 0; i < index; i++) {
-					nonExistent.name.push_back(labels[i]);
-				}
-				nonExistent.rrTypes.flip();
-				nonExistent.excluded = boost::make_optional(std::move(childrenLabels));
-				//EC generated
-				CheckPropertiesOnEC(nonExistent, nodeFunctions, pathFunctions);
-			}
+			nonExistent.rrTypes = typesReq;
+			nonExistent.excluded = boost::make_optional(std::move(childrenLabels));
+			//EC generated
+			CheckPropertiesOnEC(nonExistent, nodeFunctions, pathFunctions);
 		}
 	}
 	
