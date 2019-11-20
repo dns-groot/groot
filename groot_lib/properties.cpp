@@ -273,7 +273,10 @@ void CheckPropertiesOnEC(EC& query, vector<std::function<void(const InterpreterG
 
 
 vector<closestNode> SearchNode(LabelGraph& g, VertexDescriptor closestEncloser, vector<Label>& labels, int index) {
-
+	/*
+		Given a user input the functions returns all the closest enclosers alng with the number of labels matched.
+		The function returns only the longest matching enclosers as the smaller ones would be automatically dealt by the ECs generated from longest ones.
+	*/
 	vector<closestNode> enclosers;
 	if (labels.size() == index) {
 		enclosers.push_back(closestNode{ closestEncloser, index });
@@ -281,13 +284,15 @@ vector<closestNode> SearchNode(LabelGraph& g, VertexDescriptor closestEncloser, 
 	}
 	if (index == g[closestEncloser].len) {
 		//Loop detected
+		//TODO: Trace the loop to get the usr input.
 		enclosers.push_back(closestNode{ closestEncloser, -1 });
 		return enclosers;
 	}
 	
 	int16_t before_len = g[closestEncloser].len;
 	g[closestEncloser].len = index;
-
+	// The current node could also be the closest encloser if no child matches.
+	enclosers.push_back(closestNode{ closestEncloser, index });
 	for (EdgeDescriptor edge : boost::make_iterator_range(out_edges(closestEncloser, g))) {
 		if (g[edge].type == dname) {
 			auto r = SearchNode(g, edge.m_target, labels, index);
@@ -327,7 +332,6 @@ vector<closestNode> SearchNode(LabelGraph& g, VertexDescriptor closestEncloser, 
 		}
 	}
 	vector<closestNode> actualEnclosers;
-	actualEnclosers.push_back(closestNode{ closestEncloser, index });
 	if (max != -1) {
 		for (auto& r : enclosers) {
 			if (r.second == max) {
@@ -444,7 +448,7 @@ void GenerateECAndCheckProperties(LabelGraph& g, VertexDescriptor root, string u
 		int matchedIndex = closestEnclosers[0].second;
 		for (auto& r : closestEnclosers) {
 			if (r.second != matchedIndex) {
-				cout << "Error: ClosestEnclosers (Function: GenerateECAndCheckProperties)" << endl;
+				cout << "Error: Multiple ClosestEnclosers with different lengths(Function: GenerateECAndCheckProperties)" << endl;
 				exit(0);
 			}
 		}
@@ -491,6 +495,10 @@ void GenerateECAndCheckProperties(LabelGraph& g, VertexDescriptor root, string u
 			//EC generated
 			CheckPropertiesOnEC(nonExistent, nodeFunctions, pathFunctions);
 		}
+	}
+	else {
+		cout << "Error: No ClosestEnclosers found(Function: GenerateECAndCheckProperties)" << endl;
+		exit(0);
 	}
 	
 }

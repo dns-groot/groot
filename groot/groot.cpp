@@ -148,6 +148,8 @@ void demo(string directory, string properties) {
 		auto zoneFilePath = (boost::filesystem::path{ directory } / boost::filesystem::path{ filename }).string();
 		BuildZoneLabelGraphs(zoneFilePath, zone["NameServer"], g, root, gNameServerZoneMap);
 	}
+	/*std::ofstream dotfile("LabelGraph.dot");	
+	write_graphviz(dotfile, g, make_vertex_writer(boost::get(&LabelVertex::name, g)), make_edge_writer(boost::get(&LabelEdge::type, g)));*/
 	std::ifstream i(properties);
 	json j;
 	i >> j;
