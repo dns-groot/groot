@@ -19,15 +19,20 @@ using namespace std;
 #define kHashMapThreshold 1000
 
 //Label Graph
-struct LabelVertex { 
-	Label name; 
+struct LabelVertex {
+	Label name;
 	int16_t	len = -1;
+	std::bitset<RRType::N> rrTypesAvailable;
+	std::vector<tuple<int, int>> zoneIdVertexId;
+
 private:
 	friend class boost::serialization::access;
 	template <typename Archive>
 	void serialize(Archive& ar, const unsigned int version) {
 		ar& name;
 		ar& len;
+		ar& rrTypesAvailable;
+		ar& zoneIdVertexId;
 	}
 };
 
@@ -36,8 +41,8 @@ enum EdgeType {
 	dname = 2
 };
 
-struct LabelEdge { 
-	EdgeType type; 
+struct LabelEdge {
+	EdgeType type;
 private:
 	friend class boost::serialization::access;
 	template <typename Archive>
@@ -46,7 +51,7 @@ private:
 	}
 };
 
-typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS, LabelVertex, LabelEdge > LabelGraph;
+typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS, LabelVertex, LabelEdge> LabelGraph;
 
 //Some typedefs for simplicity
 typedef boost::graph_traits<LabelGraph>::vertex_descriptor VertexDescriptor;
@@ -58,8 +63,8 @@ typedef boost::unordered_map<Label, VertexDescriptor> LabelMap;
 extern std::map<VertexDescriptor, LabelMap> gDomainChildLabelMap;
 
 std::size_t hash_value(Label const& l);
-void LabelGraphBuilder(vector<ResourceRecord>&, LabelGraph&, const VertexDescriptor);
-void LabelGraphBuilder(ResourceRecord&, LabelGraph&, const VertexDescriptor);
+//void LabelGraphBuilder(vector<ResourceRecord>&, LabelGraph&, const VertexDescriptor);
+void LabelGraphBuilder(ResourceRecord&, LabelGraph&, const VertexDescriptor, int&, int&);
 
 //Equivalence Classes
 struct EC {

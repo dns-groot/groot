@@ -59,8 +59,7 @@ private:
 	}
 };
 typedef vector<InterpreterVertexDescriptor> Path;
-extern std::map<string, std::vector<Zone>> gNameServerZoneMap;
-extern std::vector<string> gTopNameServers;
+
 
 vector<ResourceRecord> SeparateGlueRecords(vector<ResourceRecord> records);
 void GenerateDotFileInterpreter(string outputfile, InterpreterGraph& g);

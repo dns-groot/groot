@@ -1,6 +1,10 @@
 #include "zone.h"
 #include "graph.h"
 
+std::map<string, std::vector<int>> gNameServerZoneMap;
+std::vector<string> gTopNameServers;
+std::map<int, Zone> gZoneIdToZoneMap;
+
 LabelMap ConstructLabelMap(const ZoneGraph& g, VertexDescriptor node) {
 	LabelMap m;
 	for (EdgeDescriptor edge : boost::make_iterator_range(out_edges(node, g))) {
@@ -91,17 +95,18 @@ ZoneVertexDescriptor AddNodes(ZoneGraph& g, ZoneVertexDescriptor closetEncloser,
 	return closetEncloser;
 }
 
-void ZoneGraphBuilder(ResourceRecord& record, Zone& z) {
+ZoneVertexDescriptor ZoneGraphBuilder(ResourceRecord& record, Zone& z) {
 	vector<Label> labels = record.get_name();
 	int index = 0;
 	ZoneVertexDescriptor closetEncloser = GetAncestor(z.g, z.startVertex, labels, z.domainChildLabelMap, index);
 	ZoneVertexDescriptor node = AddNodes(z.g, closetEncloser, labels, z.domainChildLabelMap, index);
 	z.g[node].rrs.push_back(record);
+	return node;
 }
 
+[[deprecated("Use ZoneGrapBuilder on a single RR to facilitate return of zoneVertex id")]]
 void ZoneGraphBuilder(vector<ResourceRecord>& rrs, Zone& z) {
 	
-
 	for (auto& record : rrs)
 	{
 		if (record.get_type() != RRType::N) {
@@ -113,31 +118,36 @@ void ZoneGraphBuilder(vector<ResourceRecord>& rrs, Zone& z) {
 	}
 }
 
-void BuildZoneLabelGraphs(string filePath, string nameServer, LabelGraph& g, const VertexDescriptor& root, std::map<string, std::vector<Zone>>& nameServer_Zone_Map) {
-	
+void BuildZoneLabelGraphs(string filePath, string nameServer, LabelGraph& g, const VertexDescriptor& root) {
+
+	int zoneId = 1;
+	if (gZoneIdToZoneMap.begin() != gZoneIdToZoneMap.end()) {
+		zoneId = gZoneIdToZoneMap.rbegin()->first + 1;
+	}
 	Zone zone;
+	zone.zoneId = zoneId;
 	ZoneVertexDescriptor start = boost::add_vertex(zone.g);
 	zone.g[start].name.set(".");
 	zone.startVertex = start;
-	ParseZoneFile(filePath, g, root,zone);
+	ParseZoneFile(filePath, g, root, zone);
 	string zoneName = "";
 	for (auto label : zone.origin) {
 		zoneName += label.get() + ".";
 	}
 	zoneName += "--" + nameServer + ".txt";
 	//serialize(zoneGraph, "..\\tests\\SerializedGraphs\\" + zoneName);
-	std::vector<Zone> zones;
-	auto it = nameServer_Zone_Map.find(nameServer);
-	if (it == nameServer_Zone_Map.end()) {
-		nameServer_Zone_Map.insert(std::pair<string, vector<Zone>>(nameServer, std::move(zones)));
+	gZoneIdToZoneMap.insert(std::pair<int, Zone>(zoneId, zone));
+	auto it = gNameServerZoneMap.find(nameServer);
+	if (it == gNameServerZoneMap.end()) {
+		gNameServerZoneMap.insert(std::pair<string, vector<int>>(nameServer, std::vector<int>{}));
 	}
-	it = nameServer_Zone_Map.find(nameServer);
-	if (it == nameServer_Zone_Map.end()) {
+	it = gNameServerZoneMap.find(nameServer);
+	if (it == gNameServerZoneMap.end()) {
 		cout << "Unable to insert into map" << endl;
 		std::exit(EXIT_FAILURE);
 	}
 	else {
-		it->second.push_back(std::move(zone));
+		it->second.push_back(zoneId);
 	}
 	/*cout << "Number of nodes in Label Graph:" << num_vertices(g)<<endl<<flush;
 	cout << "Number of nodes in Zone Graph:" << num_vertices(zone.g) << endl << flush;*/

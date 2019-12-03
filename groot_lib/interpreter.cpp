@@ -1,9 +1,5 @@
 #include "interpreter.h"
 
-std::map<string, std::vector<Zone>> gNameServerZoneMap;
-std::vector<string> gTopNameServers;
-
-
 template <class NSMap, class QueryMap, class AnswerMap>
 class node_writer {
 public:
@@ -108,10 +104,11 @@ boost::optional<Zone> GetRelevantZone(string ns, EC& query) {
 	auto queryLabels = query.name;
 	if (it != gNameServerZoneMap.end()) {
 		int max = 0;
-		Zone bestMatch = it->second[0];
-		for (auto z : it->second) {
+		Zone bestMatch = gZoneIdToZoneMap.find(it->second[0])->second;
+		for (auto zid : it->second) {
 			int i = 0;
-			for (auto l : z.origin) {
+			Zone currentZone = gZoneIdToZoneMap.find(zid)->second;
+			for (auto l : currentZone.origin) {
 				if (i >= queryLabels.size() || !(l == queryLabels[i])) {
 					break;
 				}
@@ -119,7 +116,7 @@ boost::optional<Zone> GetRelevantZone(string ns, EC& query) {
 			}
 			if (i > max) {
 				max = i;
-				bestMatch = z;
+				bestMatch = currentZone;
 			}
 		}
 		return boost::make_optional(bestMatch);

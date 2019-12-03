@@ -42,8 +42,11 @@ void NumberOfHops(const InterpreterGraph& graph, const Path& p, int num_hops);
 void CheckDelegationConsistency(const InterpreterGraph& graph, const Path& p);
 void CheckLameDelegation(const InterpreterGraph& graph, const Path& p);
 
+// Parent-Child Synatctic Record check functions
+void CheckStructuralDelegationConsistency(LabelGraph&, VertexDescriptor, string);
 
 void GenerateECAndCheckProperties(LabelGraph& g, VertexDescriptor root, string userInput, std::bitset<RRType::N> typesReq, bool subdomain, vector<std::function<void(const InterpreterGraph&, const vector<InterpreterVertexDescriptor>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions);
 void CheckPropertiesOnEC(EC& query, vector<std::function<void(const InterpreterGraph&, const vector<InterpreterVertexDescriptor>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions);
+vector<closestNode> SearchNode(LabelGraph& g, VertexDescriptor closestEncloser, vector<Label>& labels, int index);
 
 string QueryFormat(const EC& query);

@@ -219,6 +219,28 @@ void CheckLameDelegation(const InterpreterGraph& graph, const Path& p)
 	//The final node should have an SOA?
 }
 
+void CheckStructuralDelegationConsistency(LabelGraph& graph, VertexDescriptor root, string userInput)
+{
+	vector<Label> labels = GetLabels(userInput);
+	vector<closestNode> closestEnclosers = SearchNode(graph, root, labels, 0);
+	if (closestEnclosers.size()) {
+		//cross-check
+		int matchedIndex = closestEnclosers[0].second;
+		if (labels.size() == matchedIndex) {
+			auto tups = graph[closestEnclosers[0].first].zoneIdVertexId;
+			auto types = graph[closestEnclosers[0].first].rrTypesAvailable;
+			if (types[RRType::NS] != 1) {
+
+			}
+			else {
+
+			}
+		}
+		else {
+			cout << "Not Found" << endl;
+		}
+	}
+}
 
 
 void DFS(InterpreterGraph& graph, InterpreterVertexDescriptor start, Path p, vector<InterpreterVertexDescriptor>& endNodes, vector<std::function<void(const InterpreterGraph&, const Path&)>>& pathFunctions) {
@@ -263,9 +285,13 @@ void CheckPropertiesOnEC(EC& query, vector<std::function<void(const InterpreterG
 	//cout<<QueryFormat(query)<<endl;
 	InterpreterGraphWrapper intGraphWrapper;
 	BuildInterpretationGraph(query, intGraphWrapper);
+	if (num_vertices(intGraphWrapper.intG) == 1) {
+		cout << "No NameServer exists to resolve EC- " << QueryFormat(query) << endl;
+		return;
+	}
 	vector<InterpreterVertexDescriptor> endNodes;
 	DFS(intGraphWrapper.intG, intGraphWrapper.startVertex, Path{}, endNodes, pathFunctions);
-	GenerateDotFileInterpreter("Int.dot", intGraphWrapper.intG);
+	//GenerateDotFileInterpreter("Int.dot", intGraphWrapper.intG);
 	for (auto f : nodeFunctions) {
 		f(intGraphWrapper.intG, endNodes);
 	}
@@ -355,7 +381,7 @@ void WildCardChildEC(std::vector<Label>& childrenLabels, vector<Label>& labels, 
 	CheckPropertiesOnEC(wildCardMatch, nodeFunctions, pathFunctions);
 }
 
-void NodeEC(LabelGraph& g, VertexDescriptor& node, vector<Label>& name, std::bitset<RRType::N>& typesReq, vector<std::function<void(const InterpreterGraph&, const vector<InterpreterVertexDescriptor>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions) {
+void NodeEC(LabelGraph& g, vector<Label>& name, std::bitset<RRType::N>& typesReq, vector<std::function<void(const InterpreterGraph&, const vector<InterpreterVertexDescriptor>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions) {
 
 	EC present;
 	present.name = name;
@@ -401,33 +427,31 @@ void SubDomainECGeneration(LabelGraph& g, VertexDescriptor start, vector<Label> 
 			if (g[edge.m_target].name.get() == "*") {
 				wildcardNode = edge.m_target;
 			}
-			else {
-				childrenLabels.push_back(g[edge.m_target].name);
-			}
 			SubDomainECGeneration(g, edge.m_target, name, typesReq, false, nodeFunctions, pathFunctions);
 		}
 		if (g[edge].type == dname) {
 			SubDomainECGeneration(g, edge.m_target, name, typesReq, true, nodeFunctions, pathFunctions);
 		}
 	}
-
 	g[start].len = beforeLen;
 	if (!skipLabel) {
 		// EC for the node if the node is not skipped.
-		NodeEC(g, start, name, typesReq, nodeFunctions, pathFunctions);
+		NodeEC(g, name, typesReq, nodeFunctions, pathFunctions);
 	}
+
+	// wildcardNode is useful when we want to generate only positive queries and avoid the negations.
 	if (wildcardNode) {
 		WildCardChildEC(childrenLabels, name, typesReq, name.size(), nodeFunctions, pathFunctions);
 	}
-	else {
-		//Non-existent child category
-		EC nonExistent;
-		nonExistent.name = name;
-		nonExistent.rrTypes.flip();
-		nonExistent.excluded = boost::make_optional(std::move(childrenLabels));
-		//EC generated
-		CheckPropertiesOnEC(nonExistent, nodeFunctions, pathFunctions);
-	}
+	//else {
+	//	//Non-existent child category
+	//	EC nonExistent;
+	//	nonExistent.name = name;
+	//	nonExistent.rrTypes.flip();
+	//	nonExistent.excluded = boost::make_optional(std::move(childrenLabels));
+	//	//EC generated
+	//	CheckPropertiesOnEC(nonExistent, nodeFunctions, pathFunctions);
+	//}
 }
 
 void GenerateECAndCheckProperties(LabelGraph& g, VertexDescriptor root, string userInput, std::bitset<RRType::N> typesReq, bool subdomain, vector<std::function<void(const InterpreterGraph&, const vector<InterpreterVertexDescriptor>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions) {
@@ -461,7 +485,7 @@ void GenerateECAndCheckProperties(LabelGraph& g, VertexDescriptor root, string u
 				}
 			}
 			else {
-				NodeEC(g, closestEnclosers[0].first, labels, typesReq, nodeFunctions, pathFunctions);
+				NodeEC(g, labels, typesReq, nodeFunctions, pathFunctions);
 			}
 		}
 		else {
@@ -469,29 +493,14 @@ void GenerateECAndCheckProperties(LabelGraph& g, VertexDescriptor root, string u
 			if (subdomain) {
 				cout << "The complete domain: " << userInput << " doesn't exist so sub-domain is not valid";
 			}
-			std::vector<Label> childrenLabels;
-			std::optional<VertexDescriptor>  wildcardNode;
-
-			for (auto& encloser : closestEnclosers) {
-				for (EdgeDescriptor edge : boost::make_iterator_range(out_edges(encloser.first, g))) {
-					if (g[edge].type == normal) {
-						if (g[edge.m_target].name.get() == "*") {
-							wildcardNode = edge.m_target;
-						}
-						else {
-							childrenLabels.push_back(g[edge.m_target].name);
-						}
-					}
-				}
-			}
-			// The query might match a wildcard or its part of non-existent child nodes.
+			// The query might match a wildcard or its part of non-existent child nodes. We just set excluded to know there is some negation set there.
 			EC nonExistent;
 			nonExistent.name.clear();
 			for (int i = 0; i < matchedIndex; i++) {
 				nonExistent.name.push_back(labels[i]);
 			}
 			nonExistent.rrTypes = typesReq;
-			nonExistent.excluded = boost::make_optional(std::move(childrenLabels));
+			nonExistent.excluded = boost::make_optional(std::vector<Label>());
 			//EC generated
 			CheckPropertiesOnEC(nonExistent, nodeFunctions, pathFunctions);
 		}

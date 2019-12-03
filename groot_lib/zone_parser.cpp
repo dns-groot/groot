@@ -71,6 +71,16 @@ struct Parser
 			currentRecord.push_back(std::move(tokenvalue));
 			break;
 		}
+		/*case ID_COMMENT: 
+		{
+			std::string tokenvalue(t.value().begin(), t.value().end());
+			if (tokenvalue.find("Default zone scope in zone") != std::string::npos) {
+				vector<string> strs;
+				boost::split(strs, tokenvalue, boost::is_any_of(" "));
+				relativeDomainSuffix = strs.back();
+			}
+			break;
+		}*/
 		case ID_EOL:
 			++l; 
 			if (parenCount == 0 && currentRecord.size() > 0)
@@ -135,6 +145,7 @@ struct Parser
 						}
 						else if (isInteger(field)) {
 							ttl = std::stoi(field);
+							if (defaultValues.get_ttl() == 0) defaultValues.set_ttl(ttl);
 						}
 						else {
 							name = field;
@@ -169,8 +180,8 @@ struct Parser
 					}
 				}
 				ResourceRecord RR(name, type, class_, ttl, rdata);
-				ZoneGraphBuilder(RR, z);
-				LabelGraphBuilder(RR, g, root);
+				int vertexId = ZoneGraphBuilder(RR, z);
+				LabelGraphBuilder(RR, g, root, z.zoneId, vertexId);
 				currentRecord.clear();
 			}
 			break;
@@ -235,9 +246,17 @@ void ParseZoneFile(string& file, LabelGraph& g, const VertexDescriptor& root, Zo
 	size_t l = 0;
 	int parenCount = 0;
 	string relative_domain;
+	if (boost::algorithm::ends_with(file, ".dns")) {
+		//For the hotmail.com zone files
+		vector<string> strs;
+		boost::split(strs, file, boost::is_any_of("\\"));
+		relative_domain = strs.back();
+		relative_domain = relative_domain.substr(0, relative_domain.length() - 3);
+		boost::to_lower(relative_domain);
+	}
 	ResourceRecord defaultValues("", "", 0, 0, "");
 	vector<string> currentRecord;
-	
+	int zoneId = 0;
 
 	// parse the zone file from the given string.
 	zone_file_tokens<lex::lexertl::lexer<> > zone_functor;

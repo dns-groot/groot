@@ -15,7 +15,7 @@
 #include "../groot_lib/properties.h"
 #include "docopt/docopt.h"
 #include <boost/filesystem.hpp>
-
+#include <filesystem>
 
 
 using namespace std;
@@ -146,7 +146,7 @@ void demo(string directory, string properties) {
 		string filename; 
 		zone["FileName"].get_to(filename);
 		auto zoneFilePath = (boost::filesystem::path{ directory } / boost::filesystem::path{ filename }).string();
-		BuildZoneLabelGraphs(zoneFilePath, zone["NameServer"], g, root, gNameServerZoneMap);
+		BuildZoneLabelGraphs(zoneFilePath, zone["NameServer"], g, root);
 	}
 	/*std::ofstream dotfile("LabelGraph.dot");	
 	write_graphviz(dotfile, g, make_vertex_writer(boost::get(&LabelVertex::name, g)), make_edge_writer(boost::get(&LabelEdge::type, g)));*/
@@ -170,8 +170,38 @@ void bench(string directory, string input) {
 	VertexDescriptor root = boost::add_vertex(g);
 	g[root].name.set(".");
 	gTopNameServers.push_back(".");
-	BuildZoneLabelGraphs(directory + "root.txt", ".", g, root, gNameServerZoneMap);
+	BuildZoneLabelGraphs(directory + "root.txt", ".", g, root);
 	std::ifstream i(input);
+	json j;
+	i >> j;
+	vector<std::function<void(const InterpreterGraph&, const vector<InterpreterVertexDescriptor>&)>> nodeFunctions;
+	vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions;
+	for (auto& query : j) {
+		nodeFunctions.clear();
+		pathFunctions.clear();
+		std::bitset<RRType::N> typesReq = ProcessProperties(query["Properties"], nodeFunctions, pathFunctions);
+		GenerateECAndCheckProperties(g, root, query["Domain"], typesReq, query["SubDomain"], nodeFunctions, pathFunctions);
+		cout << endl;
+	}
+}
+
+	
+void checkHotmailDomains(string directory, string properties) {
+	LabelGraph g;
+	VertexDescriptor root = boost::add_vertex(g);
+	g[root].name.set(".");
+	//auto zoneFilePath = (boost::filesystem::path{ "C:\\Users\\Administrator\\Desktop\\groot\\zone_files" } / boost::filesystem::path{ "hotmail.com" } / boost::filesystem::path{ "hotmail.com - Copy.dns" }).string();
+	gTopNameServers.push_back("ns1.msft.net.");
+	for (auto& entry : filesystem::directory_iterator(directory)) {
+		BuildZoneLabelGraphs(entry.path().string(), "ns1.msft.com", g, root);
+	}	
+	/*std::ofstream dotfile("LabelGraph.dot");
+	write_graphviz(dotfile, g, make_vertex_writer(boost::get(&LabelVertex::name, g)), make_edge_writer(boost::get(&LabelEdge::type, g)));
+	cout << num_edges(g)<<endl;
+	cout << num_vertices(g)<<endl;
+	cout << gNameServerZoneMap["ns1.msft.com"].size();*/
+	CheckStructuralDelegationConsistency(g, root, "bay003.hotmail.com.");
+	std::ifstream i(properties);
 	json j;
 	i >> j;
 	vector<std::function<void(const InterpreterGraph&, const vector<InterpreterVertexDescriptor>&)>> nodeFunctions;
@@ -208,15 +238,15 @@ int main(int argc, const char** argv)
 {
 	auto args = docopt::docopt(USAGE, { argv + 1, argv + argc }, true, "groot 1.0");
 	
-	// for (auto const& arg : args) {
-	//	std::cout << arg.first << arg.second << std::endl;
-	// }
+	/* for (auto const& arg : args) {
+		std::cout << arg.first << arg.second << std::endl;
+	 }*/
 
 	string zone_directory;
 	string properties_file;
 	
 	auto z = args.find("<zone_directory>");
-	if (z == args.end())
+	if (!z->second)
 	{
 		cout << "Error: missing parameter <zone_directory>" << endl;
 		cout << USAGE[0];
@@ -228,7 +258,7 @@ int main(int argc, const char** argv)
 	}
 
 	auto p = args.find("--properties");
-	if (p != args.end())
+	if (p->second)
 	{
 		properties_file = p->second.asString();
 	}
@@ -240,7 +270,8 @@ int main(int argc, const char** argv)
 
 	//profiling_net();
 	//bench(zone_directory, properties_file);
-	demo(zone_directory, properties_file);
+	checkHotmailDomains(zone_directory, properties_file);
+	//demo(zone_directory, properties_file);
 
 	return 0;
 }

@@ -38,6 +38,7 @@ typedef boost::graph_traits<ZoneGraph>::edge_descriptor ZoneEdgeDescriptor;
 
 struct Zone {
 	ZoneGraph g;
+	int zoneId;
 	ZoneVertexDescriptor startVertex =0;
 	vector<Label> origin;
 	std::map<VertexDescriptor, LabelMap> domainChildLabelMap;
@@ -51,9 +52,13 @@ private:
 	}
 };
 
+extern std::map<string, std::vector<int>> gNameServerZoneMap;
+extern std::vector<string> gTopNameServers;
+extern std::map<int, Zone> gZoneIdToZoneMap;
+
 //Zone parser
 void ParseZoneFile(string& file, LabelGraph& g, const VertexDescriptor& root, Zone& z);
-void ZoneGraphBuilder(ResourceRecord& record, Zone& z);
+ZoneVertexDescriptor ZoneGraphBuilder(ResourceRecord& record, Zone& z);
 void ZoneGraphBuilder(vector<ResourceRecord>& rrs, Zone& z);
-void BuildZoneLabelGraphs(string filePath, string nameServer, LabelGraph& g, const VertexDescriptor& root, std::map<string, std::vector<Zone>>& nameServer_Zone_Map);
+void BuildZoneLabelGraphs(string filePath, string nameServer, LabelGraph& g, const VertexDescriptor& root);
 boost::optional<vector<ResourceRecord>> QueryLookUp(Zone& z, EC& query, bool& completeMatch);

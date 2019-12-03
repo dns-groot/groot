@@ -77,7 +77,7 @@ VertexDescriptor AddNodes(LabelGraph& g, VertexDescriptor closetEncloser, vector
 	return closetEncloser;
 }
 
-void LabelGraphBuilder(ResourceRecord& record, LabelGraph& g, const VertexDescriptor root) {
+void LabelGraphBuilder(ResourceRecord& record, LabelGraph& g, const VertexDescriptor root, int& zoneId, int& zoneVertexId) {
 	
 	if (record.get_type() != RRType::N) {
 		int index = 0;
@@ -96,14 +96,17 @@ void LabelGraphBuilder(ResourceRecord& record, LabelGraph& g, const VertexDescri
 			}
 			g[e].type = dname;
 		}
+		auto it = std::find_if(g[mainNode].zoneIdVertexId.begin(), g[mainNode].zoneIdVertexId.end(), [=](const std::tuple<int, int>& e) {return std::get<0>(e) == zoneId && std::get<1>(e) == zoneVertexId; });
+		if(it == g[mainNode].zoneIdVertexId.end()) g[mainNode].zoneIdVertexId.push_back(tuple<int, int>(zoneId, zoneVertexId));
+		g[mainNode].rrTypesAvailable.set(record.get_type());
 	}
 }
-
-void LabelGraphBuilder(vector<ResourceRecord>& rrs, LabelGraph& g, const VertexDescriptor root) {
-
-	//Assumption : All RR's have the owner names, CNAMEs and DNAMEs as Fully Quantified Domain Name.
-	for (auto& record : rrs)
-	{
-		LabelGraphBuilder(record, g, root);
-	}
-}
+//
+//void LabelGraphBuilder(vector<ResourceRecord>& rrs, LabelGraph& g, const VertexDescriptor root) {
+//
+//	//Assumption : All RR's have the owner names, CNAMEs and DNAMEs as Fully Quantified Domain Name.
+//	for (auto& record : rrs)
+//	{
+//		LabelGraphBuilder(record, g, root);
+//	}
+//}

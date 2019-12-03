@@ -29,6 +29,12 @@ vector<Label> GetLabels(string name) {
 	return tokens;
 }
 
+ostream& operator<<(ostream& os, const ResourceRecord& rr)
+{
+	os << LabelsToString(rr.name_) << '\t' << rr.type_ << '\t' << rr.rdata_ << endl;
+	return os;
+}
+
 std::string Label::get() const
 {
 	return n.get();

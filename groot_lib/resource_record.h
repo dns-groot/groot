@@ -72,6 +72,7 @@ public:
 	void set_type(string);
 	void set_class(uint16_t);
 	void set_ttl(uint32_t);
+	friend ostream& operator<<(ostream& os, const ResourceRecord& rr);
 
 private:
 	vector<Label> name_;
