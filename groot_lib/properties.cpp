@@ -229,8 +229,31 @@ void CheckStructuralDelegationConsistency(LabelGraph& graph, VertexDescriptor ro
 		if (labels.size() == matchedIndex) {
 			auto tups = graph[closestEnclosers[0].first].zoneIdVertexId;
 			auto types = graph[closestEnclosers[0].first].rrTypesAvailable;
-			if (types[RRType::NS] != 1) {
-
+			if (types[RRType::NS] == 1) {
+				std::vector<tuple<int, vector<ResourceRecord>, vector<ResourceRecord>>> parent;
+				std::vector<tuple<int, vector<ResourceRecord>, vector<ResourceRecord>>> child;
+				for (auto p : tups) {
+					if (gZoneIdToZoneMap.find(std::get<0>(p)) != gZoneIdToZoneMap.end()) {
+						Zone& z = gZoneIdToZoneMap.find(std::get<0>(p))->second;
+						vector<ResourceRecord> nsRecords;
+						bool soa = false;
+						for (auto record : z.g[std::get<1>(p)].rrs) {
+							if (record.get_type() == RRType::SOA) soa = true;
+							if (record.get_type() == RRType::NS) nsRecords.push_back(record);
+						}
+						if (soa) {
+							child.push_back(std::make_tuple(std::get<0>(p), NSRecordLookUp(z.g, z.startVertex, nsRecords, z.domainChildLabelMap), std::move(nsRecords)));
+						}
+						else {
+							parent.push_back(std::make_tuple(std::get<0>(p), NSRecordLookUp(z.g, z.startVertex, nsRecords, z.domainChildLabelMap), std::move(nsRecords)));
+						}
+					}
+					else {
+						cout << "In Function CheckStructuralDelegationConsistency: ZoneId not found ";
+						exit(0);
+					}
+				}
+				//Compare the child and parent records
 			}
 			else {
 

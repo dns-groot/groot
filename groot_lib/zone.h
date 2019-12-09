@@ -58,6 +58,7 @@ extern std::map<int, Zone> gZoneIdToZoneMap;
 
 //Zone parser
 void ParseZoneFile(string& file, LabelGraph& g, const VertexDescriptor& root, Zone& z);
+vector<ResourceRecord> NSRecordLookUp(ZoneGraph& g, ZoneVertexDescriptor root, vector<ResourceRecord>& NSRecords, std::map<VertexDescriptor, LabelMap>& domainChildLabelMap);
 ZoneVertexDescriptor ZoneGraphBuilder(ResourceRecord& record, Zone& z);
 void ZoneGraphBuilder(vector<ResourceRecord>& rrs, Zone& z);
 void BuildZoneLabelGraphs(string filePath, string nameServer, LabelGraph& g, const VertexDescriptor& root);
