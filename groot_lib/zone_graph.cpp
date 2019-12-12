@@ -5,6 +5,16 @@ std::map<string, std::vector<int>> gNameServerZoneMap;
 std::vector<string> gTopNameServers;
 std::map<int, Zone> gZoneIdToZoneMap;
 
+string SearchForNameServer(int zoneId) {
+	for (auto const& [ns, zoneIds] : gNameServerZoneMap) {
+		if (std::find(zoneIds.begin(), zoneIds.end(), zoneId) != zoneIds.end()) {
+			return ns;
+		}
+	}
+	cout << "ZoneId not found in the Name Server ZoneIds map" << endl;
+	exit(EXIT_FAILURE);
+}
+
 LabelMap ConstructLabelMap(const ZoneGraph& g, VertexDescriptor node) {
 	LabelMap m;
 	for (EdgeDescriptor edge : boost::make_iterator_range(out_edges(node, g))) {
@@ -101,6 +111,9 @@ ZoneVertexDescriptor ZoneGraphBuilder(ResourceRecord& record, Zone& z) {
 	ZoneVertexDescriptor closetEncloser = GetAncestor(z.g, z.startVertex, labels, z.domainChildLabelMap, index);
 	ZoneVertexDescriptor node = AddNodes(z.g, closetEncloser, labels, z.domainChildLabelMap, index);
 	z.g[node].rrs.push_back(record);
+	if (record.get_type() == RRType::SOA) {
+		z.origin = record.get_name();
+	}
 	return node;
 }
 
@@ -153,7 +166,7 @@ void BuildZoneLabelGraphs(string filePath, string nameServer, LabelGraph& g, con
 	cout << "Number of nodes in Zone Graph:" << num_vertices(zone.g) << endl << flush;*/
 }
 
-vector<ResourceRecord> NSRecordLookUp(ZoneGraph& g, ZoneVertexDescriptor root, vector<ResourceRecord>& NSRecords, std::map<VertexDescriptor, LabelMap>& domainChildLabelMap) {
+vector<ResourceRecord> GlueRecordsLookUp(ZoneGraph& g, ZoneVertexDescriptor root, vector<ResourceRecord>& NSRecords, std::map<VertexDescriptor, LabelMap>& domainChildLabelMap) {
 	vector<ResourceRecord> IPrecords;
 	for (auto& record : NSRecords) {
 		vector<Label> nsName = GetLabels(record.get_rdata());
@@ -171,6 +184,21 @@ vector<ResourceRecord> NSRecordLookUp(ZoneGraph& g, ZoneVertexDescriptor root, v
 	return IPrecords;
 }
 
+bool RequireGlueRecords(Zone z, vector<ResourceRecord>& NSRecords) {
+	
+	for (auto& record : NSRecords) {
+		vector<Label> nsName = GetLabels(record.get_rdata());
+		if (nsName.size() < z.origin.size()) continue;
+		int i = 0;
+		for (; i < z.origin.size(); i++) {
+			if (z.origin[i].get() != nsName[i].get()) {
+				break;
+			}
+		}
+		if (i == z.origin.size()) return true;
+	}
+	return false;
+}
 
 boost::optional<vector<ResourceRecord>> QueryLookUp(Zone& z, EC& query, bool& completeMatch) {
 	// For No matching case(query doesn't belong to this zone file) function returns {}
@@ -220,7 +248,7 @@ boost::optional<vector<ResourceRecord>> QueryLookUp(Zone& z, EC& query, bool& co
 			}
 		}
 		answer.insert(answer.end(), NSRecords.begin(), NSRecords.end());
-		vector<ResourceRecord> IPrecords = NSRecordLookUp(z.g, z.startVertex, NSRecords, z.domainChildLabelMap);
+		vector<ResourceRecord> IPrecords = GlueRecordsLookUp(z.g, z.startVertex, NSRecords, z.domainChildLabelMap);
 		answer.insert(answer.end(), IPrecords.begin(), IPrecords.end());
 		return boost::make_optional(answer);
 	}
@@ -241,7 +269,7 @@ boost::optional<vector<ResourceRecord>> QueryLookUp(Zone& z, EC& query, bool& co
 			if (!SOA) {
 				if (NSRecords.size() > 0) {
 					answer.insert(answer.end(), NSRecords.begin(), NSRecords.end());
-					vector<ResourceRecord> IPrecords = NSRecordLookUp(z.g, z.startVertex, NSRecords, z.domainChildLabelMap);
+					vector<ResourceRecord> IPrecords = GlueRecordsLookUp(z.g, z.startVertex, NSRecords, z.domainChildLabelMap);
 					answer.insert(answer.end(), IPrecords.begin(), IPrecords.end());
 				}
 			}
@@ -297,7 +325,7 @@ boost::optional<vector<ResourceRecord>> QueryLookUp(Zone& z, EC& query, bool& co
 					answer.clear();
 					//This node is a zone cut node and should have only NS records. Return the NS records along with glue records
 					answer.insert(answer.end(), NSRecords.begin(), NSRecords.end());
-					vector<ResourceRecord> IPrecords = NSRecordLookUp(z.g, z.startVertex, NSRecords, z.domainChildLabelMap);
+					vector<ResourceRecord> IPrecords = GlueRecordsLookUp(z.g, z.startVertex, NSRecords, z.domainChildLabelMap);
 					answer.insert(answer.end(), IPrecords.begin(), IPrecords.end());
 				}
 				else {
@@ -310,7 +338,7 @@ boost::optional<vector<ResourceRecord>> QueryLookUp(Zone& z, EC& query, bool& co
 			}
 			if (query.rrTypes[RRType::NS] == 1) {
 				//If the query asked for NS records then add glue records
-				vector<ResourceRecord> IPrecords = NSRecordLookUp(z.g, z.startVertex, NSRecords, z.domainChildLabelMap);
+				vector<ResourceRecord> IPrecords = GlueRecordsLookUp(z.g, z.startVertex, NSRecords, z.domainChildLabelMap);
 				answer.insert(answer.end(), IPrecords.begin(), IPrecords.end());
 			}
 			return boost::make_optional(answer);

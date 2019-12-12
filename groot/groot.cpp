@@ -189,7 +189,7 @@ void bench(string directory, string input) {
 void checkHotmailDomains(string directory, string properties) {
 	LabelGraph g;
 	VertexDescriptor root = boost::add_vertex(g);
-	g[root].name.set(".");
+	g[root].name.set("");
 	//auto zoneFilePath = (boost::filesystem::path{ "C:\\Users\\Administrator\\Desktop\\groot\\zone_files" } / boost::filesystem::path{ "hotmail.com" } / boost::filesystem::path{ "hotmail.com - Copy.dns" }).string();
 	gTopNameServers.push_back("ns1.msft.net.");
 	for (auto& entry : filesystem::directory_iterator(directory)) {
@@ -197,11 +197,10 @@ void checkHotmailDomains(string directory, string properties) {
 	}	
 	/*std::ofstream dotfile("LabelGraph.dot");
 	write_graphviz(dotfile, g, make_vertex_writer(boost::get(&LabelVertex::name, g)), make_edge_writer(boost::get(&LabelEdge::type, g)));
-	cout << num_edges(g)<<endl;
-	cout << num_vertices(g)<<endl;
-	cout << gNameServerZoneMap["ns1.msft.com"].size();*/
-	CheckStructuralDelegationConsistency(g, root, "bay003.hotmail.com.");
-	std::ifstream i(properties);
+	*/
+	//CheckStructuralDelegationConsistency(g, root, "bay003.hotmail.com.", {});
+	CheckAllStructuralDelegations(g, root, "", root);
+	/*std::ifstream i(properties);
 	json j;
 	i >> j;
 	vector<std::function<void(const InterpreterGraph&, const vector<InterpreterVertexDescriptor>&)>> nodeFunctions;
@@ -212,9 +211,20 @@ void checkHotmailDomains(string directory, string properties) {
 		std::bitset<RRType::N> typesReq = ProcessProperties(query["Properties"], nodeFunctions, pathFunctions);
 		GenerateECAndCheckProperties(g, root, query["Domain"], typesReq, query["SubDomain"], nodeFunctions, pathFunctions);
 		cout << endl;
-	}
+	}*/
 }
 
+void checkUCLADomains(string directory, string properties) {
+	LabelGraph g;
+	VertexDescriptor root = boost::add_vertex(g);
+	g[root].name.set("");
+	gTopNameServers.push_back("ns1.dns.ucla.edu.");
+	for (auto& entry : filesystem::directory_iterator(directory)) {
+		BuildZoneLabelGraphs(entry.path().string(), "ns1.dns.ucla.edu.", g, root);
+	}
+	//CheckStructuralDelegationConsistency(g, root, "cs.ucla.edu.", {});
+	CheckAllStructuralDelegations(g, root, "", root);
+}
 
 static const char USAGE[] =
 R"(groot 1.0
@@ -271,6 +281,7 @@ int main(int argc, const char** argv)
 	//profiling_net();
 	//bench(zone_directory, properties_file);
 	checkHotmailDomains(zone_directory, properties_file);
+	//checkUCLADomains(zone_directory, properties_file);
 	//demo(zone_directory, properties_file);
 
 	return 0;

@@ -95,9 +95,9 @@ void PrettyPrintResponseValue(vector<string>& response, vector<string>& value, c
 	std::string s = std::accumulate(value.begin(), value.end(), std::string{});
 	//printf(ANSI_COLOR_RED     "Response Mismatch:"     ANSI_COLOR_RESET "\n");
 	cout << "Response Mismatch:" << endl;
-	cout << "\t Expected: " << s <<endl;
+	cout << "\t Expected: " << s << endl;
 	cout << "\t Found: " << std::accumulate(response.begin(), response.end(), std::string{}) << endl;;
-	cout << "\t At NS: " << graph[node].ns<<endl;
+	cout << "\t At NS: " << graph[node].ns << endl;
 	cout << "\t" << QueryFormat(graph[node].query) << endl;
 }
 
@@ -110,14 +110,14 @@ void CheckResponseValue(const InterpreterGraph& graph, const vector<InterpreterV
 			vector<string> rdatas;
 			if (answer) {
 				bool foundMatching = false;
-				
+
 				for (auto rr : answer.get()) {
 					if (typesReq[rr.get_type()] == 1) {
 						rdatas.push_back(rr.get_rdata());
 					}
 				}
 				if (rdatas.size() == value.size()) {
-					foundMatching  = std::equal(rdatas.begin(), rdatas.end(), value.begin());
+					foundMatching = std::equal(rdatas.begin(), rdatas.end(), value.begin());
 				}
 				else {
 					foundMatching = false;
@@ -171,10 +171,10 @@ void NumberOfHops(const InterpreterGraph& graph, const Path& p, int num_hops) {
 string QueryFormat(const EC& query) {
 	string q = "";
 	if (query.excluded) {
-		q+=" for Q: ~{ }.";
+		q += " for Q: ~{ }.";
 	}
 	else {
-		q+= " for Q: ";
+		q += " for Q: ";
 	}
 	q += LabelsToString(query.name);
 	return q;
@@ -188,7 +188,7 @@ void CheckDelegationConsistency(const InterpreterGraph& graph, const Path& p)
 		InterpreterVertexDescriptor lastNode = p.back();
 		InterpreterVertexDescriptor parentNode = p[p.size() - 2];
 		if (graph[lastNode].answer && !graph[parentNode].answer) {
-			cout << "Delegation Inconsistency " + QueryFormat(graph[lastNode].query)+ " at " + graph[parentNode].ns<< " and " << graph[lastNode].ns << endl ;
+			cout << "Delegation Inconsistency " + QueryFormat(graph[lastNode].query) + " at " + graph[parentNode].ns << " and " << graph[lastNode].ns << endl;
 		}
 		else if (!graph[lastNode].answer && graph[parentNode].answer) {
 			cout << "Delegation Inconsistency " + QueryFormat(graph[lastNode].query) + " at " + graph[parentNode].ns << " and " << graph[lastNode].ns << endl;
@@ -219,58 +219,187 @@ void CheckLameDelegation(const InterpreterGraph& graph, const Path& p)
 	//The final node should have an SOA?
 }
 
-void CheckStructuralDelegationConsistency(LabelGraph& graph, VertexDescriptor root, string userInput)
-{
-	vector<Label> labels = GetLabels(userInput);
-	vector<closestNode> closestEnclosers = SearchNode(graph, root, labels, 0);
-	if (closestEnclosers.size()) {
-		//cross-check
-		int matchedIndex = closestEnclosers[0].second;
-		if (labels.size() == matchedIndex) {
-			auto tups = graph[closestEnclosers[0].first].zoneIdVertexId;
-			auto types = graph[closestEnclosers[0].first].rrTypesAvailable;
-			if (types[RRType::NS] == 1) {
-				std::vector<tuple<int, vector<ResourceRecord>, vector<ResourceRecord>>> parent;
-				std::vector<tuple<int, vector<ResourceRecord>, vector<ResourceRecord>>> child;
-				for (auto p : tups) {
-					if (gZoneIdToZoneMap.find(std::get<0>(p)) != gZoneIdToZoneMap.end()) {
-						Zone& z = gZoneIdToZoneMap.find(std::get<0>(p))->second;
-						vector<ResourceRecord> nsRecords;
-						bool soa = false;
-						for (auto record : z.g[std::get<1>(p)].rrs) {
-							if (record.get_type() == RRType::SOA) soa = true;
-							if (record.get_type() == RRType::NS) nsRecords.push_back(record);
-						}
-						if (soa) {
-							child.push_back(std::make_tuple(std::get<0>(p), NSRecordLookUp(z.g, z.startVertex, nsRecords, z.domainChildLabelMap), std::move(nsRecords)));
-						}
-						else {
-							parent.push_back(std::make_tuple(std::get<0>(p), NSRecordLookUp(z.g, z.startVertex, nsRecords, z.domainChildLabelMap), std::move(nsRecords)));
-						}
-					}
-					else {
-						cout << "In Function CheckStructuralDelegationConsistency: ZoneId not found ";
-						exit(0);
-					}
-				}
-				//Compare the child and parent records
+
+CommonSymDiff CompareRRs(vector<ResourceRecord> resA, vector<ResourceRecord> resB) {
+	//For the given pair of collection of resource records, return the common RR's, RR's present only in A and RR's present only in B.
+	// Assumption: resA and resB has unique records (no two records in either vector are exactly the same)
+	vector<ResourceRecord> common;
+	auto it = resA.begin();
+	while (it != resA.end()) {
+		auto itb = resB.begin();
+		bool erased = false;
+		while (itb != resB.end()) {
+			if (*it == *itb) {
+				common.push_back(*it);
+				it = resA.erase(it);
+				resB.erase(itb);
+				erased = true;
+				break;
 			}
 			else {
-
+				itb++;
 			}
 		}
-		else {
-			cout << "Not Found" << endl;
+		if(!erased)it++;
+	}
+	return std::make_tuple(common, resA, resB);
+}
+
+void ConstructOutputNS(json& j, CommonSymDiff& nsDiff, boost::optional<CommonSymDiff> glueDiff, string parentServer, string childServer) {
+	if (std::get<1>(nsDiff).empty() && std::get<2>(nsDiff).empty() && ((glueDiff && std::get<1>(glueDiff.get()).empty() && std::get<2>(glueDiff.get()).empty())|| !glueDiff) ) {
+		return;
+	}
+	if (j.find("Inconsistent Pairs") == j.end()) {
+		j["Inconsistent Pairs"] = {};
+	}
+	json parentChild;
+	parentChild["Parent NS"] = parentServer;
+	parentChild["Child NS"] = childServer;
+	if (!std::get<0>(nsDiff).empty()) {
+		parentChild["Common NS Records"] = {};
+		for (auto r : std::get<0>(nsDiff)) {
+			parentChild["Common NS Records"].push_back(r.toString());
 		}
+	}
+	if (!std::get<1>(nsDiff).empty()) {
+		parentChild["Exclusive Parent NS Records"] = {};
+		for (auto r : std::get<1>(nsDiff)) {
+			parentChild["Exclusive Parent NS Records"].push_back(r.toString());
+		}
+	}
+	if (!std::get<2>(nsDiff).empty()) {
+		parentChild["Exclusive Child NS Records"] = {};
+		for (auto r : std::get<2>(nsDiff)) {
+			parentChild["Exclusive Child NS Records"].push_back(r.toString());
+		}
+	}
+	if (glueDiff) {
+		if (!std::get<0>(glueDiff.get()).empty()) {
+			parentChild["Common Glue Records"] = {};
+			for (auto r : std::get<0>(glueDiff.get())) {
+				parentChild["Common Glue Records"].push_back(r.toString());
+			}
+		}
+		if (!std::get<1>(glueDiff.get()).empty()) {
+			parentChild["Exclusive Parent Glue Records"] = {};
+			for (auto r : std::get<1>(glueDiff.get())) {
+				parentChild["Exclusive Parent Glue Records"].push_back(r.toString());
+			}
+		}
+		if (!std::get<2>(glueDiff.get()).empty()) {
+			parentChild["Exclusive Child Glue Records"] = {};
+			for (auto r : std::get<2>(glueDiff.get())) {
+				parentChild["Exclusive Child Glue Records"].push_back(r.toString());
+			}
+		}
+	}
+	j["Inconsistent Pairs"].push_back(parentChild);
+}
+
+void ParentChildNSRecordsComparison(std::vector<ZoneIdNSGlueRecords>& parent, std::vector<ZoneIdNSGlueRecords>& child, string userInput) {
+	// ZoneId, GlueRecords, NSRecords
+	json j;
+	std::map<int, string> zoneIdToNS;
+	for (auto p : parent) {
+		zoneIdToNS.try_emplace(std::get<0>(p), SearchForNameServer(std::get<0>(p)));
+		for (auto c : child) {
+			zoneIdToNS.try_emplace(std::get<0>(c), SearchForNameServer(std::get<0>(c)));
+			auto nsDiff = CompareRRs(std::get<2>(p), std::get<2>(c));
+			if (std::get<1>(c)) {
+				auto glueDiff = CompareRRs(std::get<1>(p).get(), std::get<1>(c).get());
+				ConstructOutputNS(j, nsDiff, glueDiff, zoneIdToNS.at(std::get<0>(p)), zoneIdToNS.at(std::get<0>(c)));
+			}
+			else {
+				ConstructOutputNS(j, nsDiff, {}, zoneIdToNS.at(std::get<0>(p)), zoneIdToNS.at(std::get<0>(c)));
+			}
+		}
+	}
+	if (j.size()) {
+		j["Property"] = "Structural Delegation Consistency";
+		j["Domain Name"] = userInput;
+		std::ofstream ofs;
+		ofs.open("hotmail.txt", std::ofstream::out | std::ofstream::app);
+		ofs << j.dump(4);
+		ofs << "\n";
+		ofs.close();
 	}
 }
 
+void CheckStructuralDelegationConsistency(LabelGraph& graph, VertexDescriptor root, string userInput, boost::optional<VertexDescriptor> labelNode)
+{
+	VertexDescriptor node;
+	if (!labelNode) {
+		vector<Label> labels = GetLabels(userInput);
+		vector<closestNode> closestEnclosers = SearchNode(graph, root, labels, 0);
+		if (closestEnclosers.size() && closestEnclosers[0].second == labels.size()) {
+			node = closestEnclosers[0].first;
+		}
+		else {
+			cout << "User Input not found in the label graph" << endl;
+			return;
+		}
+	}
+	else {
+		node = labelNode.get();
+	}
+	auto tups = graph[node].zoneIdVertexId;
+	auto types = graph[node].rrTypesAvailable;
+	if (types[RRType::NS] == 1) {
+		std::vector<ZoneIdNSGlueRecords> parents;
+		std::vector<ZoneIdNSGlueRecords> children;
+		for (auto p : tups) {
+			if (gZoneIdToZoneMap.find(std::get<0>(p)) != gZoneIdToZoneMap.end()) {
+				Zone& z = gZoneIdToZoneMap.find(std::get<0>(p))->second;
+				vector<ResourceRecord> nsRecords;
+				bool soa = false;
+				for (auto record : z.g[std::get<1>(p)].rrs) {
+					if (record.get_type() == RRType::SOA) soa = true;
+					if (record.get_type() == RRType::NS) nsRecords.push_back(record);
+				}
+				if (soa) {
+					if (RequireGlueRecords(z, nsRecords)) {
+						children.push_back(std::make_tuple(std::get<0>(p), GlueRecordsLookUp(z.g, z.startVertex, nsRecords, z.domainChildLabelMap), std::move(nsRecords)));
+					}
+					else {
+						children.push_back(std::make_tuple(std::get<0>(p), boost::optional<vector<ResourceRecord>> {}, std::move(nsRecords)));
+					}
+				}
+				else {
+					parents.push_back(std::make_tuple(std::get<0>(p), GlueRecordsLookUp(z.g, z.startVertex, nsRecords, z.domainChildLabelMap), std::move(nsRecords)));
+				}
+			}
+			else {
+				cout << "In Function CheckStructuralDelegationConsistency: ZoneId not found ";
+				exit(0);
+			}
+		}
+		//Compare the children and parents records
+		ParentChildNSRecordsComparison(parents, children, userInput);
+	}
+	else {
+
+	}
+}
+
+void CheckAllStructuralDelegations(LabelGraph& graph, VertexDescriptor root, string userInput, VertexDescriptor currentNode) {
+
+	string n = "";
+	if (graph[currentNode].name.get() != "") {
+		n = graph[currentNode].name.get() + "." + userInput;
+	}
+	CheckStructuralDelegationConsistency(graph, root, n, currentNode);
+	for (EdgeDescriptor edge : boost::make_iterator_range(out_edges(currentNode, graph))) {
+		if (graph[edge].type == normal) {
+			CheckAllStructuralDelegations(graph, root, n, edge.m_target);
+		}
+	}
+}
 
 void DFS(InterpreterGraph& graph, InterpreterVertexDescriptor start, Path p, vector<InterpreterVertexDescriptor>& endNodes, vector<std::function<void(const InterpreterGraph&, const Path&)>>& pathFunctions) {
 	EC& query = graph[start].query;
 	if (graph[start].ns != "") {
 		//If the response is a CNAME and request type contains CNAME then it is resolved in this step
-		if (graph[start].answer && graph[start].answer.get().size()>0 && graph[start].answer.get()[0].get_type() == RRType::CNAME && query.rrTypes[RRType::CNAME]) {
+		if (graph[start].answer && graph[start].answer.get().size() > 0 && graph[start].answer.get()[0].get_type() == RRType::CNAME && query.rrTypes[RRType::CNAME]) {
 			if (endNodes.end() == std::find(endNodes.begin(), endNodes.end(), start)) {
 				endNodes.push_back(start);
 			}
@@ -304,7 +433,7 @@ void DFS(InterpreterGraph& graph, InterpreterVertexDescriptor start, Path p, vec
 }
 
 void CheckPropertiesOnEC(EC& query, vector<std::function<void(const InterpreterGraph&, const vector<InterpreterVertexDescriptor>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions)
-{	
+{
 	//cout<<QueryFormat(query)<<endl;
 	InterpreterGraphWrapper intGraphWrapper;
 	BuildInterpretationGraph(query, intGraphWrapper);
@@ -337,7 +466,7 @@ vector<closestNode> SearchNode(LabelGraph& g, VertexDescriptor closestEncloser, 
 		enclosers.push_back(closestNode{ closestEncloser, -1 });
 		return enclosers;
 	}
-	
+
 	int16_t before_len = g[closestEncloser].len;
 	g[closestEncloser].len = index;
 	// The current node could also be the closest encloser if no child matches.
@@ -532,5 +661,5 @@ void GenerateECAndCheckProperties(LabelGraph& g, VertexDescriptor root, string u
 		cout << "Error: No ClosestEnclosers found(Function: GenerateECAndCheckProperties)" << endl;
 		exit(0);
 	}
-	
+
 }

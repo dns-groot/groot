@@ -342,4 +342,4 @@ healthchecksdb
 *.dot
 *.png
 
-/zone_files/hotmail.com
+/zone_files

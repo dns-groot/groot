@@ -35,6 +35,7 @@ enum RRType
 	SRV,
 	RRSIG,
 	NSEC,
+	SPF,
 	N
 };
 
@@ -63,6 +64,7 @@ class ResourceRecord
 {
 public:	
 	ResourceRecord(string name, string type, uint16_t class_, uint32_t ttl, string rdata);
+	bool operator== (const ResourceRecord& l1);
 	vector<Label> get_name() const;
 	RRType get_type() const;
 	uint16_t get_class() const;
@@ -72,6 +74,7 @@ public:
 	void set_type(string);
 	void set_class(uint16_t);
 	void set_ttl(uint32_t);
+	string toString();
 	friend ostream& operator<<(ostream& os, const ResourceRecord& rr);
 
 private:

@@ -88,6 +88,7 @@ struct Parser
 				// Control entry $ORIGIN - Sets the origin for relative domain names
 				if (currentRecord[0].compare("$ORIGIN") == 0) {
 					relativeDomainSuffix = currentRecord[1];
+					boost::to_lower(relativeDomainSuffix);
 					currentRecord.clear();
 					return true;
 				}
@@ -179,6 +180,8 @@ struct Parser
 						}
 					}
 				}
+				boost::to_lower(rdata);
+				boost::to_lower(name);
 				ResourceRecord RR(name, type, class_, ttl, rdata);
 				int vertexId = ZoneGraphBuilder(RR, z);
 				LabelGraphBuilder(RR, g, root, z.zoneId, vertexId);
@@ -194,7 +197,7 @@ struct Parser
 	}
 
 	int GetTypeIndex(vector<string>& current_record) const {
-		std::vector<string> types{ "A", "MX", "NS", "CNAME", "SOA", "PTR", "TXT", "AAAA", "SRV", "DNAME","RRSIG","NSEC" };
+		std::vector<string> types{ "A", "MX", "NS", "CNAME", "SOA", "PTR", "TXT", "AAAA", "SRV", "DNAME","RRSIG","NSEC", "SPF" };
 
 		int index = -1;
 		int i = 0;

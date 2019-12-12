@@ -5,7 +5,16 @@
 #include "resource_record.h"
 
 
-ResourceRecord::ResourceRecord(string name, string type, uint16_t class_, uint32_t ttl, string rdata) : name_(GetLabels(name)), type_(ConvertToRRType(type)), class_(class_), ttl_(ttl), rdata_(rdata) {};
+ResourceRecord::ResourceRecord(string name, string type, uint16_t class_, uint32_t ttl, string rdata) : name_(GetLabels(name)), type_(ConvertToRRType(type)), class_(class_), ttl_(ttl), rdata_(rdata) {}
+bool ResourceRecord::operator==(const ResourceRecord& l1)
+{
+	if (name_ == l1.get_name() && rdata_ == l1.get_rdata() &&  type_ == l1.get_type()) {
+		// ignoring ttl_ == l1.get_ttl() 
+		return true;
+	}
+	return false;
+}
+
 
 vector<Label> GetLabels(string name) {
 	vector<Label> tokens;
@@ -33,6 +42,13 @@ ostream& operator<<(ostream& os, const ResourceRecord& rr)
 {
 	os << LabelsToString(rr.name_) << '\t' << rr.type_ << '\t' << rr.rdata_ << endl;
 	return os;
+}
+
+string ResourceRecord::toString()
+{
+	std::bitset<RRType::N> rrTypes;
+	rrTypes.set(type_);
+	return LabelsToString(name_) + "   " + RRTypesToString(rrTypes) + "   " + rdata_;
 }
 
 std::string Label::get() const
@@ -92,6 +108,8 @@ void ResourceRecord::set_ttl(uint32_t ttl)
 }
 
 
+
+
 bool operator==(const Label& l1, const Label& l2)
 {
 	return l1.n == l2.n;
@@ -143,10 +161,13 @@ RRType	ConvertToRRType(string type) {
 		return SRV;
 	}
 	if (type == "RRSIG") {
-		return SRV;
+		return RRSIG;
 	}
 	if (type == "NSEC") {
-		return SRV;
+		return NSEC;
+	}
+	if (type == "SPF") {
+		return SPF;
 	}
 	return N;
 }

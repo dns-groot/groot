@@ -16,8 +16,10 @@
 #include "graph.h"
 #include "zone.h"
 #include "interpreter.h"
+#include <nlohmann\json.hpp>
 
 using namespace std;
+using json = nlohmann::json;
 
 #define ANSI_COLOR_RED     "\x1b[31m"
 #define ANSI_COLOR_GREEN   "\x1b[32m"
@@ -30,6 +32,8 @@ using namespace std;
 typedef std::function<void(const InterpreterGraph&, const vector<InterpreterVertexDescriptor>&)> NodeFunction;
 typedef std::function<void(const InterpreterGraph&, const Path&)> PathFunction;
 typedef std::pair <VertexDescriptor, int> closestNode;
+typedef tuple<vector<ResourceRecord>, vector<ResourceRecord>, vector<ResourceRecord>> CommonSymDiff;
+typedef tuple<int, boost::optional<vector<ResourceRecord>>, vector<ResourceRecord>> ZoneIdNSGlueRecords;
 
 // End node functions
 void CheckResponseReturned(const InterpreterGraph& graph, const vector<InterpreterVertexDescriptor>& endNodes, std::bitset<RRType::N> typesReq);
@@ -43,7 +47,8 @@ void CheckDelegationConsistency(const InterpreterGraph& graph, const Path& p);
 void CheckLameDelegation(const InterpreterGraph& graph, const Path& p);
 
 // Parent-Child Synatctic Record check functions
-void CheckStructuralDelegationConsistency(LabelGraph&, VertexDescriptor, string);
+void CheckStructuralDelegationConsistency(LabelGraph& graph, VertexDescriptor root, string userInput, boost::optional<VertexDescriptor> labelNode);
+void CheckAllStructuralDelegations(LabelGraph& graph, VertexDescriptor root, string userInput, VertexDescriptor currentNode);
 
 void GenerateECAndCheckProperties(LabelGraph& g, VertexDescriptor root, string userInput, std::bitset<RRType::N> typesReq, bool subdomain, vector<std::function<void(const InterpreterGraph&, const vector<InterpreterVertexDescriptor>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions);
 void CheckPropertiesOnEC(EC& query, vector<std::function<void(const InterpreterGraph&, const vector<InterpreterVertexDescriptor>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions);
