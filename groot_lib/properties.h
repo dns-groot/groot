@@ -33,7 +33,7 @@ typedef std::function<void(const InterpreterGraph&, const vector<InterpreterVert
 typedef std::function<void(const InterpreterGraph&, const Path&)> PathFunction;
 typedef std::pair <VertexDescriptor, int> closestNode;
 typedef tuple<vector<ResourceRecord>, vector<ResourceRecord>, vector<ResourceRecord>> CommonSymDiff;
-typedef tuple<int, boost::optional<vector<ResourceRecord>>, vector<ResourceRecord>> ZoneIdNSGlueRecords;
+typedef tuple<int, boost::optional<vector<ResourceRecord>>, vector<ResourceRecord>> ZoneIdGlueNSRecords;
 
 // End node functions
 void CheckResponseReturned(const InterpreterGraph& graph, const vector<InterpreterVertexDescriptor>& endNodes, std::bitset<RRType::N> typesReq);

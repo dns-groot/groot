@@ -245,58 +245,58 @@ CommonSymDiff CompareRRs(vector<ResourceRecord> resA, vector<ResourceRecord> res
 	return std::make_tuple(common, resA, resB);
 }
 
-void ConstructOutputNS(json& j, CommonSymDiff& nsDiff, boost::optional<CommonSymDiff> glueDiff, string parentServer, string childServer) {
+void ConstructOutputNS(json& j, CommonSymDiff& nsDiff, boost::optional<CommonSymDiff> glueDiff, string serverA, string serverB, string a, string b) {
 	if (std::get<1>(nsDiff).empty() && std::get<2>(nsDiff).empty() && ((glueDiff && std::get<1>(glueDiff.get()).empty() && std::get<2>(glueDiff.get()).empty())|| !glueDiff) ) {
 		return;
 	}
 	if (j.find("Inconsistent Pairs") == j.end()) {
 		j["Inconsistent Pairs"] = {};
 	}
-	json parentChild;
-	parentChild["Parent NS"] = parentServer;
-	parentChild["Child NS"] = childServer;
+	json diffAB;
+	diffAB[a + " NS"] = serverA;
+	diffAB[b + " NS"] = serverB;
 	if (!std::get<0>(nsDiff).empty()) {
-		parentChild["Common NS Records"] = {};
+		diffAB["Common NS Records"] = {};
 		for (auto r : std::get<0>(nsDiff)) {
-			parentChild["Common NS Records"].push_back(r.toString());
+			diffAB["Common NS Records"].push_back(r.toString());
 		}
 	}
 	if (!std::get<1>(nsDiff).empty()) {
-		parentChild["Exclusive Parent NS Records"] = {};
+		diffAB["Exclusive " + a +" NS Records"] = {};
 		for (auto r : std::get<1>(nsDiff)) {
-			parentChild["Exclusive Parent NS Records"].push_back(r.toString());
+			diffAB["Exclusive " + a + " NS Records"].push_back(r.toString());
 		}
 	}
 	if (!std::get<2>(nsDiff).empty()) {
-		parentChild["Exclusive Child NS Records"] = {};
+		diffAB["Exclusive " + b + " NS Records"] = {};
 		for (auto r : std::get<2>(nsDiff)) {
-			parentChild["Exclusive Child NS Records"].push_back(r.toString());
+			diffAB["Exclusive " + b + " NS Records"].push_back(r.toString());
 		}
 	}
 	if (glueDiff) {
 		if (!std::get<0>(glueDiff.get()).empty()) {
-			parentChild["Common Glue Records"] = {};
+			diffAB["Common Glue Records"] = {};
 			for (auto r : std::get<0>(glueDiff.get())) {
-				parentChild["Common Glue Records"].push_back(r.toString());
+				diffAB["Common Glue Records"].push_back(r.toString());
 			}
 		}
 		if (!std::get<1>(glueDiff.get()).empty()) {
-			parentChild["Exclusive Parent Glue Records"] = {};
+			diffAB["Exclusive " + a + " Glue Records"] = {};
 			for (auto r : std::get<1>(glueDiff.get())) {
-				parentChild["Exclusive Parent Glue Records"].push_back(r.toString());
+				diffAB["Exclusive " + a + " Glue Records"].push_back(r.toString());
 			}
 		}
 		if (!std::get<2>(glueDiff.get()).empty()) {
-			parentChild["Exclusive Child Glue Records"] = {};
+			diffAB["Exclusive " + b + " Glue Records"] = {};
 			for (auto r : std::get<2>(glueDiff.get())) {
-				parentChild["Exclusive Child Glue Records"].push_back(r.toString());
+				diffAB["Exclusive " + b + " Glue Records"].push_back(r.toString());
 			}
 		}
 	}
-	j["Inconsistent Pairs"].push_back(parentChild);
+	j["Inconsistent Pairs"].push_back(diffAB);
 }
 
-void ParentChildNSRecordsComparison(std::vector<ZoneIdNSGlueRecords>& parent, std::vector<ZoneIdNSGlueRecords>& child, string userInput) {
+void ParentChildNSRecordsComparison(std::vector<ZoneIdGlueNSRecords>& parent, std::vector<ZoneIdGlueNSRecords>& child, string userInput) {
 	// ZoneId, GlueRecords, NSRecords
 	json j;
 	std::map<int, string> zoneIdToNS;
@@ -307,16 +307,35 @@ void ParentChildNSRecordsComparison(std::vector<ZoneIdNSGlueRecords>& parent, st
 			auto nsDiff = CompareRRs(std::get<2>(p), std::get<2>(c));
 			if (std::get<1>(c)) {
 				auto glueDiff = CompareRRs(std::get<1>(p).get(), std::get<1>(c).get());
-				ConstructOutputNS(j, nsDiff, glueDiff, zoneIdToNS.at(std::get<0>(p)), zoneIdToNS.at(std::get<0>(c)));
+				ConstructOutputNS(j, nsDiff, glueDiff, zoneIdToNS.at(std::get<0>(p)), zoneIdToNS.at(std::get<0>(c)), "parent", "child");
 			}
 			else {
-				ConstructOutputNS(j, nsDiff, {}, zoneIdToNS.at(std::get<0>(p)), zoneIdToNS.at(std::get<0>(c)));
+				ConstructOutputNS(j, nsDiff, {}, zoneIdToNS.at(std::get<0>(p)), zoneIdToNS.at(std::get<0>(c)), "parent", "child");
 			}
 		}
 	}
-	if (j.size()) {
+	for (auto it = parent.begin(); it != parent.end(); ++it) {
+		for (auto itp = it+1; itp != parent.end(); ++itp) {
+			auto nsDiff = CompareRRs(std::get<2>(*it), std::get<2>(*itp));
+			auto glueDiff = CompareRRs(std::get<1>(*it).get(), std::get<1>(*itp).get());
+			ConstructOutputNS(j, nsDiff, glueDiff, zoneIdToNS.at(std::get<0>(*it)), zoneIdToNS.at(std::get<0>(*itp)), "parent-a", "parent-b");
+		}
+	}
+	for (auto it = child.begin(); it != child.end(); ++it) {
+		for (auto itp = it + 1; itp != child.end(); ++itp) {
+			auto nsDiff = CompareRRs(std::get<2>(*it), std::get<2>(*itp));
+			auto glueDiff = CompareRRs(std::get<1>(*it).get_value_or({}), std::get<1>(*itp).get_value_or({}));
+			ConstructOutputNS(j, nsDiff, glueDiff, zoneIdToNS.at(std::get<0>(*it)), zoneIdToNS.at(std::get<0>(*itp)), "child-a", "child-b");
+		}
+	}
+	if (j.size() || (parent.empty() && !child.empty())) {
 		j["Property"] = "Structural Delegation Consistency";
 		j["Domain Name"] = userInput;
+		if (parent.empty() && !child.empty()) {
+			j["Warning"] = "There are no NS records at the parent or parent zone file is missing";
+			j["Child NS"] = {};
+			for (auto c : child) j["Child NS"].push_back(SearchForNameServer(std::get<0>(c)));
+		}
 		std::ofstream ofs;
 		ofs.open("hotmail.txt", std::ofstream::out | std::ofstream::app);
 		ofs << j.dump(4);
@@ -345,8 +364,8 @@ void CheckStructuralDelegationConsistency(LabelGraph& graph, VertexDescriptor ro
 	auto tups = graph[node].zoneIdVertexId;
 	auto types = graph[node].rrTypesAvailable;
 	if (types[RRType::NS] == 1) {
-		std::vector<ZoneIdNSGlueRecords> parents;
-		std::vector<ZoneIdNSGlueRecords> children;
+		std::vector<ZoneIdGlueNSRecords> parents;
+		std::vector<ZoneIdGlueNSRecords> children;
 		for (auto p : tups) {
 			if (gZoneIdToZoneMap.find(std::get<0>(p)) != gZoneIdToZoneMap.end()) {
 				Zone& z = gZoneIdToZoneMap.find(std::get<0>(p))->second;
