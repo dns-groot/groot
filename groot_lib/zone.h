@@ -17,6 +17,15 @@
 
 using namespace std;
 
+enum class ReturnTag
+{
+	ANS,
+	ANSQ,
+	REF,
+	NX
+};
+
+typedef tuple<ReturnTag, std::bitset<RRType::N>, vector<ResourceRecord>> ZoneLookUpAnswer;
 
 //Zone Graph
 struct ZoneVertex {
@@ -61,8 +70,11 @@ bool RequireGlueRecords(Zone z, vector<ResourceRecord>& NSRecords);
 
 //Zone parser
 void ParseZoneFile(string& file, LabelGraph& g, const VertexDescriptor& root, Zone& z);
+
+//ZoneLookUp
 vector<ResourceRecord> GlueRecordsLookUp(ZoneGraph& g, ZoneVertexDescriptor root, vector<ResourceRecord>& NSRecords, std::map<VertexDescriptor, LabelMap>& domainChildLabelMap);
 ZoneVertexDescriptor ZoneGraphBuilder(ResourceRecord& record, Zone& z);
 void ZoneGraphBuilder(vector<ResourceRecord>& rrs, Zone& z);
+string ReturnTagToString(ReturnTag& r);
 void BuildZoneLabelGraphs(string filePath, string nameServer, LabelGraph& g, const VertexDescriptor& root);
-boost::optional<vector<ResourceRecord>> QueryLookUp(Zone& z, EC& query, bool& completeMatch);
+boost::optional<vector<ZoneLookUpAnswer>> QueryLookUpAtZone(Zone& z, EC& query, bool& completeMatch);

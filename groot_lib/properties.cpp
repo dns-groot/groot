@@ -2,7 +2,7 @@
 #include <numeric>
 #include <utility>
 
-void CheckResponseReturned(const InterpreterGraph& graph, const vector<InterpreterVertexDescriptor>& endNodes, std::bitset<RRType::N> typesReq) {
+void CheckResponseReturned(const InterpreterGraph& graph, const vector<IntpVD>& endNodes, std::bitset<RRType::N> typesReq) {
 	for (auto v : endNodes) {
 		if ((graph[v].query.rrTypes & typesReq).count() > 0) {
 			boost::optional<vector<ResourceRecord>> answer = graph[v].answer;
@@ -58,7 +58,7 @@ std::bitset<RRType::N> CompareResponse(const vector<ResourceRecord>& resA, const
 	return typesDiff;
 }
 
-void CheckSameResponseReturned(const InterpreterGraph& graph, const vector<InterpreterVertexDescriptor>& endNodes, std::bitset<RRType::N> typesReq) {
+void CheckSameResponseReturned(const InterpreterGraph& graph, const vector<IntpVD>& endNodes, std::bitset<RRType::N> typesReq) {
 	boost::optional<vector<ResourceRecord>> response;
 	bool noResponse = false;
 	for (auto v : endNodes) {
@@ -90,7 +90,7 @@ void CheckSameResponseReturned(const InterpreterGraph& graph, const vector<Inter
 	}
 }
 
-void PrettyPrintResponseValue(vector<string>& response, vector<string>& value, const InterpreterGraph& graph, const InterpreterVertexDescriptor& node) {
+void PrettyPrintResponseValue(vector<string>& response, vector<string>& value, const InterpreterGraph& graph, const IntpVD& node) {
 
 	std::string s = std::accumulate(value.begin(), value.end(), std::string{});
 	//printf(ANSI_COLOR_RED     "Response Mismatch:"     ANSI_COLOR_RESET "\n");
@@ -101,7 +101,7 @@ void PrettyPrintResponseValue(vector<string>& response, vector<string>& value, c
 	cout << "\t" << QueryFormat(graph[node].query) << endl;
 }
 
-void CheckResponseValue(const InterpreterGraph& graph, const vector<InterpreterVertexDescriptor>& endNodes, std::bitset<RRType::N> typesReq, vector<string> value) {
+void CheckResponseValue(const InterpreterGraph& graph, const vector<IntpVD>& endNodes, std::bitset<RRType::N> typesReq, vector<string> value) {
 
 	bool foundDiff = false;
 	for (auto v : endNodes) {
@@ -185,8 +185,8 @@ void CheckDelegationConsistency(const InterpreterGraph& graph, const Path& p)
 	//The path should have at least three nodes including the dummy node.
 	if (p.size() > 2) {
 		//TODO: Parent and Child should be answering for the user input query
-		InterpreterVertexDescriptor lastNode = p.back();
-		InterpreterVertexDescriptor parentNode = p[p.size() - 2];
+		IntpVD lastNode = p.back();
+		IntpVD parentNode = p[p.size() - 2];
 		if (graph[lastNode].answer && !graph[parentNode].answer) {
 			cout << "Delegation Inconsistency " + QueryFormat(graph[lastNode].query) + " at " + graph[parentNode].ns << " and " << graph[lastNode].ns << endl;
 		}
@@ -414,7 +414,7 @@ void CheckAllStructuralDelegations(LabelGraph& graph, VertexDescriptor root, str
 	}
 }
 
-void DFS(InterpreterGraph& graph, InterpreterVertexDescriptor start, Path p, vector<InterpreterVertexDescriptor>& endNodes, vector<std::function<void(const InterpreterGraph&, const Path&)>>& pathFunctions) {
+void DFS(InterpreterGraph& graph, IntpVD start, Path p, vector<IntpVD>& endNodes, vector<std::function<void(const InterpreterGraph&, const Path&)>>& pathFunctions) {
 	EC& query = graph[start].query;
 	if (graph[start].ns != "") {
 		//If the response is a CNAME and request type contains CNAME then it is resolved in this step
@@ -435,7 +435,7 @@ void DFS(InterpreterGraph& graph, InterpreterVertexDescriptor start, Path p, vec
 		}
 	}
 	p.push_back(start);
-	for (InterpreterEdgeDescriptor edge : boost::make_iterator_range(out_edges(start, graph))) {
+	for (IntpED edge : boost::make_iterator_range(out_edges(start, graph))) {
 		//TODO : Edges that have side query
 		DFS(graph, edge.m_target, p, endNodes, pathFunctions);
 	}
@@ -451,7 +451,7 @@ void DFS(InterpreterGraph& graph, InterpreterVertexDescriptor start, Path p, vec
 	}
 }
 
-void CheckPropertiesOnEC(EC& query, vector<std::function<void(const InterpreterGraph&, const vector<InterpreterVertexDescriptor>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions)
+void CheckPropertiesOnEC(EC& query, vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions)
 {
 	//cout<<QueryFormat(query)<<endl;
 	InterpreterGraphWrapper intGraphWrapper;
@@ -460,7 +460,7 @@ void CheckPropertiesOnEC(EC& query, vector<std::function<void(const InterpreterG
 		cout << "No NameServer exists to resolve EC- " << QueryFormat(query) << endl;
 		return;
 	}
-	vector<InterpreterVertexDescriptor> endNodes;
+	vector<IntpVD> endNodes;
 	DFS(intGraphWrapper.intG, intGraphWrapper.startVertex, Path{}, endNodes, pathFunctions);
 	//GenerateDotFileInterpreter("Int.dot", intGraphWrapper.intG);
 	for (auto f : nodeFunctions) {
@@ -539,7 +539,7 @@ vector<closestNode> SearchNode(LabelGraph& g, VertexDescriptor closestEncloser, 
 	return actualEnclosers;
 }
 
-void WildCardChildEC(std::vector<Label>& childrenLabels, vector<Label>& labels, std::bitset<RRType::N>& typesReq, int index, vector<std::function<void(const InterpreterGraph&, const vector<InterpreterVertexDescriptor>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions) {
+void WildCardChildEC(std::vector<Label>& childrenLabels, vector<Label>& labels, std::bitset<RRType::N>& typesReq, int index, vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions) {
 
 	EC wildCardMatch;
 	wildCardMatch.name.clear();
@@ -552,7 +552,7 @@ void WildCardChildEC(std::vector<Label>& childrenLabels, vector<Label>& labels, 
 	CheckPropertiesOnEC(wildCardMatch, nodeFunctions, pathFunctions);
 }
 
-void NodeEC(LabelGraph& g, vector<Label>& name, std::bitset<RRType::N>& typesReq, vector<std::function<void(const InterpreterGraph&, const vector<InterpreterVertexDescriptor>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions) {
+void NodeEC(LabelGraph& g, vector<Label>& name, std::bitset<RRType::N>& typesReq, vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions) {
 
 	EC present;
 	present.name = name;
@@ -561,7 +561,7 @@ void NodeEC(LabelGraph& g, vector<Label>& name, std::bitset<RRType::N>& typesReq
 	CheckPropertiesOnEC(present, nodeFunctions, pathFunctions);
 }
 
-void SubDomainECGeneration(LabelGraph& g, VertexDescriptor start, vector<Label> parentDomainName, std::bitset<RRType::N> typesReq, bool skipLabel, vector<std::function<void(const InterpreterGraph&, const vector<InterpreterVertexDescriptor>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions) {
+void SubDomainECGeneration(LabelGraph& g, VertexDescriptor start, vector<Label> parentDomainName, std::bitset<RRType::N> typesReq, bool skipLabel, vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions) {
 
 	int len = 0;
 	for (Label l : parentDomainName) {
@@ -625,7 +625,7 @@ void SubDomainECGeneration(LabelGraph& g, VertexDescriptor start, vector<Label> 
 	//}
 }
 
-void GenerateECAndCheckProperties(LabelGraph& g, VertexDescriptor root, string userInput, std::bitset<RRType::N> typesReq, bool subdomain, vector<std::function<void(const InterpreterGraph&, const vector<InterpreterVertexDescriptor>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions) {
+void GenerateECAndCheckProperties(LabelGraph& g, VertexDescriptor root, string userInput, std::bitset<RRType::N> typesReq, bool subdomain, vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions) {
 	//Given an user input for domain and query types, the function searches for relevant node
 	// The search is relevant even for subdomain = False as we want to know the exact EC
 	if (userInput.length() > kMaxDomainLength) {
