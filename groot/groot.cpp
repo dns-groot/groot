@@ -86,7 +86,7 @@ void deserialize(T& data, string fileName) {
 	ia >> data;
 }
 
-std::bitset<RRType::N> ProcessProperties(json j, vector<std::function<void(const InterpreterGraph&, const vector<InterpreterVertexDescriptor>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>>& pathFunctions) {
+std::bitset<RRType::N> ProcessProperties(json j, vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>>& pathFunctions) {
 	std::bitset<RRType::N> typesReq;
 	for (auto& property : j) {
 		string name = property["PropertyName"];
@@ -153,7 +153,7 @@ void demo(string directory, string properties) {
 	std::ifstream i(properties);
 	json j;
 	i >> j;
-	vector<std::function<void(const InterpreterGraph&, const vector<InterpreterVertexDescriptor>&)>> nodeFunctions;
+	vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>> nodeFunctions;
 	vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions;
 	for (auto& query : j) {
 		nodeFunctions.clear();
@@ -174,7 +174,7 @@ void bench(string directory, string input) {
 	std::ifstream i(input);
 	json j;
 	i >> j;
-	vector<std::function<void(const InterpreterGraph&, const vector<InterpreterVertexDescriptor>&)>> nodeFunctions;
+	vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>> nodeFunctions;
 	vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions;
 	for (auto& query : j) {
 		nodeFunctions.clear();

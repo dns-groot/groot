@@ -103,23 +103,30 @@ boost::optional<Zone> GetRelevantZone(string ns, EC& query) {
 	auto it = gNameServerZoneMap.find(ns);
 	auto queryLabels = query.name;
 	if (it != gNameServerZoneMap.end()) {
+		bool found = false;
 		int max = 0;
-		Zone bestMatch = gZoneIdToZoneMap.find(it->second[0])->second;
+		Zone bestMatch;
 		for (auto zid : it->second) {
 			int i = 0;
+			bool valid = true;
 			Zone currentZone = gZoneIdToZoneMap.find(zid)->second;
-			for (auto l : currentZone.origin) {
-				if (i >= queryLabels.size() || !(l == queryLabels[i])) {
+			for (Label l : currentZone.origin) {
+				if (i >= queryLabels.size() || l.n != queryLabels[i].n) {
+					valid = false;
 					break;
 				}
 				i++;
 			}
-			if (i > max) {
-				max = i;
-				bestMatch = currentZone;
+			if (valid) {
+				found = true;
+				if (i > max) {
+					max = i;
+					bestMatch = currentZone;
+				}
 			}
 		}
-		return boost::make_optional(bestMatch);
+		if (found)	return boost::make_optional(bestMatch);
+		else return {};
 	}
 	else {
 		return {};
@@ -231,13 +238,26 @@ void NS_SubRoutine(InterpreterGraph& g, IntpVD& v, NameServerIntpre& nameServerZ
 	
 	boost::optional<IntpVD> node = InsertNode(nameServerZoneMap, g, newNS, g[v].query, v, {});
 	if (node) {
-		boost::optional<Zone> start = GetRelevantZone(newNS, g[v].query);
-		if (start) {
-			QueryResolver(start.get(), g, node.get(), nameServerZoneMap);
+		auto it = gNameServerZoneMap.find(newNS);
+		if (it != gNameServerZoneMap.end()) {
+			boost::optional<Zone> start = GetRelevantZone(newNS, g[v].query);
+			if (start) {
+				QueryResolver(start.get(), g, node.get(), nameServerZoneMap);
+			}
+			else {
+				//Path terminates - No relevant zone file available from the NS.
+				vector<ZoneLookUpAnswer> answer;
+				answer.push_back(std::make_tuple(ReturnTag::REFUSED, g[node.get()].query.rrTypes, vector<ResourceRecord> {}));
+				g[node.get()].answer = answer;
+			}
 		}
 		else {
-			//Path terminates - No relevant zone file available from the NS.
+			//Path terminates -  The newNS not found.
+			vector<ZoneLookUpAnswer> answer;
+			answer.push_back(std::make_tuple(ReturnTag::NSNOTFOUND, g[node.get()].query.rrTypes, vector<ResourceRecord> {}));
+			g[node.get()].answer = answer;
 		}
+		
 	}
 }
 
@@ -375,10 +395,16 @@ boost::optional<IntpVD> InsertNode(NameServerIntpre& nameServerNodesMap, Interpr
 
 void StartFromTop(InterpreterGraph& intG, IntpVD edgeStartNode, EC& query, NameServerIntpre& nameServerNodesMap) {
 	for (string ns : gTopNameServers) {
+		// ns exists in the database.
 		boost::optional<Zone> start = GetRelevantZone(ns, query);
 		boost::optional<IntpVD> node = InsertNode(nameServerNodesMap, intG, ns, query, edgeStartNode, {});
 		if (start && node) {
 			QueryResolver(start.get(), intG, node.get(), nameServerNodesMap);
+		}
+		else if (node && !start) {
+			vector<ZoneLookUpAnswer> answer;
+			answer.push_back(std::make_tuple(ReturnTag::REFUSED, intG[node.get()].query.rrTypes, vector<ResourceRecord> {}));
+			intG[node.get()].answer = answer;
 		}
 	}
 }

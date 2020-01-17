@@ -343,3 +343,4 @@ healthchecksdb
 *.png
 
 /zone_files
+*.txt

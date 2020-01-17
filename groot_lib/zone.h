@@ -22,7 +22,9 @@ enum class ReturnTag
 	ANS,
 	ANSQ,
 	REF,
-	NX
+	NX,
+	REFUSED,
+	NSNOTFOUND
 };
 
 typedef tuple<ReturnTag, std::bitset<RRType::N>, vector<ResourceRecord>> ZoneLookUpAnswer;

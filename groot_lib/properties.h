@@ -38,7 +38,7 @@ typedef tuple<int, boost::optional<vector<ResourceRecord>>, vector<ResourceRecor
 // End node functions
 void CheckResponseReturned(const InterpreterGraph& graph, const vector<IntpVD>& endNodes, std::bitset<RRType::N> typesReq);
 void CheckSameResponseReturned(const InterpreterGraph& graph, const vector<IntpVD>& endNodes, std::bitset<RRType::N> typesReq);
-void CheckResponseValue(const InterpreterGraph& graph, const vector<IntpVD>& endNodes, std::bitset<RRType::N> typesReq, vector<string> value);
+void CheckResponseValue(const InterpreterGraph& graph, const vector<IntpVD>& endNodes, std::bitset<RRType::N> typesReq, set<string> values);
 
 // Path functions
 void NumberOfRewrites(const InterpreterGraph& graph, const Path& p, int num_rewrites);
@@ -55,3 +55,4 @@ void CheckPropertiesOnEC(EC& query, vector<std::function<void(const InterpreterG
 vector<closestNode> SearchNode(LabelGraph& g, VertexDescriptor closestEncloser, vector<Label>& labels, int index);
 
 string QueryFormat(const EC& query);
+CommonSymDiff CompareRRs(vector<ResourceRecord> resA, vector<ResourceRecord> resB);

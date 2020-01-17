@@ -14,6 +14,8 @@ string ReturnTagToString(ReturnTag& r) {
 		return "REF";
 	if (r == ReturnTag::NX)
 		return "NX";
+	if (r == ReturnTag::REFUSED)
+		return "REFUSED";
 	return "";
 }
 
@@ -228,17 +230,16 @@ bool RequireGlueRecords(Zone z, vector<ResourceRecord>& NSRecords) {
 }
 
 boost::optional<vector<ZoneLookUpAnswer>> QueryLookUpAtZone(Zone& z, EC& query, bool& completeMatch) {
-	// For No matching case(query doesn't belong to this zone file) function returns {}
-	// For matching but with empty record functions return an empty vector - NXDOMAIN
-	// Otherwise a vector of RR's
-	int index = 0;
+	//Query lookup at the zone is peformed only if it is relevant
+
+	/*int index = 0;
 	for (Label l : z.origin) {
 		if (index >= query.name.size() || l.n != query.name[index].n) {
 			return {};
 		}
 		index++;
-	}
-	index = 0;
+	}*/
+	int index = 0;
 	ZoneVertexDescriptor closestEncloser = GetClosestEncloser(z, z.startVertex, query.name, index);
 	vector<ZoneLookUpAnswer> answers;
 
@@ -251,11 +252,18 @@ boost::optional<vector<ZoneLookUpAnswer>> QueryLookUpAtZone(Zone& z, EC& query, 
 				vector<ResourceRecord> matchingRRs;
 				std::bitset<RRType::N> queryTypesFound;
 				for (auto& record : z.g[v].rrs) {
-					if (record.get_type() == RRType::CNAME && !query.rrTypes[RRType::CNAME]) {
+					if (record.get_type() == RRType::CNAME) {
+						answers.clear();
 						matchingRRs.clear();
 						matchingRRs.push_back(record);
-						answers.push_back(std::make_tuple(ReturnTag::ANSQ, nodeRRtypes, matchingRRs));
-						return boost::make_optional(answers); //If CNAME then there will be no other record
+						//Return type is Ans if only CNAME is requested
+						if (query.rrTypes[RRType::CNAME] && query.rrTypes.count() == 1) {
+							answers.push_back(std::make_tuple(ReturnTag::ANS, nodeRRtypes, matchingRRs));
+						}
+						else {
+							answers.push_back(std::make_tuple(ReturnTag::ANSQ, nodeRRtypes, matchingRRs));
+						}
+						return boost::make_optional(answers); //If CNAME then other records would be ignored.
 					}
 					if (query.rrTypes[record.get_type()] == 1) {
 						matchingRRs.push_back(record);
@@ -286,7 +294,7 @@ boost::optional<vector<ZoneLookUpAnswer>> QueryLookUpAtZone(Zone& z, EC& query, 
 			}
 		}
 		//dr < dq ∧ NS ∈ T ∧ SOA ~∈ T
-		if (NSRecords.size() && ~nodeRRtypes[RRType::SOA]) {
+		if (NSRecords.size() && !nodeRRtypes[RRType::SOA]) {
 			vector<ResourceRecord> IPrecords = GlueRecordsLookUp(z.g, z.startVertex, NSRecords, z.domainChildLabelMap);
 			NSRecords.insert(NSRecords.end(), IPrecords.begin(), IPrecords.end());
 			answers.push_back(std::make_tuple(ReturnTag::REF, nodeRRtypes, NSRecords));
@@ -319,18 +327,25 @@ boost::optional<vector<ZoneLookUpAnswer>> QueryLookUpAtZone(Zone& z, EC& query, 
 			}
 			//If there is query excluded and the node has a wildcard then return records matching the query type
 			//If there is no wildcard child then its a NXDOMAIN Case
-			//If there is wildcard and non matching types then also its a NXDOMAIN case
+			//If there is wildcard and non matching types then its a Ans with empty records
 
 			for (ZoneVertexDescriptor v : boost::make_iterator_range(adjacent_vertices(closestEncloser, z.g))) {
 				if (z.g[v].name.get() == "*") {
 					vector<ResourceRecord> matchingRRs;
 					std::bitset<RRType::N> queryTypesFound;
 					for (auto& record : z.g[v].rrs) {
-						if (record.get_type() == RRType::CNAME && !query.rrTypes[RRType::CNAME]) {
+						if (record.get_type() == RRType::CNAME) {
+							answers.clear();
 							matchingRRs.clear();
 							matchingRRs.push_back(record);
-							answers.push_back(std::make_tuple(ReturnTag::ANSQ, nodeRRtypes, matchingRRs));
-							return boost::make_optional(answers); //If CNAME then there will be no other record
+							//Return type is Ans if only CNAME is requested
+							if (query.rrTypes[RRType::CNAME] && query.rrTypes.count() == 1) {
+								answers.push_back(std::make_tuple(ReturnTag::ANS, nodeRRtypes, matchingRRs));
+							}
+							else {
+								answers.push_back(std::make_tuple(ReturnTag::ANSQ, nodeRRtypes, matchingRRs));
+							}
+							return boost::make_optional(answers); //If CNAME then other records would be ignored.
 						}
 						if (query.rrTypes[record.get_type()] == 1) {
 							matchingRRs.push_back(record);
@@ -340,7 +355,7 @@ boost::optional<vector<ZoneLookUpAnswer>> QueryLookUpAtZone(Zone& z, EC& query, 
 					}
 					if (queryTypesFound.count())answers.push_back(std::make_tuple(ReturnTag::ANS, queryTypesFound, matchingRRs));
 					if ((queryTypesFound ^ query.rrTypes).count()) {
-						answers.push_back(std::make_tuple(ReturnTag::NX, queryTypesFound ^ query.rrTypes, vector<ResourceRecord> {}));
+						answers.push_back(std::make_tuple(ReturnTag::ANS, queryTypesFound ^ query.rrTypes, vector<ResourceRecord> {}));
 					}
 					return boost::make_optional(answers);
 				}
@@ -363,13 +378,19 @@ boost::optional<vector<ZoneLookUpAnswer>> QueryLookUpAtZone(Zone& z, EC& query, 
 					queryTypesFound.set(record.get_type());
 					matchingRRs.push_back(record);
 				}
-				if (record.get_type() == RRType::CNAME && !query.rrTypes[RRType::CNAME]) {
-					// CNAME Case 
+				if (record.get_type() == RRType::CNAME) {
+					// CNAME Case
 					answers.clear();
 					matchingRRs.clear();
 					matchingRRs.push_back(record);
-					answers.push_back(std::make_tuple(ReturnTag::ANSQ, nodeRRtypes, matchingRRs));
-					return boost::make_optional(answers); //If CNAME then there other record would be ignored.
+					//Return type is Ans if only CNAME is requested
+					if (query.rrTypes[RRType::CNAME] && query.rrTypes.count() == 1) {
+						answers.push_back(std::make_tuple(ReturnTag::ANS, nodeRRtypes, matchingRRs));
+					}
+					else {
+						answers.push_back(std::make_tuple(ReturnTag::ANSQ, nodeRRtypes, matchingRRs));
+					}
+					return boost::make_optional(answers); //If CNAME then other records would be ignored.
 				}
 			}
 			// If there are NS records, then get their glue records too.
@@ -382,14 +403,15 @@ boost::optional<vector<ZoneLookUpAnswer>> QueryLookUpAtZone(Zone& z, EC& query, 
 				answers.push_back(std::make_tuple(ReturnTag::REF, nodeRRtypes, NSRecords));
 				return boost::make_optional(answers);
 			}
-			// Exact Type match and NX cases
+			//Add the NS and glue records if the user requested them.
 			if (query.rrTypes[RRType::NS] && NSRecords.size()) {
 				matchingRRs.insert(matchingRRs.end(), NSRecords.begin(), NSRecords.end());
 				queryTypesFound.set(RRType::NS);
 			}
+			// Exact Type match 
 			if (queryTypesFound.count()) answers.push_back(std::make_tuple(ReturnTag::ANS, queryTypesFound, matchingRRs));
 			if ((queryTypesFound ^ query.rrTypes).count()) {
-				answers.push_back(std::make_tuple(ReturnTag::NX, queryTypesFound ^ query.rrTypes, vector<ResourceRecord> {}));
+				answers.push_back(std::make_tuple(ReturnTag::ANS, queryTypesFound ^ query.rrTypes, vector<ResourceRecord> {}));
 			}
 			return boost::make_optional(answers);
 		}

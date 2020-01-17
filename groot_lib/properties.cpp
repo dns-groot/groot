@@ -3,21 +3,29 @@
 #include <utility>
 
 void CheckResponseReturned(const InterpreterGraph& graph, const vector<IntpVD>& endNodes, std::bitset<RRType::N> typesReq) {
-	for (auto v : endNodes) {
-		if ((graph[v].query.rrTypes & typesReq).count() > 0) {
-			boost::optional<vector<ResourceRecord>> answer = graph[v].answer;
-			if (answer && answer.get().size()) {
-				//Path returns some response
-			}
-			else {
-				if (graph[v].query.excluded) {
-					cout << "There was no response for Q: ~{ }.";
+	/*
+	  The set of end nodes is given and checks if some non-empty response is received from all the end nodes for all the requested types.
+	  We may encounter nodes with Refused/NSnotfound in which case we have incomplete information.
+	*/
+	bool incomplete = false;
+	for (auto vd : endNodes) {
+		if ((graph[vd].query.rrTypes & typesReq).count() > 0 && graph[vd].ns != "") {
+			boost::optional<vector<ZoneLookUpAnswer>> answer = graph[vd].answer;
+			if (answer) {
+				if (std::get<0>(answer.get()[0]) == ReturnTag::REFUSED || std::get<0>(answer.get()[0]) == ReturnTag::NSNOTFOUND) {
+					incomplete = true;
 				}
 				else {
-					cout << "There was no response for Q: ";
+					for (auto a : answer.get()) {
+						if (!std::get<2>(a).size()) {
+							cout << "There was no response " << QueryFormat(graph[vd].query) << " for T:" << RRTypesToString(std::get<1>(a) & typesReq);
+							cout << " at name server: " << graph[vd].ns << endl;
+						}
+					}
 				}
-				cout << LabelsToString(graph[v].query.name) << " for T:" << RRTypesToString(graph[v].query.rrTypes & typesReq);
-				cout << " at name server: " << graph[v].ns << endl;
+			}
+			else {
+				cout << "Implementation Error: CheckResponseReturned - A node in the interpretation graph with empty answer" << endl;
 			}
 		}
 	}
@@ -59,38 +67,37 @@ std::bitset<RRType::N> CompareResponse(const vector<ResourceRecord>& resA, const
 }
 
 void CheckSameResponseReturned(const InterpreterGraph& graph, const vector<IntpVD>& endNodes, std::bitset<RRType::N> typesReq) {
-	boost::optional<vector<ResourceRecord>> response;
-	bool noResponse = false;
-	for (auto v : endNodes) {
-		if ((graph[v].query.rrTypes & typesReq).count() > 0) {
-			boost::optional<vector<ResourceRecord>> answer = graph[v].answer;
+	/*
+	  The set of end nodes is given and checks if same response is received from all the end nodes.
+	  We may encounter nodes with Refused/NSnotfound in which case we have incomplete information.
+	*/
+	boost::optional<vector<ZoneLookUpAnswer>> response;
+	bool incomplete = false;
+	for (auto vd : endNodes) {
+		if ((graph[vd].query.rrTypes & typesReq).count() > 0 && graph[vd].ns != "") {
+			boost::optional<vector<ZoneLookUpAnswer>> answer = graph[vd].answer;
 			if (answer) {
-				if (!response) {
+				if (std::get<0>(answer.get()[0]) == ReturnTag::REFUSED || std::get<0>(answer.get()[0]) == ReturnTag::NSNOTFOUND) {
+					incomplete = true;
+				}
+				else if (!response) {
 					response = answer;
 				}
 				else {
-					//Compare responses
-					std::bitset<RRType::N> typesDiff = CompareResponse(response.get(), answer.get(), typesReq);
-					if (typesDiff.count() > 0) {
-						if (graph[v].query.excluded) {
-							cout << "Difference in responses found for Q: ~{ }.";
-						}
-						else {
-							cout << "Difference in responses found for Q: ";
-						}
-						cout << LabelsToString(graph[v].query.name) << " for T:" << RRTypesToString(typesDiff) << endl;
-						break;
+					CommonSymDiff diff = CompareRRs(std::get<2>(answer.get()[0]), std::get<2>(response.get()[0]));
+					if (std::get<1>(diff).size() || std::get<2>(diff).size()) {
+						cout << "Difference in responses found " << QueryFormat(graph[vd].query) << endl;
 					}
 				}
 			}
 			else {
-				noResponse = true;
+				cout << "Implementation Error: CheckSameResponseReturned - A node in the interpretation graph with empty answer" << endl;
 			}
 		}
 	}
 }
 
-void PrettyPrintResponseValue(vector<string>& response, vector<string>& value, const InterpreterGraph& graph, const IntpVD& node) {
+void PrettyPrintResponseValue(set<string> response, set<string>& value, const InterpreterGraph& graph, const IntpVD& node) {
 
 	std::string s = std::accumulate(value.begin(), value.end(), std::string{});
 	//printf(ANSI_COLOR_RED     "Response Mismatch:"     ANSI_COLOR_RESET "\n");
@@ -101,70 +108,77 @@ void PrettyPrintResponseValue(vector<string>& response, vector<string>& value, c
 	cout << "\t" << QueryFormat(graph[node].query) << endl;
 }
 
-void CheckResponseValue(const InterpreterGraph& graph, const vector<IntpVD>& endNodes, std::bitset<RRType::N> typesReq, vector<string> value) {
-
+void CheckResponseValue(const InterpreterGraph& graph, const vector<IntpVD>& endNodes, std::bitset<RRType::N> typesReq, set<string> values) {
+	/*
+	  The set of end nodes is given and if the return tag is Ans then compare with the user input value.
+	  We may encounter nodes with Refused/NSnotfound in which case we have incomplete information.
+	*/
 	bool foundDiff = false;
-	for (auto v : endNodes) {
-		if ((graph[v].query.rrTypes & typesReq).count() > 0) {
-			boost::optional<vector<ResourceRecord>> answer = graph[v].answer;
-			vector<string> rdatas;
-			if (answer) {
-				bool foundMatching = false;
-
-				for (auto rr : answer.get()) {
+	bool incomplete = false;
+	for (auto vd : endNodes) {
+		if ((graph[vd].query.rrTypes & typesReq).count() > 0) {
+			if (std::get<0>(graph[vd].answer.get()[0]) == ReturnTag::ANS) {
+				set<string> rdatas;
+				for (auto rr : std::get<2>(graph[vd].answer.get()[0])) {
 					if (typesReq[rr.get_type()] == 1) {
-						rdatas.push_back(rr.get_rdata());
+						rdatas.insert(rr.get_rdata());
 					}
 				}
-				if (rdatas.size() == value.size()) {
-					foundMatching = std::equal(rdatas.begin(), rdatas.end(), value.begin());
+				if (rdatas != values) {
+					PrettyPrintResponseValue(rdatas, values, graph, vd);
 				}
-				else {
-					foundMatching = false;
-				}
-				if (!foundMatching) {
-					PrettyPrintResponseValue(rdatas, value, graph, v);
-				}
-				foundDiff = foundMatching == false ? true : foundDiff;
 			}
-			else {
-				if (value.size() != 0) {
-					PrettyPrintResponseValue(rdatas, value, graph, v);
-				}
+			else if (std::get<0>(graph[vd].answer.get()[0]) == ReturnTag::NX) {
+				PrettyPrintResponseValue(set<string> {}, values, graph, vd);
+			}
+			else if (std::get<0>(graph[vd].answer.get()[0]) == ReturnTag::NSNOTFOUND ||
+				std::get<0>(graph[vd].answer.get()[0]) == ReturnTag::REFUSED) {
+				incomplete = true;
 			}
 		}
 	}
 }
 
 void NumberOfRewrites(const InterpreterGraph& graph, const Path& p, int num_rewrites) {
+	/*
+		Number of Rewrites = Number of nodes on the path with return tag AnsQ
+	*/
+	bool incomplete = false;
 	int rewrites = 0;
-	for (int i = 0; i < p.size() - 1; i++) {
-		if (graph[p[i]].query.name != graph[p[i + 1]].query.name) {
-			rewrites++;
+	for (auto vd : p) {
+		if (graph[vd].ns != "") {
+			if (std::get<0>(graph[vd].answer.get()[0]) == ReturnTag::ANSQ) {
+				rewrites++;
+			}
+			else if (std::get<0>(graph[vd].answer.get()[0]) == ReturnTag::NSNOTFOUND ||
+				std::get<0>(graph[vd].answer.get()[0]) == ReturnTag::REFUSED) {
+				incomplete = true;
+			}
 		}
 	}
 	if (rewrites > num_rewrites) {
-		cout << " Number of rewrites exceeded " << num_rewrites;
-		if (graph[p[0]].query.excluded) {
-			cout << " for Q: ~{ }.";
-		}
-		else {
-			cout << " for Q: ";
-		}
+		cout << " Number of rewrites exceeded " << num_rewrites << QueryFormat(graph[p[0]].query) << endl;
 	}
 }
 
 void NumberOfHops(const InterpreterGraph& graph, const Path& p, int num_hops) {
-	int hops = p.size() - 1;
-	if (hops > num_hops) {
-		cout << " Number of hops exceeded " << num_hops;
-		if (graph[p[0]].query.excluded) {
-			cout << " for Q: ~{ }.";
+	/*
+		Number of Hops = Number of name servers in the path.
+		We may encounter a Node with Refused/NSnotfound in which case we have incomplete information.
+	*/
+	vector<string> nameServers;
+	bool incomplete = false;
+	for (auto vd : p) {
+		if (graph[vd].ns != "" && (!nameServers.size() || graph[vd].ns != nameServers.back())) {
+			nameServers.push_back(graph[vd].ns);
+			if (std::get<0>(graph[vd].answer.get()[0]) == ReturnTag::NSNOTFOUND ||
+				std::get<0>(graph[vd].answer.get()[0]) == ReturnTag::REFUSED) {
+				incomplete = true;
+			}
 		}
-		else {
-			cout << " for Q: ";
-		}
-		//cout << graph[p[0]].query.name << " for T:" << RRTypesToString(graph[p[0]].query.rrTypes)<<endl;
+	}
+	if (nameServers.size() > num_hops) {
+		cout << " Number of hops exceeded " << num_hops << QueryFormat(graph[p[0]].query) << endl;
 	}
 }
 
@@ -180,45 +194,91 @@ string QueryFormat(const EC& query) {
 	return q;
 }
 
+tuple<vector<ResourceRecord>, vector<ResourceRecord>> GetNSGlueRecords(const vector<ResourceRecord>& records) {
+	// From the input set of records, return the NS records and IP records
+	vector<ResourceRecord> nsRecords;
+	vector<ResourceRecord> glueRecords;
+	for (auto r : records) {
+		if (r.get_type() == RRType::NS)nsRecords.push_back(r);
+		if (r.get_type() == RRType::A || r.get_type() == RRType::AAAA)glueRecords.push_back(r);
+	}
+	return std::make_tuple(nsRecords, glueRecords);
+}
+
 void CheckDelegationConsistency(const InterpreterGraph& graph, const Path& p)
 {
-	//The path should have at least three nodes including the dummy node.
+	/*
+	  The path should have at least three nodes including the dummy node.
+	  There should be consective nodes answering for the given query, more specifically, the parent should have Ref type and the child with Ans type.
+	  If there is no such pair then the given query name is not a zone cut and delegation consistency is not a valid property to check.
+	*/
 	if (p.size() > 2) {
-		//TODO: Parent and Child should be answering for the user input query
-		IntpVD lastNode = p.back();
-		IntpVD parentNode = p[p.size() - 2];
-		if (graph[lastNode].answer && !graph[parentNode].answer) {
-			cout << "Delegation Inconsistency " + QueryFormat(graph[lastNode].query) + " at " + graph[parentNode].ns << " and " << graph[lastNode].ns << endl;
-		}
-		else if (!graph[lastNode].answer && graph[parentNode].answer) {
-			cout << "Delegation Inconsistency " + QueryFormat(graph[lastNode].query) + " at " + graph[parentNode].ns << " and " << graph[lastNode].ns << endl;
+		if (graph[p[0]].ns == "") {
+			const EC& query = graph[p[0]].query;
+			int parentIndex = -1;
+			for (int i = 0; i < p.size(); i++) {
+				if (graph[p[i]].answer && std::get<0>(graph[p[i]].answer.get()[0]) == ReturnTag::REF) {
+					// Parent found
+					if (i < p.size() - 1 && graph[p[i + 1]].answer) {
+						auto& ans = graph[p[i + 1]].answer.get()[0];
+						if (std::get<0>(ans) == ReturnTag::ANS &&
+							std::get<1>(ans)[RRType::NS] &&
+							std::get<2>(ans).size() > 0 &&
+							query.name == graph[p[i + 1]].query.name) {
+							// Child found (should have at least one NS record) and also the query matches
+							parentIndex = i;
+						}
+					}
+				}
+			}
+			if (parentIndex != -1) {
+				tuple<vector<ResourceRecord>, vector<ResourceRecord>> parentRecords = GetNSGlueRecords(std::get<2>(graph[p[parentIndex]].answer.get()[0]));
+				tuple<vector<ResourceRecord>, vector<ResourceRecord>> childRecords = GetNSGlueRecords(std::get<2>(graph[p[parentIndex + 1]].answer.get()[0]));
+				CommonSymDiff nsDiff = CompareRRs(std::get<0>(parentRecords), std::get<0>(childRecords));
+				CommonSymDiff glueDiff = CompareRRs(std::get<1>(parentRecords), std::get<1>(childRecords));
+				if (std::get<1>(nsDiff).size() || std::get<2>(nsDiff).size()) {
+					cout << "Delegation Inconsistency in NS records" + QueryFormat(query) + " at " + graph[p[parentIndex]].ns << " and " << graph[p[parentIndex + 1]].ns << endl;
+				}
+				if (std::get<1>(glueDiff).size() || std::get<2>(glueDiff).size()) {
+					cout << "Delegation Inconsistency in Glue records" + QueryFormat(query) + " at " + graph[p[parentIndex]].ns << " and " << graph[p[parentIndex + 1]].ns << endl;
+				}
+			}
 		}
 		else {
-			vector<ResourceRecord> nodeGlueRecords = SeparateGlueRecords(graph[lastNode].answer.get());
-			vector<ResourceRecord> parentGlueRecords = SeparateGlueRecords(graph[parentNode].answer.get());
-			std::bitset<RRType::N> typesReq;
-			typesReq.set(RRType::A);
-			typesReq.set(RRType::AAAA);
-			/*if (CompareResponse(nodeGlueRecords, parentGlueRecords, typesReq).count() > 0) {
-				cout << "Delegation Inconsistency " + QueryFormat(graph[lastNode].query) + " at " + graph[parentNode].ns << " and " << graph[lastNode].ns << endl;
-				return;
-			}*/
-			typesReq.reset(RRType::A);
-			typesReq.reset(RRType::AAAA);
-			typesReq.set(RRType::NS);
-			if (CompareResponse(graph[lastNode].answer.get(), graph[parentNode].answer.get(), typesReq).count() > 0) {
-				cout << "Delegation Inconsistency " + QueryFormat(graph[lastNode].query) + " at " + graph[parentNode].ns << " and " << graph[lastNode].ns << endl;
-				return;
-			}
+			cout << "Implementation Error: CheckDelegationConsistency - The path does not start at the dummy node" << endl;
 		}
 	}
 }
 
 void CheckLameDelegation(const InterpreterGraph& graph, const Path& p)
 {
-	//The final node should have an SOA?
+	/*
+	  The path should have at least three nodes including the dummy node.
+	  There should be consective nodes answering for the given query, more specifically, the parent should have Ref type and the child with Refused/NSnotfound type.
+	  If there is such a pair then from the given zone fileswe flag it as lame delegation which may be a false positive if we didn't have access to all zone files at the child NS.
+	*/
+	if (p.size() > 2) {
+		if (graph[p[0]].ns == "") {
+			const EC& query = graph[p[0]].query;
+			int parentIndex = -1;
+			for (int i = 0; i < p.size(); i++) {
+				if (graph[p[i]].answer && std::get<0>(graph[p[i]].answer.get()[0]) == ReturnTag::REF) {
+					// Parent found
+					if (i < p.size() - 1 && graph[p[i + 1]].answer) {
+						auto& ans = graph[p[i + 1]].answer.get()[0];
+						if ((std::get<0>(ans) == ReturnTag::REFUSED || std::get<0>(ans) == ReturnTag::NSNOTFOUND) && query.name == graph[p[i + 1]].query.name) {
+							// Child found and also the query matches
+							cout << "Lame Inconsistency " + QueryFormat(query) + " at " + graph[p[i]].ns << " and " << graph[p[i + 1]].ns << endl;
+						}
+					}
+				}
+			}
+		}
+		else {
+			cout << "Implementation Error: CheckDelegationConsistency - The path does not start at the dummy node" << endl;
+		}
+	}
 }
-
 
 CommonSymDiff CompareRRs(vector<ResourceRecord> resA, vector<ResourceRecord> resB) {
 	//For the given pair of collection of resource records, return the common RR's, RR's present only in A and RR's present only in B.
@@ -240,13 +300,13 @@ CommonSymDiff CompareRRs(vector<ResourceRecord> resA, vector<ResourceRecord> res
 				itb++;
 			}
 		}
-		if(!erased)it++;
+		if (!erased)it++;
 	}
 	return std::make_tuple(common, resA, resB);
 }
 
 void ConstructOutputNS(json& j, CommonSymDiff& nsDiff, boost::optional<CommonSymDiff> glueDiff, string serverA, string serverB, string a, string b) {
-	if (std::get<1>(nsDiff).empty() && std::get<2>(nsDiff).empty() && ((glueDiff && std::get<1>(glueDiff.get()).empty() && std::get<2>(glueDiff.get()).empty())|| !glueDiff) ) {
+	if (std::get<1>(nsDiff).empty() && std::get<2>(nsDiff).empty() && ((glueDiff && std::get<1>(glueDiff.get()).empty() && std::get<2>(glueDiff.get()).empty()) || !glueDiff)) {
 		return;
 	}
 	if (j.find("Inconsistent Pairs") == j.end()) {
@@ -262,7 +322,7 @@ void ConstructOutputNS(json& j, CommonSymDiff& nsDiff, boost::optional<CommonSym
 		}
 	}
 	if (!std::get<1>(nsDiff).empty()) {
-		diffAB["Exclusive " + a +" NS Records"] = {};
+		diffAB["Exclusive " + a + " NS Records"] = {};
 		for (auto r : std::get<1>(nsDiff)) {
 			diffAB["Exclusive " + a + " NS Records"].push_back(r.toString());
 		}
@@ -315,7 +375,7 @@ void ParentChildNSRecordsComparison(std::vector<ZoneIdGlueNSRecords>& parent, st
 		}
 	}
 	for (auto it = parent.begin(); it != parent.end(); ++it) {
-		for (auto itp = it+1; itp != parent.end(); ++itp) {
+		for (auto itp = it + 1; itp != parent.end(); ++itp) {
 			auto nsDiff = CompareRRs(std::get<2>(*it), std::get<2>(*itp));
 			auto glueDiff = CompareRRs(std::get<1>(*it).get(), std::get<1>(*itp).get());
 			ConstructOutputNS(j, nsDiff, glueDiff, zoneIdToNS.at(std::get<0>(*it)), zoneIdToNS.at(std::get<0>(*itp)), "parent-a", "parent-b");
@@ -415,22 +475,29 @@ void CheckAllStructuralDelegations(LabelGraph& graph, VertexDescriptor root, str
 }
 
 void DFS(InterpreterGraph& graph, IntpVD start, Path p, vector<IntpVD>& endNodes, vector<std::function<void(const InterpreterGraph&, const Path&)>>& pathFunctions) {
+
 	EC& query = graph[start].query;
 	if (graph[start].ns != "") {
-		//If the response is a CNAME and request type contains CNAME then it is resolved in this step
-		if (graph[start].answer && graph[start].answer.get().size() > 0 && graph[start].answer.get()[0].get_type() == RRType::CNAME && query.rrTypes[RRType::CNAME]) {
-			if (endNodes.end() == std::find(endNodes.begin(), endNodes.end(), start)) {
-				endNodes.push_back(start);
+		// If the returnTag is a AnsQ and request type contains CNAME then the path ends here for CNAME and this node is a leaf node with respect to t = CNAME.
+		if (graph[start].answer && graph[start].answer.get().size() > 0) {
+			if (std::get<0>(graph[start].answer.get()[0]) == ReturnTag::ANSQ && query.rrTypes[RRType::CNAME]) {
+				if (endNodes.end() == std::find(endNodes.begin(), endNodes.end(), start)) {
+					endNodes.push_back(start);
+				}
+				Path cnamePath = p;
+				cnamePath.push_back(start);
+				for (auto& f : pathFunctions) {
+					f(graph, cnamePath);
+				}
 			}
-			// A path is seen only once
-			for (auto& f : pathFunctions) {
-				f(graph, p);
-			}
+		}
+		else {
+			cout << "Empty Answer found in the interpretation graph during DFS traversal";
 		}
 	}
 	for (auto v : p) {
 		if (v == start) {
-			//cout << "loop detected for: " << query.name << endl;
+			cout << "loop detected for: " << LabelsToString(query.name) << endl;
 			return;
 		}
 	}
@@ -468,10 +535,9 @@ void CheckPropertiesOnEC(EC& query, vector<std::function<void(const InterpreterG
 	}
 }
 
-
 vector<closestNode> SearchNode(LabelGraph& g, VertexDescriptor closestEncloser, vector<Label>& labels, int index) {
 	/*
-		Given a user input the functions returns all the closest enclosers alng with the number of labels matched.
+		Given a user input the functions returns all the closest enclosers along with the number of labels matched.
 		The function returns only the longest matching enclosers as the smaller ones would be automatically dealt by the ECs generated from longest ones.
 	*/
 	vector<closestNode> enclosers;
@@ -664,7 +730,7 @@ void GenerateECAndCheckProperties(LabelGraph& g, VertexDescriptor root, string u
 			if (subdomain) {
 				cout << "The complete domain: " << userInput << " doesn't exist so sub-domain is not valid";
 			}
-			// The query might match a wildcard or its part of non-existent child nodes. We just set excluded to know there is some negation set there.
+			// The query might match a "wildcard" or its part of non-existent child nodes. We just set excluded to know there is some negation set there.
 			EC nonExistent;
 			nonExistent.name.clear();
 			for (int i = 0; i < matchedIndex; i++) {
