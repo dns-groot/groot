@@ -13,6 +13,7 @@
 #include "../groot_lib/graph.h"
 #include "../groot_lib/interpreter.h"
 #include "../groot_lib/properties.h"
+#include "../groot_lib/csvparser.h"
 #include "docopt/docopt.h"
 #include <boost/filesystem.hpp>
 #include <filesystem>
@@ -110,9 +111,9 @@ std::bitset<RRType::N> ProcessProperties(json j, vector<std::function<void(const
 			nodeFunctions.push_back(la);
 		}
 		else if (name == "ResponseValue") {
-			vector<string> values;
-			for (auto v : property["Value"]) {
-				values.push_back(v);
+			std::set<string> values;
+			for (string v : property["Value"]) {
+				values.insert(v);
 			}
 			auto la = [types = std::move(propertyTypes), v = std::move(values)](const InterpreterGraph & graph, const Path & p){ CheckResponseValue(graph, p, types, v); };
 			nodeFunctions.push_back(la);
@@ -226,6 +227,16 @@ void checkUCLADomains(string directory, string properties) {
 	CheckAllStructuralDelegations(g, root, "", root);
 }
 
+void DNSCensusData() {
+	LabelGraph g;
+	VertexDescriptor root = boost::add_vertex(g);
+	g[root].name.set("");
+	SOA_CSV_Parser("C:\\Users\\Administrator\\Desktop\\DNS\\DNSCensus2013\\records\\soa.csv", g, root, "C:\\Users\\Administrator\\Desktop\\DNS\\DNSCensus2013\\zones");
+	std::ofstream dotfile("LabelGraph.dot");
+	write_graphviz(dotfile, g, make_vertex_writer(boost::get(&LabelVertex::name, g)), make_edge_writer(boost::get(&LabelEdge::type, g)));
+}
+
+
 static const char USAGE[] =
 R"(groot 1.0
    
@@ -276,11 +287,13 @@ int main(int argc, const char** argv)
 	bool verbose = args.find("--verbose")->second.asBool();
 	bool debug_dot = args.find("--debug")->second.asBool();
 
+	DNSCensusData();
+	cout << "Hllo" << endl;
 	// TODO: validate that the directory and property files exist
 
 	//profiling_net();
 	//bench(zone_directory, properties_file);
-	checkHotmailDomains(zone_directory, properties_file);
+	//checkHotmailDomains(zone_directory, properties_file);
 	//checkUCLADomains(zone_directory, properties_file);
 	//demo(zone_directory, properties_file);
 

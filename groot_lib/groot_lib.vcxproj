@@ -157,6 +157,7 @@
     <ClCompile Include="label_graph.cpp" />
     <ClCompile Include="properties.cpp" />
     <ClCompile Include="resource_record.cpp" />
+    <ClCompile Include="csvparser.cpp" />
     <ClCompile Include="zone_graph.cpp" />
     <ClCompile Include="zone_parser.cpp" />
   </ItemGroup>
@@ -165,6 +166,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="graph.h" />
+    <ClInclude Include="csvparser.h" />
     <ClInclude Include="interpreter.h" />
     <ClInclude Include="label_graph.h" />
     <ClInclude Include="properties.h" />

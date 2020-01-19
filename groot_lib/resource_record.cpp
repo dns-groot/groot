@@ -18,6 +18,9 @@ bool ResourceRecord::operator==(const ResourceRecord& l1)
 
 vector<Label> GetLabels(string name) {
 	vector<Label> tokens;
+	if (name[name.length() - 1] != '.') {
+		name += ".";
+	}
 	// boost::algorithm::split(labels, name, boost::is_any_of(".")); // Avoiding this for the case where . is written with \. and root zone.
 	string previous = "";
 	for (auto it = name.begin(); it < name.end(); ++it) {
