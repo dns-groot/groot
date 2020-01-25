@@ -1,6 +1,6 @@
 #include <boost/regex.hpp>
 #include "csvparser.h"
-
+#include <ctime>
 
 // used to split the file in lines
 const boost::regex linesregx("\\r\\n|\\n\\r|\\n|\\r");
@@ -29,25 +29,25 @@ inline bool FileExists(const std::string& name) {
 
 tuple<string, string> BuildSOALabelGraph(Row resourceRecord, LabelGraph& g, const VertexDescriptor root, string outputDirectory) {
 
-	if (!FileExists((boost::filesystem::path{ outputDirectory } / boost::filesystem::path{ resourceRecord[0] + ".txt" }).string())) {
+	//if (!FileExists((boost::filesystem::path{ outputDirectory } / boost::filesystem::path{ resourceRecord[0] + ".txt" }).string())) {
 		int index = 0;
 		auto l = GetLabels(resourceRecord[0]);
 		VertexDescriptor closetEncloser = GetClosestEncloser(g, root, l, index);
 		VertexDescriptor mainNode = AddNodes(g, closetEncloser, l, index);
 		g[mainNode].rrTypesAvailable.set(RRType::SOA);
-		ofstream myfile;
-		myfile.open((boost::filesystem::path{ outputDirectory } / boost::filesystem::path{ resourceRecord[0] + ".txt" }).string(), ios::out | ios::app);
+		/*ofstream myfile;
+		myfile.open((boost::filesystem::path{ outputDirectory } / boost::filesystem::path{ resourceRecord[0] + ".txt" }).string(), ios::out | ios::app);*/
 		string domain = resourceRecord[0];
-		resourceRecord.erase(resourceRecord.begin());
+		/*resourceRecord.erase(resourceRecord.begin());
 		resourceRecord.erase(resourceRecord.begin());
 		string r = domain + "\t86400\tIN\tSOA\t" + boost::algorithm::join(resourceRecord, "\t") + "\n";;
 		myfile << r;
-		myfile.close();
+		myfile.close();*/
 		return std::make_tuple(domain + ".txt", resourceRecord[0]);
-	}
+	/*}
 	else {
 		return {};
-	}
+	}*/
 
 }
 
@@ -88,8 +88,11 @@ void SOA_CSV_Parser(string file, LabelGraph& g, const VertexDescriptor root, str
 	std::ifstream infile(file);
 	std::string line;
 	int i = 0;
+	int k = 0;
 	json j;
 	j["ZoneFiles"] = {};
+	clock_t startTime = clock(); //Start timer
+	double secondsPassed;
 	while (std::getline(infile, line))
 	{
 		boost::sregex_token_iterator ti(line.begin(), line.end(), fieldsregx, -1);
@@ -115,7 +118,10 @@ void SOA_CSV_Parser(string file, LabelGraph& g, const VertexDescriptor root, str
 			}
 		}
 		i++;
-		//if (i > 15500) break;
+		if (i >= k * 50000) {
+			k++;
+			cout << "Value of i :" << i << " timer:" << (clock() - startTime) / CLOCKS_PER_SEC << endl;
+		}
 	}
 	cout << "Total Lines in SOA: " << i << endl;
 	std::ofstream ofs;
@@ -124,13 +130,13 @@ void SOA_CSV_Parser(string file, LabelGraph& g, const VertexDescriptor root, str
 	ofs << "\n";
 	ofs.close();
 	
-	Generate_Zone_Files("C:\\Users\\Administrator\\Desktop\\DNS\\DNSCensus2013\\records\\dname.csv", "DNAME", g, root, outputDirectory);
+	/*Generate_Zone_Files("C:\\Users\\Administrator\\Desktop\\DNS\\DNSCensus2013\\records\\dname.csv", "DNAME", g, root, outputDirectory);
 	Generate_Zone_Files("C:\\Users\\Administrator\\Desktop\\DNS\\DNSCensus2013\\records\\cname.csv", "CNAME", g, root, outputDirectory);
 	Generate_Zone_Files("C:\\Users\\Administrator\\Desktop\\DNS\\DNSCensus2013\\records\\txt.csv", "TXT", g, root, outputDirectory);
 	Generate_Zone_Files("C:\\Users\\Administrator\\Desktop\\DNS\\DNSCensus2013\\records\\mx.csv", "MX", g, root, outputDirectory);
 	Generate_Zone_Files("C:\\Users\\Administrator\\Desktop\\DNS\\DNSCensus2013\\records\\a.csv", "A", g, root, outputDirectory);
 	Generate_Zone_Files("C:\\Users\\Administrator\\Desktop\\DNS\\DNSCensus2013\\records\\aaaa.csv", "AAAA", g, root, outputDirectory);
-	Generate_Zone_Files("C:\\Users\\Administrator\\Desktop\\DNS\\DNSCensus2013\\records\\ns.csv", "NS", g, root, outputDirectory);
+	Generate_Zone_Files("C:\\Users\\Administrator\\Desktop\\DNS\\DNSCensus2013\\records\\ns.csv", "NS", g, root, outputDirectory);*/
 }
 
 tuple<string, string> SOALabelGraphGetClosestEnclosers(const LabelGraph& g, VertexDescriptor root, vector<Label> labels, int& index, string path, string child, string parent) {

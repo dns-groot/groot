@@ -147,7 +147,7 @@ void NumberOfRewrites(const InterpreterGraph& graph, const Path& p, int num_rewr
 	int rewrites = 0;
 	for (auto vd : p) {
 		if (graph[vd].ns != "") {
-			if (std::get<0>(graph[vd].answer.get()[0]) == ReturnTag::ANSQ) {
+			if (std::get<0>(graph[vd].answer.get()[0]) == ReturnTag::REWRITE) {
 				rewrites++;
 			}
 			else if (std::get<0>(graph[vd].answer.get()[0]) == ReturnTag::NSNOTFOUND ||
@@ -436,6 +436,11 @@ void CheckStructuralDelegationConsistency(LabelGraph& graph, VertexDescriptor ro
 					if (record.get_type() == RRType::NS) nsRecords.push_back(record);
 				}
 				if (soa) {
+					/*
+						The RequireGlueRecords check is necessary as the child may not need glue records but the parent might in which case we
+						don't need to compare the glue record consistency. This case might arise for example in ucla.edu the NS for zone cs.ucla.edu
+						may be listed as ns1.ee.ucla.edu, then ucla.edu requires a glue record but not cs.ucla.edu zone.
+					*/
 					if (RequireGlueRecords(z, nsRecords)) {
 						children.push_back(std::make_tuple(std::get<0>(p), GlueRecordsLookUp(z.g, z.startVertex, nsRecords, z.domainChildLabelMap), std::move(nsRecords)));
 					}
@@ -478,9 +483,9 @@ void DFS(InterpreterGraph& graph, IntpVD start, Path p, vector<IntpVD>& endNodes
 
 	EC& query = graph[start].query;
 	if (graph[start].ns != "") {
-		// If the returnTag is a AnsQ and request type contains CNAME then the path ends here for CNAME and this node is a leaf node with respect to t = CNAME.
+		// If the returnTag is a AnsQ (along with record being CNAME) and request type contains CNAME then the path ends here for CNAME and this node is a leaf node with respect to t = CNAME.
 		if (graph[start].answer && graph[start].answer.get().size() > 0) {
-			if (std::get<0>(graph[start].answer.get()[0]) == ReturnTag::ANSQ && query.rrTypes[RRType::CNAME]) {
+			if (std::get<0>(graph[start].answer.get()[0]) == ReturnTag::REWRITE && std::get<2>(graph[start].answer.get()[0])[0].get_type() == RRType::CNAME && query.rrTypes[RRType::CNAME]) {
 				if (endNodes.end() == std::find(endNodes.begin(), endNodes.end(), start)) {
 					endNodes.push_back(start);
 				}
@@ -529,7 +534,7 @@ void CheckPropertiesOnEC(EC& query, vector<std::function<void(const InterpreterG
 	}
 	vector<IntpVD> endNodes;
 	DFS(intGraphWrapper.intG, intGraphWrapper.startVertex, Path{}, endNodes, pathFunctions);
-	//GenerateDotFileInterpreter("Int.dot", intGraphWrapper.intG);
+	GenerateDotFileInterpreter("Int.dot", intGraphWrapper.intG);
 	for (auto f : nodeFunctions) {
 		f(intGraphWrapper.intG, endNodes);
 	}

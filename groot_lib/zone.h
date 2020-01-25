@@ -20,7 +20,7 @@ using namespace std;
 enum class ReturnTag
 {
 	ANS,
-	ANSQ,
+	REWRITE,
 	REF,
 	NX,
 	REFUSED,

@@ -149,11 +149,12 @@ void demo(string directory, string properties) {
 		auto zoneFilePath = (boost::filesystem::path{ directory } / boost::filesystem::path{ filename }).string();
 		BuildZoneLabelGraphs(zoneFilePath, zone["NameServer"], g, root);
 	}
-	/*std::ofstream dotfile("LabelGraph.dot");	
-	write_graphviz(dotfile, g, make_vertex_writer(boost::get(&LabelVertex::name, g)), make_edge_writer(boost::get(&LabelEdge::type, g)));*/
+	std::ofstream dotfile("LabelGraph.dot");	
+	write_graphviz(dotfile, g, make_vertex_writer(boost::get(&LabelVertex::name, g)), make_edge_writer(boost::get(&LabelEdge::type, g)));
 	std::ifstream i(properties);
 	json j;
 	i >> j;
+	json output;
 	vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>> nodeFunctions;
 	vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions;
 	for (auto& query : j) {
@@ -223,17 +224,17 @@ void checkUCLADomains(string directory, string properties) {
 	for (auto& entry : filesystem::directory_iterator(directory)) {
 		BuildZoneLabelGraphs(entry.path().string(), "ns1.dns.ucla.edu.", g, root);
 	}
-	//CheckStructuralDelegationConsistency(g, root, "cs.ucla.edu.", {});
-	CheckAllStructuralDelegations(g, root, "", root);
+	CheckStructuralDelegationConsistency(g, root, "aap.ucla.edu.", {});
+	//CheckAllStructuralDelegations(g, root, "", root);
 }
 
 void DNSCensusData() {
 	LabelGraph g;
 	VertexDescriptor root = boost::add_vertex(g);
 	g[root].name.set("");
-	SOA_CSV_Parser("C:\\Users\\Administrator\\Desktop\\DNS\\DNSCensus2013\\records\\soa.csv", g, root, "C:\\Users\\Administrator\\Desktop\\DNS\\DNSCensus2013\\zones");
-	std::ofstream dotfile("LabelGraph.dot");
-	write_graphviz(dotfile, g, make_vertex_writer(boost::get(&LabelVertex::name, g)), make_edge_writer(boost::get(&LabelEdge::type, g)));
+	SOA_CSV_Parser("C:\\Users\\Administrator\\Desktop\\DNS\\DNSCensus2013\\records\\Latest\\Latest_soa.csv", g, root, "C:\\Users\\Administrator\\Desktop\\DNS\\DNSCensus2013\\zones");
+	/*std::ofstream dotfile("LabelGraph.dot");
+	write_graphviz(dotfile, g, make_vertex_writer(boost::get(&LabelVertex::name, g)), make_edge_writer(boost::get(&LabelEdge::type, g)));*/
 }
 
 

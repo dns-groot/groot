@@ -8,8 +8,8 @@ std::map<int, Zone> gZoneIdToZoneMap;
 string ReturnTagToString(ReturnTag& r) {
 	if (r == ReturnTag::ANS)
 		return "ANS";
-	if (r == ReturnTag::ANSQ)
-		return "ANSQ";
+	if (r == ReturnTag::REWRITE)
+		return "REWRITE";
 	if (r == ReturnTag::REF)
 		return "REF";
 	if (r == ReturnTag::NX)
@@ -261,7 +261,7 @@ boost::optional<vector<ZoneLookUpAnswer>> QueryLookUpAtZone(Zone& z, EC& query, 
 							answers.push_back(std::make_tuple(ReturnTag::ANS, nodeRRtypes, matchingRRs));
 						}
 						else {
-							answers.push_back(std::make_tuple(ReturnTag::ANSQ, nodeRRtypes, matchingRRs));
+							answers.push_back(std::make_tuple(ReturnTag::REWRITE, nodeRRtypes, matchingRRs));
 						}
 						return boost::make_optional(answers); //If CNAME then other records would be ignored.
 					}
@@ -286,7 +286,7 @@ boost::optional<vector<ZoneLookUpAnswer>> QueryLookUpAtZone(Zone& z, EC& query, 
 				// dr < dq ∧ DNAME ∈ T,  DNAME is a singleton type, there can be no other records of DNAME type at this node.
 				vector<ResourceRecord> dname;
 				dname.push_back(record);
-				answers.push_back(std::make_tuple(ReturnTag::ANSQ, nodeRRtypes, dname));
+				answers.push_back(std::make_tuple(ReturnTag::REWRITE, nodeRRtypes, dname));
 				return boost::make_optional(answers);
 			}
 			if (record.get_type() == RRType::NS) {
@@ -343,7 +343,7 @@ boost::optional<vector<ZoneLookUpAnswer>> QueryLookUpAtZone(Zone& z, EC& query, 
 								answers.push_back(std::make_tuple(ReturnTag::ANS, nodeRRtypes, matchingRRs));
 							}
 							else {
-								answers.push_back(std::make_tuple(ReturnTag::ANSQ, nodeRRtypes, matchingRRs));
+								answers.push_back(std::make_tuple(ReturnTag::REWRITE, nodeRRtypes, matchingRRs));
 							}
 							return boost::make_optional(answers); //If CNAME then other records would be ignored.
 						}
@@ -388,7 +388,7 @@ boost::optional<vector<ZoneLookUpAnswer>> QueryLookUpAtZone(Zone& z, EC& query, 
 						answers.push_back(std::make_tuple(ReturnTag::ANS, nodeRRtypes, matchingRRs));
 					}
 					else {
-						answers.push_back(std::make_tuple(ReturnTag::ANSQ, nodeRRtypes, matchingRRs));
+						answers.push_back(std::make_tuple(ReturnTag::REWRITE, nodeRRtypes, matchingRRs));
 					}
 					return boost::make_optional(answers); //If CNAME then other records would be ignored.
 				}

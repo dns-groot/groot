@@ -22,6 +22,7 @@ public:
 			}
 		}
 		//label += RRTypesToString(answerTypes) + "\"]";
+		label += "\"\]";
 		if (nameServer == "") {
 			label = label + " [shape=diamond]";
 		}
@@ -80,7 +81,7 @@ EC ProcessDNAME(ResourceRecord& record, EC& query) {
 		i++;
 	}
 	vector<Label> rdataLabels = GetLabels(record.get_rdata());
-	vector<Label> namelabels = record.get_name();
+	vector<Label> namelabels = query.name;
 	for (; i < namelabels.size(); i++) {
 		rdataLabels.push_back(namelabels[i]);
 	}
@@ -276,7 +277,7 @@ void QueryResolver(Zone& z, InterpreterGraph& g, IntpVD& v, NameServerIntpre& na
 				else if (ret == ReturnTag::NX) {
 					// Non-existent domain or Type not found Case
 				}
-				else if (ret == ReturnTag::ANSQ) {
+				else if (ret == ReturnTag::REWRITE) {
 					ResourceRecord& record = std::get<2>(answer)[0];
 					//It will always be of size 1
 					//CNAME Case
