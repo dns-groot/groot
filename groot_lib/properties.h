@@ -18,6 +18,7 @@
 #include "interpreter.h"
 #include <nlohmann\json.hpp>
 
+
 using namespace std;
 using json = nlohmann::json;
 
@@ -36,19 +37,19 @@ typedef tuple<vector<ResourceRecord>, vector<ResourceRecord>, vector<ResourceRec
 typedef tuple<int, boost::optional<vector<ResourceRecord>>, vector<ResourceRecord>> ZoneIdGlueNSRecords;
 
 // End node functions
-void CheckResponseReturned(const InterpreterGraph& graph, const vector<IntpVD>& endNodes, std::bitset<RRType::N> typesReq);
-void CheckSameResponseReturned(const InterpreterGraph& graph, const vector<IntpVD>& endNodes, std::bitset<RRType::N> typesReq);
-void CheckResponseValue(const InterpreterGraph& graph, const vector<IntpVD>& endNodes, std::bitset<RRType::N> typesReq, set<string> values);
+void CheckResponseReturned(const InterpreterGraph& graph, const vector<IntpVD>& endNodes, std::bitset<RRType::N> typesReq, json& output);
+void CheckSameResponseReturned(const InterpreterGraph& graph, const vector<IntpVD>& endNodes, std::bitset<RRType::N> typesReq, json& output);
+void CheckResponseValue(const InterpreterGraph& graph, const vector<IntpVD>& endNodes, std::bitset<RRType::N> typesReq, set<string> values, json& output);
 
 // Path functions
-void NumberOfRewrites(const InterpreterGraph& graph, const Path& p, int num_rewrites);
-void NumberOfHops(const InterpreterGraph& graph, const Path& p, int num_hops);
-void CheckDelegationConsistency(const InterpreterGraph& graph, const Path& p);
-void CheckLameDelegation(const InterpreterGraph& graph, const Path& p);
+void NumberOfRewrites(const InterpreterGraph& graph, const Path& p, int num_rewrites, json& output);
+void NumberOfHops(const InterpreterGraph& graph, const Path& p, int num_hops, json& output);
+void CheckDelegationConsistency(const InterpreterGraph& graph, const Path& p, json& output);
+void CheckLameDelegation(const InterpreterGraph& graph, const Path& p, json& output);
 
 // Parent-Child Synatctic Record check functions
-void CheckStructuralDelegationConsistency(LabelGraph& graph, VertexDescriptor root, string userInput, boost::optional<VertexDescriptor> labelNode);
-void CheckAllStructuralDelegations(LabelGraph& graph, VertexDescriptor root, string userInput, VertexDescriptor currentNode);
+void CheckStructuralDelegationConsistency(LabelGraph& graph, VertexDescriptor root, string userInput, boost::optional<VertexDescriptor> labelNode, json& output);
+void CheckAllStructuralDelegations(LabelGraph& graph, VertexDescriptor root, string userInput, VertexDescriptor currentNode, json& output);
 
 void GenerateECAndCheckProperties(LabelGraph& g, VertexDescriptor root, string userInput, std::bitset<RRType::N> typesReq, bool subdomain, vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions);
 void CheckPropertiesOnEC(EC& query, vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions);

@@ -86,7 +86,7 @@ void deserialize(T& data, string fileName) {
 	ia >> data;
 }
 
-std::bitset<RRType::N> ProcessProperties(json j, vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>>& pathFunctions) {
+std::bitset<RRType::N> ProcessProperties(json j, vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>>& pathFunctions, json& output) {
 	std::bitset<RRType::N> typesReq;
 	for (auto& property : j) {
 		string name = property["PropertyName"];
@@ -102,11 +102,11 @@ std::bitset<RRType::N> ProcessProperties(json j, vector<std::function<void(const
 		}
 
 		if (name == "ResponseConsistency") {
-			auto la = [types = std::move(propertyTypes)](const InterpreterGraph & graph, const Path & p){ CheckSameResponseReturned(graph, p, types); };
+			auto la = [types = std::move(propertyTypes), &output](const InterpreterGraph& graph, const Path& p){ CheckSameResponseReturned(graph, p, types, output); };
 			nodeFunctions.push_back(la);
 		}
 		else if (name == "ResponseReturned") {
-			auto la = [types = std::move(propertyTypes)](const InterpreterGraph & graph, const Path & p){ CheckResponseReturned(graph, p, types); };
+			auto la = [types = std::move(propertyTypes), &output](const InterpreterGraph& graph, const Path& p){ CheckResponseReturned(graph, p, types, output); };
 			nodeFunctions.push_back(la);
 		}
 		else if (name == "ResponseValue") {
@@ -114,25 +114,26 @@ std::bitset<RRType::N> ProcessProperties(json j, vector<std::function<void(const
 			for (string v : property["Value"]) {
 				values.insert(v);
 			}
-			auto la = [types = std::move(propertyTypes), v = std::move(values)](const InterpreterGraph & graph, const Path & p){ CheckResponseValue(graph, p, types, v); };
+			auto la = [types = std::move(propertyTypes), v = std::move(values), &output](const InterpreterGraph& graph, const Path& p){ CheckResponseValue(graph, p, types, v, output); };
 			nodeFunctions.push_back(la);
 		}
 		else if (name == "Hops") {
-			auto l = [num_hops = property["Value"]](const InterpreterGraph & graph, const Path & p) {NumberOfHops(graph, p, num_hops); };
+			auto l = [num_hops = property["Value"], &output](const InterpreterGraph& graph, const Path& p) {NumberOfHops(graph, p, num_hops, output); };
 			pathFunctions.push_back(l);
 		}
 		else if (name == "Rewrites") {
-			auto l = [num_rewrites = property["Value"]](const InterpreterGraph & graph, const Path & p) {NumberOfRewrites(graph, p, num_rewrites); };
+			auto l = [num_rewrites = property["Value"], &output](const InterpreterGraph& graph, const Path& p) {NumberOfRewrites(graph, p, num_rewrites, output); };
 			pathFunctions.push_back(l);
 		}
 		else if (name == "DelegationConsistency") {
-			pathFunctions.push_back(CheckDelegationConsistency);
+			auto l = [&output](const InterpreterGraph& graph, const Path& p) {CheckDelegationConsistency(graph, p, output); };
+			pathFunctions.push_back(l);
 		}
 	}
 	return typesReq;
 }
 
-void demo(string directory, string properties) {
+void demo(string directory, string properties, json& output) {
 	LabelGraph g;
 	VertexDescriptor root = boost::add_vertex(g);
 	g[root].name.set(".");
@@ -143,30 +144,28 @@ void demo(string directory, string properties) {
 		gTopNameServers.push_back(server);
 	}
 	for (auto& zone : metadata["ZoneFiles"]) {
-		string filename; 
+		string filename;
 		zone["FileName"].get_to(filename);
 		auto zoneFilePath = (boost::filesystem::path{ directory } / boost::filesystem::path{ filename }).string();
 		BuildZoneLabelGraphs(zoneFilePath, zone["NameServer"], g, root);
 	}
-	std::ofstream dotfile("LabelGraph.dot");	
+	std::ofstream dotfile("LabelGraph.dot");
 	write_graphviz(dotfile, g, make_vertex_writer(boost::get(&LabelVertex::name, g)), make_edge_writer(boost::get(&LabelEdge::type, g)));
 	std::ifstream i(properties);
 	json j;
 	i >> j;
-	json output;
 	vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>> nodeFunctions;
 	vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions;
 	for (auto& query : j) {
 		nodeFunctions.clear();
 		pathFunctions.clear();
-		std::bitset<RRType::N> typesReq = ProcessProperties(query["Properties"], nodeFunctions, pathFunctions);
+		std::bitset<RRType::N> typesReq = ProcessProperties(query["Properties"], nodeFunctions, pathFunctions, output);
 		GenerateECAndCheckProperties(g, root, query["Domain"], typesReq, query["SubDomain"], nodeFunctions, pathFunctions);
-		cout << endl;
 	}
 }
 
 
-void bench(string directory, string input) {
+void bench(string directory, string input, json& output) {
 	LabelGraph g;
 	VertexDescriptor root = boost::add_vertex(g);
 	g[root].name.set(".");
@@ -180,14 +179,14 @@ void bench(string directory, string input) {
 	for (auto& query : j) {
 		nodeFunctions.clear();
 		pathFunctions.clear();
-		std::bitset<RRType::N> typesReq = ProcessProperties(query["Properties"], nodeFunctions, pathFunctions);
+		std::bitset<RRType::N> typesReq = ProcessProperties(query["Properties"], nodeFunctions, pathFunctions, output);
 		GenerateECAndCheckProperties(g, root, query["Domain"], typesReq, query["SubDomain"], nodeFunctions, pathFunctions);
 		cout << endl;
 	}
 }
 
-	
-void checkHotmailDomains(string directory, string properties) {
+
+void checkHotmailDomains(string directory, string properties, json& output) {
 	LabelGraph g;
 	VertexDescriptor root = boost::add_vertex(g);
 	g[root].name.set("");
@@ -195,12 +194,12 @@ void checkHotmailDomains(string directory, string properties) {
 	gTopNameServers.push_back("ns1.msft.net.");
 	for (auto& entry : filesystem::directory_iterator(directory)) {
 		BuildZoneLabelGraphs(entry.path().string(), "ns1.msft.com", g, root);
-	}	
+	}
 	/*std::ofstream dotfile("LabelGraph.dot");
 	write_graphviz(dotfile, g, make_vertex_writer(boost::get(&LabelVertex::name, g)), make_edge_writer(boost::get(&LabelEdge::type, g)));
 	*/
 	//CheckStructuralDelegationConsistency(g, root, "bay003.hotmail.com.", {});
-	CheckAllStructuralDelegations(g, root, "", root);
+	CheckAllStructuralDelegations(g, root, "", root, output);
 	/*std::ifstream i(properties);
 	json j;
 	i >> j;
@@ -215,7 +214,7 @@ void checkHotmailDomains(string directory, string properties) {
 	}*/
 }
 
-void checkUCLADomains(string directory, string properties) {
+void checkUCLADomains(string directory, string properties, json& output) {
 	LabelGraph g;
 	VertexDescriptor root = boost::add_vertex(g);
 	g[root].name.set("");
@@ -223,7 +222,7 @@ void checkUCLADomains(string directory, string properties) {
 	for (auto& entry : filesystem::directory_iterator(directory)) {
 		BuildZoneLabelGraphs(entry.path().string(), "ns1.dns.ucla.edu.", g, root);
 	}
-	CheckStructuralDelegationConsistency(g, root, "aap.ucla.edu.", {});
+	CheckStructuralDelegationConsistency(g, root, "aap.ucla.edu.", {}, output);
 	//CheckAllStructuralDelegations(g, root, "", root);
 }
 
@@ -248,14 +247,14 @@ Options:
 int main(int argc, const char** argv)
 {
 	auto args = docopt::docopt(USAGE, { argv + 1, argv + argc }, true, "groot 1.0");
-	
+
 	/* for (auto const& arg : args) {
 		std::cout << arg.first << arg.second << std::endl;
 	 }*/
 
 	string zone_directory;
 	string properties_file;
-	
+
 	auto z = args.find("<zone_directory>");
 	if (!z->second)
 	{
@@ -278,12 +277,16 @@ int main(int argc, const char** argv)
 	bool debug_dot = args.find("--debug")->second.asBool();
 
 	// TODO: validate that the directory and property files exist
-
+	json output = json::array();
 	//profiling_net();
 	//bench(zone_directory, properties_file);
-	checkHotmailDomains(zone_directory, properties_file);
+	//checkHotmailDomains(zone_directory, properties_file, output);
 	//checkUCLADomains(zone_directory, properties_file);
-	//demo(zone_directory, properties_file);
-
+	demo(zone_directory, properties_file, output);
+	std::ofstream ofs;
+	ofs.open("output.json", std::ofstream::out);
+	ofs << output.dump(4);
+	ofs << "\n";
+	ofs.close();
 	return 0;
 }

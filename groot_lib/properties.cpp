@@ -2,7 +2,7 @@
 #include <numeric>
 #include <utility>
 
-void CheckResponseReturned(const InterpreterGraph& graph, const vector<IntpVD>& endNodes, std::bitset<RRType::N> typesReq) {
+void CheckResponseReturned(const InterpreterGraph& graph, const vector<IntpVD>& endNodes, std::bitset<RRType::N> typesReq, json& output) {
 	/*
 	  The set of end nodes is given and checks if some non-empty response is received from all the end nodes for all the requested types.
 	  We may encounter nodes with Refused/NSnotfound in which case we have incomplete information.
@@ -18,8 +18,11 @@ void CheckResponseReturned(const InterpreterGraph& graph, const vector<IntpVD>& 
 				else {
 					for (auto a : answer.get()) {
 						if (!std::get<2>(a).size()) {
-							cout << "There was no response " << QueryFormat(graph[vd].query) << " for T:" << RRTypesToString(std::get<1>(a) & typesReq);
-							cout << " at name server: " << graph[vd].ns << endl;
+							json tmp;
+							tmp["Property"] = "ResponseReturned";
+							tmp["Equivalence Class"] = QueryFormat(graph[vd].query);
+							tmp["Violation"] = "There was no response for T:" + RRTypesToString(std::get<1>(a) & typesReq) + " at name server:" + graph[vd].ns;
+							output.push_back(tmp);
 						}
 					}
 				}
@@ -66,13 +69,14 @@ std::bitset<RRType::N> CompareResponse(const vector<ResourceRecord>& resA, const
 	return typesDiff;
 }
 
-void CheckSameResponseReturned(const InterpreterGraph& graph, const vector<IntpVD>& endNodes, std::bitset<RRType::N> typesReq) {
+void CheckSameResponseReturned(const InterpreterGraph& graph, const vector<IntpVD>& endNodes, std::bitset<RRType::N> typesReq, json& output) {
 	/*
 	  The set of end nodes is given and checks if same response is received from all the end nodes.
 	  We may encounter nodes with Refused/NSnotfound in which case we have incomplete information.
 	*/
 	boost::optional<vector<ZoneLookUpAnswer>> response;
 	bool incomplete = false;
+	bool foundDiff = false;
 	for (auto vd : endNodes) {
 		if ((graph[vd].query.rrTypes & typesReq).count() > 0 && graph[vd].ns != "") {
 			boost::optional<vector<ZoneLookUpAnswer>> answer = graph[vd].answer;
@@ -86,7 +90,7 @@ void CheckSameResponseReturned(const InterpreterGraph& graph, const vector<IntpV
 				else {
 					CommonSymDiff diff = CompareRRs(std::get<2>(answer.get()[0]), std::get<2>(response.get()[0]));
 					if (std::get<1>(diff).size() || std::get<2>(diff).size()) {
-						cout << "Difference in responses found " << QueryFormat(graph[vd].query) << endl;
+						foundDiff = true;
 					}
 				}
 			}
@@ -95,26 +99,36 @@ void CheckSameResponseReturned(const InterpreterGraph& graph, const vector<IntpV
 			}
 		}
 	}
+	if (foundDiff) {
+		json tmp;
+		tmp["Property"] = "ResponseConsistency";
+		tmp["Equivalence Class"] = QueryFormat(graph[endNodes[0]].query);
+		tmp["Violation"] = "Difference in responses found";
+		output.push_back(tmp);
+	}
 }
 
-void PrettyPrintResponseValue(set<string> response, set<string>& value, const InterpreterGraph& graph, const IntpVD& node) {
+void PrettyPrintResponseValue(set<string> response, set<string>& value, const InterpreterGraph& graph, const IntpVD& node, json& tmp) {
 
-	std::string s = std::accumulate(value.begin(), value.end(), std::string{});
+	if (tmp.find("Mismatches") == tmp.end()) {
+		tmp["Mismatches"] = {};
+	}
 	//printf(ANSI_COLOR_RED     "Response Mismatch:"     ANSI_COLOR_RESET "\n");
-	cout << "Response Mismatch:" << endl;
-	cout << "\t Expected: " << s << endl;
-	cout << "\t Found: " << std::accumulate(response.begin(), response.end(), std::string{}) << endl;;
-	cout << "\t At NS: " << graph[node].ns << endl;
-	cout << "\t" << QueryFormat(graph[node].query) << endl;
+	json j;
+	j["Found"] = std::accumulate(response.begin(), response.end(), std::string{});
+	j["Equivalence class"] = QueryFormat(graph[node].query);
+	j["At NS"] = graph[node].ns;
+	tmp["Mismatches"].push_back(j);
 }
 
-void CheckResponseValue(const InterpreterGraph& graph, const vector<IntpVD>& endNodes, std::bitset<RRType::N> typesReq, set<string> values) {
+void CheckResponseValue(const InterpreterGraph& graph, const vector<IntpVD>& endNodes, std::bitset<RRType::N> typesReq, set<string> values, json& output) {
 	/*
 	  The set of end nodes is given and if the return tag is Ans then compare with the user input value.
 	  We may encounter nodes with Refused/NSnotfound in which case we have incomplete information.
 	*/
 	bool foundDiff = false;
 	bool incomplete = false;
+	json tmp;
 	for (auto vd : endNodes) {
 		if ((graph[vd].query.rrTypes & typesReq).count() > 0) {
 			if (std::get<0>(graph[vd].answer.get()[0]) == ReturnTag::ANS) {
@@ -125,11 +139,11 @@ void CheckResponseValue(const InterpreterGraph& graph, const vector<IntpVD>& end
 					}
 				}
 				if (rdatas != values) {
-					PrettyPrintResponseValue(rdatas, values, graph, vd);
+					PrettyPrintResponseValue(rdatas, values, graph, vd, tmp);
 				}
 			}
 			else if (std::get<0>(graph[vd].answer.get()[0]) == ReturnTag::NX) {
-				PrettyPrintResponseValue(set<string> {}, values, graph, vd);
+				PrettyPrintResponseValue(set<string> {}, values, graph, vd, tmp);
 			}
 			else if (std::get<0>(graph[vd].answer.get()[0]) == ReturnTag::NSNOTFOUND ||
 				std::get<0>(graph[vd].answer.get()[0]) == ReturnTag::REFUSED) {
@@ -137,9 +151,15 @@ void CheckResponseValue(const InterpreterGraph& graph, const vector<IntpVD>& end
 			}
 		}
 	}
+	if (!tmp.empty()) {
+		std::string s = std::accumulate(values.begin(), values.end(), std::string{});
+		tmp["Expected"] = s;
+		tmp["Property"] = "Response Value";
+		output.push_back(tmp);
+	}
 }
 
-void NumberOfRewrites(const InterpreterGraph& graph, const Path& p, int num_rewrites) {
+void NumberOfRewrites(const InterpreterGraph& graph, const Path& p, int num_rewrites, json& output) {
 	/*
 		Number of Rewrites = Number of nodes on the path with return tag AnsQ
 	*/
@@ -157,11 +177,17 @@ void NumberOfRewrites(const InterpreterGraph& graph, const Path& p, int num_rewr
 		}
 	}
 	if (rewrites > num_rewrites) {
-		cout << " Number of rewrites exceeded " << num_rewrites << QueryFormat(graph[p[0]].query) << endl;
+		json tmp;
+		tmp["Property"] = "Rewrites";
+		tmp["Equivalence Class"] = QueryFormat(graph[p[0]].query);
+		std::ostringstream stringStream;
+		stringStream << "Number of rewrites (" << rewrites << ") exceeded " << num_rewrites;
+		tmp["Violation"] = stringStream.str();
+		output.push_back(tmp);
 	}
 }
 
-void NumberOfHops(const InterpreterGraph& graph, const Path& p, int num_hops) {
+void NumberOfHops(const InterpreterGraph& graph, const Path& p, int num_hops, json& output) {
 	/*
 		Number of Hops = Number of name servers in the path.
 		We may encounter a Node with Refused/NSnotfound in which case we have incomplete information.
@@ -178,17 +204,23 @@ void NumberOfHops(const InterpreterGraph& graph, const Path& p, int num_hops) {
 		}
 	}
 	if (nameServers.size() > num_hops) {
-		cout << " Number of hops exceeded " << num_hops << QueryFormat(graph[p[0]].query) << endl;
+		json tmp;
+		tmp["Property"] = "Hops";
+		tmp["Equivalence Class"] = QueryFormat(graph[p[0]].query);
+		std::ostringstream stringStream;
+		stringStream << "Number of hops (" << nameServers.size() << ") exceeded " << num_hops;
+		tmp["Violation"] = stringStream.str();
+		output.push_back(tmp);
 	}
 }
 
 string QueryFormat(const EC& query) {
 	string q = "";
 	if (query.excluded) {
-		q += " for Q: ~{ }.";
+		q += "~{ }.";
 	}
 	else {
-		q += " for Q: ";
+		q += "";
 	}
 	q += LabelsToString(query.name);
 	return q;
@@ -205,7 +237,7 @@ tuple<vector<ResourceRecord>, vector<ResourceRecord>> GetNSGlueRecords(const vec
 	return std::make_tuple(nsRecords, glueRecords);
 }
 
-void CheckDelegationConsistency(const InterpreterGraph& graph, const Path& p)
+void CheckDelegationConsistency(const InterpreterGraph& graph, const Path& p, json& output)
 {
 	/*
 	  The path should have at least three nodes including the dummy node.
@@ -219,12 +251,12 @@ void CheckDelegationConsistency(const InterpreterGraph& graph, const Path& p)
 			for (int i = 0; i < p.size(); i++) {
 				if (graph[p[i]].answer && std::get<0>(graph[p[i]].answer.get()[0]) == ReturnTag::REF) {
 					// Parent found
-					if (i < p.size() - 1 && graph[p[i + 1]].answer) {
-						auto& ans = graph[p[i + 1]].answer.get()[0];
+					if (i < p.size() - 1 && graph[p[static_cast<long long>(i) + 1]].answer) {
+						auto& ans = graph[p[static_cast<long long>(i) + 1]].answer.get()[0];
 						if (std::get<0>(ans) == ReturnTag::ANS &&
 							std::get<1>(ans)[RRType::NS] &&
 							std::get<2>(ans).size() > 0 &&
-							query.name == graph[p[i + 1]].query.name) {
+							query.name == graph[p[static_cast<long long>(i) + 1]].query.name) {
 							// Child found (should have at least one NS record) and also the query matches
 							parentIndex = i;
 						}
@@ -233,14 +265,22 @@ void CheckDelegationConsistency(const InterpreterGraph& graph, const Path& p)
 			}
 			if (parentIndex != -1) {
 				tuple<vector<ResourceRecord>, vector<ResourceRecord>> parentRecords = GetNSGlueRecords(std::get<2>(graph[p[parentIndex]].answer.get()[0]));
-				tuple<vector<ResourceRecord>, vector<ResourceRecord>> childRecords = GetNSGlueRecords(std::get<2>(graph[p[parentIndex + 1]].answer.get()[0]));
+				tuple<vector<ResourceRecord>, vector<ResourceRecord>> childRecords = GetNSGlueRecords(std::get<2>(graph[p[static_cast<long long>(parentIndex) + 1]].answer.get()[0]));
 				CommonSymDiff nsDiff = CompareRRs(std::get<0>(parentRecords), std::get<0>(childRecords));
 				CommonSymDiff glueDiff = CompareRRs(std::get<1>(parentRecords), std::get<1>(childRecords));
 				if (std::get<1>(nsDiff).size() || std::get<2>(nsDiff).size()) {
-					cout << "Delegation Inconsistency in NS records" + QueryFormat(query) + " at " + graph[p[parentIndex]].ns << " and " << graph[p[parentIndex + 1]].ns << endl;
+					json tmp;
+					tmp["Property"] = "Delegation Consistency";
+					tmp["Equivalence Class"] = QueryFormat(query);
+					tmp["Violation"] = "Inconsistency in NS records  at " + graph[p[parentIndex]].ns + " and " + graph[p[static_cast<long long>(parentIndex) + 1]].ns;
+					output.push_back(tmp);
 				}
 				if (std::get<1>(glueDiff).size() || std::get<2>(glueDiff).size()) {
-					cout << "Delegation Inconsistency in Glue records" + QueryFormat(query) + " at " + graph[p[parentIndex]].ns << " and " << graph[p[parentIndex + 1]].ns << endl;
+					json tmp;
+					tmp["Property"] = "Delegation Consistency";
+					tmp["Equivalence Class"] = QueryFormat(query);
+					tmp["Violation"] = "Inconsistency in Glue records  at " + graph[p[parentIndex]].ns + " and " + graph[p[static_cast<long long>(parentIndex) + 1]].ns;
+					output.push_back(tmp);
 				}
 			}
 		}
@@ -250,7 +290,7 @@ void CheckDelegationConsistency(const InterpreterGraph& graph, const Path& p)
 	}
 }
 
-void CheckLameDelegation(const InterpreterGraph& graph, const Path& p)
+void CheckLameDelegation(const InterpreterGraph& graph, const Path& p, json& output)
 {
 	/*
 	  The path should have at least three nodes including the dummy node.
@@ -264,11 +304,15 @@ void CheckLameDelegation(const InterpreterGraph& graph, const Path& p)
 			for (int i = 0; i < p.size(); i++) {
 				if (graph[p[i]].answer && std::get<0>(graph[p[i]].answer.get()[0]) == ReturnTag::REF) {
 					// Parent found
-					if (i < p.size() - 1 && graph[p[i + 1]].answer) {
-						auto& ans = graph[p[i + 1]].answer.get()[0];
-						if ((std::get<0>(ans) == ReturnTag::REFUSED || std::get<0>(ans) == ReturnTag::NSNOTFOUND) && query.name == graph[p[i + 1]].query.name) {
+					if (i < p.size() - 1 && graph[p[static_cast<long long>(i) + 1]].answer) {
+						auto& ans = graph[p[static_cast<long long>(i) + 1]].answer.get()[0];
+						if ((std::get<0>(ans) == ReturnTag::REFUSED || std::get<0>(ans) == ReturnTag::NSNOTFOUND) && query.name == graph[p[static_cast<long long>(i) + 1]].query.name) {
 							// Child found and also the query matches
-							cout << "Lame Inconsistency " + QueryFormat(query) + " at " + graph[p[i]].ns << " and " << graph[p[i + 1]].ns << endl;
+							json tmp;
+							tmp["Property"] = "Lame Delegation";
+							tmp["Equivalence Class"] = QueryFormat(query);
+							tmp["Violation"] = "Inconsistency at " + graph[p[i]].ns + " and " + graph[p[static_cast<long long>(i) + 1]].ns;
+							output.push_back(tmp);
 						}
 					}
 				}
@@ -356,7 +400,7 @@ void ConstructOutputNS(json& j, CommonSymDiff& nsDiff, boost::optional<CommonSym
 	j["Inconsistent Pairs"].push_back(diffAB);
 }
 
-void ParentChildNSRecordsComparison(std::vector<ZoneIdGlueNSRecords>& parent, std::vector<ZoneIdGlueNSRecords>& child, string userInput) {
+void ParentChildNSRecordsComparison(std::vector<ZoneIdGlueNSRecords>& parent, std::vector<ZoneIdGlueNSRecords>& child, string userInput, json& output) {
 	// ZoneId, GlueRecords, NSRecords
 	json j;
 	std::map<int, string> zoneIdToNS;
@@ -396,15 +440,11 @@ void ParentChildNSRecordsComparison(std::vector<ZoneIdGlueNSRecords>& parent, st
 			j["Child NS"] = {};
 			for (auto c : child) j["Child NS"].push_back(SearchForNameServer(std::get<0>(c)));
 		}
-		std::ofstream ofs;
-		ofs.open("hotmail.txt", std::ofstream::out | std::ofstream::app);
-		ofs << j.dump(4);
-		ofs << "\n";
-		ofs.close();
+		output.push_back(j);
 	}
 }
 
-void CheckStructuralDelegationConsistency(LabelGraph& graph, VertexDescriptor root, string userInput, boost::optional<VertexDescriptor> labelNode)
+void CheckStructuralDelegationConsistency(LabelGraph& graph, VertexDescriptor root, string userInput, boost::optional<VertexDescriptor> labelNode, json& output)
 {
 	VertexDescriptor node;
 	if (!labelNode) {
@@ -458,23 +498,23 @@ void CheckStructuralDelegationConsistency(LabelGraph& graph, VertexDescriptor ro
 			}
 		}
 		//Compare the children and parents records
-		ParentChildNSRecordsComparison(parents, children, userInput);
+		ParentChildNSRecordsComparison(parents, children, userInput, output);
 	}
 	else {
 
 	}
 }
 
-void CheckAllStructuralDelegations(LabelGraph& graph, VertexDescriptor root, string userInput, VertexDescriptor currentNode) {
+void CheckAllStructuralDelegations(LabelGraph& graph, VertexDescriptor root, string userInput, VertexDescriptor currentNode, json& output) {
 
 	string n = "";
 	if (graph[currentNode].name.get() != "") {
 		n = graph[currentNode].name.get() + "." + userInput;
 	}
-	CheckStructuralDelegationConsistency(graph, root, n, currentNode);
+	CheckStructuralDelegationConsistency(graph, root, n, currentNode, output);
 	for (EdgeDescriptor edge : boost::make_iterator_range(out_edges(currentNode, graph))) {
 		if (graph[edge].type == normal) {
-			CheckAllStructuralDelegations(graph, root, n, edge.m_target);
+			CheckAllStructuralDelegations(graph, root, n, edge.m_target, output);
 		}
 	}
 }

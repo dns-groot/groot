@@ -8,14 +8,16 @@ std::map<int, Zone> gZoneIdToZoneMap;
 string ReturnTagToString(ReturnTag& r) {
 	if (r == ReturnTag::ANS)
 		return "ANS";
-	if (r == ReturnTag::REWRITE)
+	else if (r == ReturnTag::REWRITE)
 		return "REWRITE";
-	if (r == ReturnTag::REF)
+	else if (r == ReturnTag::REF)
 		return "REF";
-	if (r == ReturnTag::NX)
+	else if (r == ReturnTag::NX)
 		return "NX";
-	if (r == ReturnTag::REFUSED)
+	else if (r == ReturnTag::REFUSED)
 		return "REFUSED";
+	else if (r == ReturnTag::NSNOTFOUND)
+		return "NS Not Found";
 	return "";
 }
 
