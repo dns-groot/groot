@@ -46,13 +46,16 @@ void NumberOfRewrites(const InterpreterGraph& graph, const Path& p, int num_rewr
 void NumberOfHops(const InterpreterGraph& graph, const Path& p, int num_hops, json& output);
 void CheckDelegationConsistency(const InterpreterGraph& graph, const Path& p, json& output);
 void CheckLameDelegation(const InterpreterGraph& graph, const Path& p, json& output);
+void QueryRewrite(const InterpreterGraph& graph, const Path& p, vector<Label>  domain, json& output);
+void NameServerContact(const InterpreterGraph& graph, const Path& p, vector<Label>  domain, json& output);
 
 // Parent-Child Synatctic Record check functions
 void CheckStructuralDelegationConsistency(LabelGraph& graph, VertexDescriptor root, string userInput, boost::optional<VertexDescriptor> labelNode, json& output);
 void CheckAllStructuralDelegations(LabelGraph& graph, VertexDescriptor root, string userInput, VertexDescriptor currentNode, json& output);
 
-void GenerateECAndCheckProperties(LabelGraph& g, VertexDescriptor root, string userInput, std::bitset<RRType::N> typesReq, bool subdomain, vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions);
-void CheckPropertiesOnEC(EC& query, vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions);
+void LoopChecker(InterpreterGraph& graph, IntpVD start, Path p, json& output);
+void GenerateECAndCheckProperties(LabelGraph& g, VertexDescriptor root, string userInput, std::bitset<RRType::N> typesReq, bool subdomain, vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions, json& output);
+void CheckPropertiesOnEC(EC& query, vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions, json& output);
 vector<closestNode> SearchNode(LabelGraph& g, VertexDescriptor closestEncloser, vector<Label>& labels, int index);
 
 string QueryFormat(const EC& query);

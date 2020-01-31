@@ -129,6 +129,14 @@ std::bitset<RRType::N> ProcessProperties(json j, vector<std::function<void(const
 			auto l = [&output](const InterpreterGraph& graph, const Path& p) {CheckDelegationConsistency(graph, p, output); };
 			pathFunctions.push_back(l);
 		}
+		else if (name == "QueryRewrite") {
+			auto l = [d = property["Value"], &output](const InterpreterGraph& graph, const Path& p) {QueryRewrite(graph, p, GetLabels(d), output); };
+			pathFunctions.push_back(l);
+		}
+		else if (name == "NameServerContact") {
+			auto l = [d = property["Value"], &output](const InterpreterGraph& graph, const Path& p) {NameServerContact(graph, p, GetLabels(d), output); };
+			pathFunctions.push_back(l);
+		}
 	}
 	return typesReq;
 }
@@ -160,7 +168,7 @@ void demo(string directory, string properties, json& output) {
 		nodeFunctions.clear();
 		pathFunctions.clear();
 		std::bitset<RRType::N> typesReq = ProcessProperties(query["Properties"], nodeFunctions, pathFunctions, output);
-		GenerateECAndCheckProperties(g, root, query["Domain"], typesReq, query["SubDomain"], nodeFunctions, pathFunctions);
+		GenerateECAndCheckProperties(g, root, query["Domain"], typesReq, query["SubDomain"], nodeFunctions, pathFunctions, output);
 	}
 }
 
@@ -180,7 +188,7 @@ void bench(string directory, string input, json& output) {
 		nodeFunctions.clear();
 		pathFunctions.clear();
 		std::bitset<RRType::N> typesReq = ProcessProperties(query["Properties"], nodeFunctions, pathFunctions, output);
-		GenerateECAndCheckProperties(g, root, query["Domain"], typesReq, query["SubDomain"], nodeFunctions, pathFunctions);
+		GenerateECAndCheckProperties(g, root, query["Domain"], typesReq, query["SubDomain"], nodeFunctions, pathFunctions, output);
 		cout << endl;
 	}
 }
@@ -218,11 +226,28 @@ void checkUCLADomains(string directory, string properties, json& output) {
 	LabelGraph g;
 	VertexDescriptor root = boost::add_vertex(g);
 	g[root].name.set("");
-	gTopNameServers.push_back("ns1.dns.ucla.edu.");
+	gTopNameServers.push_back("topServer.");
 	for (auto& entry : filesystem::directory_iterator(directory)) {
-		BuildZoneLabelGraphs(entry.path().string(), "ns1.dns.ucla.edu.", g, root);
+		if (entry.path().string() == directory + "\\ucla.edu_") {
+			BuildZoneLabelGraphs(entry.path().string(), "topServer.", g, root);
+		}
+		else {
+			BuildZoneLabelGraphs(entry.path().string(), "ns1.dns.ucla.edu.", g, root);
+		}	
 	}
-	CheckStructuralDelegationConsistency(g, root, "aap.ucla.edu.", {}, output);
+	std::ifstream i(properties);
+	json j;
+	i >> j;
+	vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>> nodeFunctions;
+	vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions;
+	for (auto& query : j) {
+		nodeFunctions.clear();
+		pathFunctions.clear();
+		std::bitset<RRType::N> typesReq = ProcessProperties(query["Properties"], nodeFunctions, pathFunctions, output);
+		GenerateECAndCheckProperties(g, root, query["Domain"], typesReq, query["SubDomain"], nodeFunctions, pathFunctions, output);
+		cout << endl;
+	}
+	//CheckStructuralDelegationConsistency(g, root, "aap.ucla.edu.", {}, output);
 	//CheckAllStructuralDelegations(g, root, "", root);
 }
 
@@ -234,7 +259,7 @@ a collection of zone files along with a collection of user-
 defined properties and systematically checks if any input to
 DNS can lead to a property violation for the properties.
 
-Usage: groot [-hdv] [--properties=<properties_file>] <zone_directory>
+Usage: groot [-hdv] [--properties=<properties_file>] <zone_directory> [--output=<output_file>]
 
 Options:
   -h --help     Show this help screen.
@@ -281,11 +306,29 @@ int main(int argc, const char** argv)
 	//profiling_net();
 	//bench(zone_directory, properties_file);
 	//checkHotmailDomains(zone_directory, properties_file, output);
-	//checkUCLADomains(zone_directory, properties_file);
-	demo(zone_directory, properties_file, output);
+	checkUCLADomains(zone_directory, properties_file, output);
+	//demo(zone_directory, properties_file, output);
+	json filteredOutput = json::array();
+	for (json j : output) {
+		bool found = false;
+		for (json l : filteredOutput) {
+			if (l == j) {
+				found = true;
+				break;
+			}
+		}
+		if (!found) filteredOutput.push_back(j);
+	}
+	
+	p = args.find("--output");
+	string outputFile = "output.json";
+	if (p->second)
+	{
+		outputFile = p->second.asString();
+	}
 	std::ofstream ofs;
-	ofs.open("output.json", std::ofstream::out);
-	ofs << output.dump(4);
+	ofs.open(outputFile, std::ofstream::out);
+	ofs << filteredOutput.dump(4);
 	ofs << "\n";
 	ofs.close();
 	return 0;

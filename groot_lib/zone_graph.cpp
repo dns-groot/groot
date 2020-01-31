@@ -275,7 +275,7 @@ boost::optional<vector<ZoneLookUpAnswer>> QueryLookUpAtZone(Zone& z, EC& query, 
 				}
 				if (queryTypesFound.count())answers.push_back(std::make_tuple(ReturnTag::ANS, queryTypesFound, matchingRRs));
 				if ((queryTypesFound ^ query.rrTypes).count()) {
-					answers.push_back(std::make_tuple(ReturnTag::NX, queryTypesFound ^ query.rrTypes, vector<ResourceRecord> {}));
+					answers.push_back(std::make_tuple(ReturnTag::ANS, queryTypesFound ^ query.rrTypes, vector<ResourceRecord> {}));
 				}
 				return boost::make_optional(answers);
 			}

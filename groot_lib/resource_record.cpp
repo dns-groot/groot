@@ -18,6 +18,9 @@ bool ResourceRecord::operator==(const ResourceRecord& l1)
 
 vector<Label> GetLabels(string name) {
 	vector<Label> tokens;
+	if (name.length() == 0) {
+		return tokens;
+	}
 	if (name[name.length() - 1] != '.') {
 		name += ".";
 	}
