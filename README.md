@@ -17,5 +17,4 @@ Groot is a static verification tool for DNS. Groot consumes a collection of zone
 2. Usage: groot [-hdv] [--properties=<properties_file>] <zone_directory>
     - -h --help Show the help screen
     - --version Show the groot version
-    - -d --debug  Generate debugging dot files
-    - -v  --verbose Print more information
+
