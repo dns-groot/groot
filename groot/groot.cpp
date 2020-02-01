@@ -16,10 +16,13 @@
 #include "docopt/docopt.h"
 #include <boost/filesystem.hpp>
 #include <filesystem>
-
+#include <ctime>
+#include <ratio>
+#include <chrono>
 
 using namespace std;
 using json = nlohmann::json;
+using namespace std::chrono;
 
 template <class EdgeMap>
 class edge_writer {
@@ -129,6 +132,10 @@ std::bitset<RRType::N> ProcessProperties(json j, vector<std::function<void(const
 			auto l = [&output](const InterpreterGraph& graph, const Path& p) {CheckDelegationConsistency(graph, p, output); };
 			pathFunctions.push_back(l);
 		}
+		else if (name == "LameDelegation") {
+			auto l = [&output](const InterpreterGraph& graph, const Path& p) {CheckLameDelegation(graph, p, output); };
+			pathFunctions.push_back(l);
+		}
 		else if (name == "QueryRewrite") {
 			auto l = [d = property["Value"], &output](const InterpreterGraph& graph, const Path& p) {QueryRewrite(graph, p, GetLabels(d), output); };
 			pathFunctions.push_back(l);
@@ -223,18 +230,24 @@ void checkHotmailDomains(string directory, string properties, json& output) {
 }
 
 void checkUCLADomains(string directory, string properties, json& output) {
+
+	gECcount = 0;
+	high_resolution_clock::time_point t1 = high_resolution_clock::now();
 	LabelGraph g;
 	VertexDescriptor root = boost::add_vertex(g);
 	g[root].name.set("");
-	gTopNameServers.push_back("topServer.");
+	gTopNameServers.push_back("ns1.ucla.edu");
 	for (auto& entry : filesystem::directory_iterator(directory)) {
 		if (entry.path().string() == directory + "\\ucla.edu_") {
-			BuildZoneLabelGraphs(entry.path().string(), "topServer.", g, root);
+			BuildZoneLabelGraphs(entry.path().string(), "ns1.ucla.edu", g, root);
 		}
 		else {
 			BuildZoneLabelGraphs(entry.path().string(), "ns1.dns.ucla.edu.", g, root);
 		}	
 	}
+	high_resolution_clock::time_point t2 = high_resolution_clock::now();
+	duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
+	cout << " Time took for Label graph and zone graphs" << time_span.count() << endl;
 	std::ifstream i(properties);
 	json j;
 	i >> j;
@@ -248,7 +261,15 @@ void checkUCLADomains(string directory, string properties, json& output) {
 		cout << endl;
 	}
 	//CheckStructuralDelegationConsistency(g, root, "aap.ucla.edu.", {}, output);
-	//CheckAllStructuralDelegations(g, root, "", root);
+	CheckAllStructuralDelegations(g, root, "", root, output);
+	t2 = high_resolution_clock::now();
+	time_span = duration_cast<duration<double>>(t2 - t1);
+	cout << " Time to check properties" << time_span.count() << endl;
+	cout << " Total Number of ECs" << gECcount << endl;
+}
+
+void DNSCensus() {
+
 }
 
 static const char USAGE[] =
@@ -259,13 +280,11 @@ a collection of zone files along with a collection of user-
 defined properties and systematically checks if any input to
 DNS can lead to a property violation for the properties.
 
-Usage: groot [-hdv] [--properties=<properties_file>] <zone_directory> [--output=<output_file>]
+Usage: groot [-h] [--properties=<properties_file>] <zone_directory> [--output=<output_file>]
 
 Options:
   -h --help     Show this help screen.
   --version     Show groot version.
-  -d --debug    Generate debugging dot files.
-  -v --verbose  Print more information.  
 )";
 
 

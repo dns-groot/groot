@@ -356,7 +356,7 @@ boost::optional<IntpVD> InsertNode(NameServerIntpre& nameServerNodesMap, Interpr
 		for (auto n : existingNodes) {
 			if (CheckQueryEquivalence(query, intG[n].query)) {
 				IntpED e; bool b;
-				if (edgeStart != n) {
+				/*if (edgeStart != n) {*/
 					boost::tie(e, b) = boost::add_edge(edgeStart, n, intG);
 					if (!b) {
 						cout << "Unable to add edge" << endl;
@@ -365,7 +365,7 @@ boost::optional<IntpVD> InsertNode(NameServerIntpre& nameServerNodesMap, Interpr
 					if (edgeQuery) {
 						intG[e].intermediateQuery = boost::make_optional(edgeQuery.get());
 					}
-				}
+				//}
 				return {};
 			}
 		}

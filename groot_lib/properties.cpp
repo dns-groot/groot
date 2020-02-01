@@ -2,6 +2,8 @@
 #include <numeric>
 #include <utility>
 
+long gECcount;
+
 void CheckResponseReturned(const InterpreterGraph& graph, const vector<IntpVD>& endNodes, std::bitset<RRType::N> typesReq, json& output) {
 	/*
 	  The set of end nodes is given and checks if some non-empty response is received from all the end nodes for all the requested types.
@@ -306,7 +308,8 @@ void CheckLameDelegation(const InterpreterGraph& graph, const Path& p, json& out
 					// Parent found
 					if (i < p.size() - 1 && graph[p[static_cast<long long>(i) + 1]].answer) {
 						auto& ans = graph[p[static_cast<long long>(i) + 1]].answer.get()[0];
-						if ((std::get<0>(ans) == ReturnTag::REFUSED || std::get<0>(ans) == ReturnTag::NSNOTFOUND) && query.name == graph[p[static_cast<long long>(i) + 1]].query.name) {
+						if ((std::get<0>(ans) == ReturnTag::REFUSED) && query.name == graph[p[static_cast<long long>(i) + 1]].query.name) {
+						//if ((std::get<0>(ans) == ReturnTag::REFUSED || std::get<0>(ans) == ReturnTag::NSNOTFOUND) && query.name == graph[p[static_cast<long long>(i) + 1]].query.name) {
 							// Child found and also the query matches
 							json tmp;
 							tmp["Property"] = "Lame Delegation";
@@ -324,7 +327,7 @@ void CheckLameDelegation(const InterpreterGraph& graph, const Path& p, json& out
 	}
 }
 
-bool CheckSubDomain(vector<Label>& domain, const vector<Label>&  queryLabels) {
+bool CheckSubDomain(vector<Label>& domain, vector<Label>  queryLabels) {
 
 	if (domain.size() > queryLabels.size()) {
 		return false;
@@ -336,6 +339,7 @@ bool CheckSubDomain(vector<Label>& domain, const vector<Label>&  queryLabels) {
 	}
 	return true;
 }
+
 void QueryRewrite(const InterpreterGraph& graph, const Path& p, vector<Label> domain, json& output)
 {
 	/*
@@ -346,16 +350,16 @@ void QueryRewrite(const InterpreterGraph& graph, const Path& p, vector<Label> do
 			// Rewrite happened at this node
 			//The answer would have a DNAME/CNAME Resource record and the new query would be availble in the next node in the path.
 			if (i < p.size() - 1) {
-				if (!CheckSubDomain(domain, graph[static_cast<long long>(i) + 1].query.name)) {
+				if (!CheckSubDomain(domain, graph[p[static_cast<long long>(i) + 1]].query.name)) {
 					json tmp;
 					tmp["Property"] = "Query Rewrite";
-					tmp["Equivalence Class"] = QueryFormat(graph[i].query);
-					tmp["Violation"] = "Query is rewritten to " + QueryFormat(graph[static_cast<long long>(i) + 1].query) + " at NS:" + graph[p[i]].ns + " which is not under " + LabelsToString(domain);
+					tmp["Equivalence Class"] = QueryFormat(graph[p[i]].query);
+					tmp["Violation"] = "Query is rewritten to " + QueryFormat(graph[p[static_cast<long long>(i) + 1]].query) + " at NS:" + graph[p[i]].ns + " which is not under " + LabelsToString(domain);
 					output.push_back(tmp);
 				}
 			}
 			else {
-				cout << "Implementation Error: QueryRewrite - REWRITE is the last node in the path" << QueryFormat(graph[p[0]].query)<< endl;
+				cout << "Implementation Error: QueryRewrite - REWRITE is the last node in the path:" << QueryFormat(graph[p[0]].query)<< endl;
 			}
 		}
 	}
@@ -368,10 +372,10 @@ void NameServerContact(const InterpreterGraph& graph, const Path& p, vector<Labe
 	*/
 	for (int i = 0; i < p.size(); i++) {
 		if (graph[p[i]].ns != "" ) {
-			if (!CheckSubDomain(domain, GetLabels(graph[i].ns))) {
+			if (!CheckSubDomain(domain, GetLabels(graph[p[i]].ns))) {
 				json tmp;
 				tmp["Property"] = "Name Server Contact";
-				tmp["Equivalence Class"] = QueryFormat(graph[i].query);
+				tmp["Equivalence Class"] = QueryFormat(graph[p[i]].query);
 				tmp["Violation"] = "Query is sent to NS:" + graph[p[i]].ns + " which is not under " + LabelsToString(domain);
 				output.push_back(tmp);
 			}
@@ -597,7 +601,7 @@ void DFS(InterpreterGraph& graph, IntpVD start, Path p, vector<IntpVD>& endNodes
 	}
 	for (auto v : p) {
 		if (v == start) {
-			cout << "loop detected for: " << LabelsToString(query.name) << endl;
+			//cout << "loop detected for: " << LabelsToString(query.name) << endl;
 			return;
 		}
 	}
@@ -662,7 +666,8 @@ void LoopChecker(InterpreterGraph& graph, IntpVD start, Path p, json& output) {
 }
 
 void CheckPropertiesOnEC(EC& query, vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions, json& output)
-{
+{	
+	gECcount++;
 	//cout<<QueryFormat(query)<<endl;
 	InterpreterGraphWrapper intGraphWrapper;
 	BuildInterpretationGraph(query, intGraphWrapper);
@@ -824,15 +829,15 @@ void SubDomainECGeneration(LabelGraph& g, VertexDescriptor start, vector<Label> 
 	if (wildcardNode) {
 		WildCardChildEC(childrenLabels, name, typesReq, name.size(), nodeFunctions, pathFunctions, output);
 	}
-	//else {
-	//	//Non-existent child category
-	//	EC nonExistent;
-	//	nonExistent.name = name;
-	//	nonExistent.rrTypes.flip();
-	//	nonExistent.excluded = boost::make_optional(std::move(childrenLabels));
-	//	//EC generated
-	//	CheckPropertiesOnEC(nonExistent, nodeFunctions, pathFunctions);
-	//}
+	else {
+		//Non-existent child category
+		EC nonExistent;
+		nonExistent.name = name;
+		nonExistent.rrTypes.flip();
+		nonExistent.excluded = boost::make_optional(std::move(childrenLabels));
+		//EC generated
+		CheckPropertiesOnEC(nonExistent, nodeFunctions, pathFunctions, output);
+	}
 }
 
 void GenerateECAndCheckProperties(LabelGraph& g, VertexDescriptor root, string userInput, std::bitset<RRType::N> typesReq, bool subdomain, vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions, json& output) {
