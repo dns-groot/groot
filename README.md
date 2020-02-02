@@ -9,6 +9,7 @@ Groot is a static verification tool for DNS. Groot consumes a collection of zone
     - vcpkg install boost:x64-windows
     - vcpkg install docopt:x64-windows
     - vcpkg install nlohmann-json:x64-windows
+    - vcpkg integrate install 
 3. Clone the repository and open the solution (groot.sln) using Visual studio. Set the platform to x64.
 4. Configure the project properties to use ISO C++17 Standard (std:c++17) for C++ language standard.
 
