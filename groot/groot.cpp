@@ -14,6 +14,7 @@
 #include "../groot_lib/interpreter.h"
 #include "../groot_lib/properties.h"
 #include "docopt/docopt.h"
+#include <boost/regex.hpp>
 #include <boost/filesystem.hpp>
 #include <filesystem>
 #include <ctime>
@@ -268,8 +269,122 @@ void checkUCLADomains(string directory, string properties, json& output) {
 	cout << " Total Number of ECs" << gECcount << endl;
 }
 
-void DNSCensus() {
+inline bool file_exists(const std::string& name) {
+	struct stat buffer;
+	return (stat(name.c_str(), &buffer) == 0);
+}
 
+void ZoneFileNSMap(string file, std::map<string, string>& zoneFileNameToNS) {
+	std::ifstream infile(file);
+	std::string line;
+	const boost::regex fieldsregx(",(?=(?:[^\"]*\"[^\"]*\")*(?![^\"]*\"))");
+	const boost::regex linesregx("\\r\\n|\\n\\r|\\n|\\r");
+	while (std::getline(infile, line))
+	{
+		boost::sregex_token_iterator ti(line.begin(), line.end(), fieldsregx, -1);
+		boost::sregex_token_iterator end2;
+
+		std::vector<std::string> row;
+		while (ti != end2) {
+			std::string token = ti->str();
+			++ti;
+			row.push_back(token);
+		}
+		if (line.back() == ',') {
+			// last character was a separator
+			row.push_back("");
+		}
+		zoneFileNameToNS.insert(std::pair<string, string>(row[2], row[1]));
+	}
+}
+
+
+void CensusProperties(string domain, vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>>& pathFunctions, json& output) {
+			
+	auto l = [d = domain, &output](const InterpreterGraph& graph, const Path& p) {QueryRewrite(graph, p, GetLabels(d), output); };
+	pathFunctions.push_back(l);
+	auto name = [d = domain, &output](const InterpreterGraph& graph, const Path& p) {NameServerContact(graph, p, GetLabels(d), output); };
+	pathFunctions.push_back(name);
+	auto re = [num_rewrites = 3, &output](const InterpreterGraph& graph, const Path& p) {NumberOfRewrites(graph, p, num_rewrites, output); };
+	pathFunctions.push_back(re);
+}
+
+void DNSCensus(string zoneFilesdirectory, string zoneNS, string tldSubDomainMap, string outputDirectory) {
+	std::ifstream i(tldSubDomainMap);
+	json tldMap;
+	i >> tldMap;
+	std::map<string, string> zoneFileNameToNS;
+	ZoneFileNSMap(zoneNS, zoneFileNameToNS);
+
+	for (auto& [key, value] : tldMap.items()) {
+		if (value.size() < 100) {
+			gECcount = 0;
+			string fileName = key + "..txt";
+			auto zoneFilePath = (boost::filesystem::path{ zoneFilesdirectory } / boost::filesystem::path{ fileName }).string();
+			//check if the tld file exists
+			if (file_exists(zoneFilePath)) {
+				auto it = zoneFileNameToNS.find(fileName);
+				//check if the tld file to name server map exists
+				if (it != zoneFileNameToNS.end())
+				{
+					gTopNameServers.clear();
+					gZoneIdToZoneMap.clear();
+					gNameServerZoneMap.clear();
+					high_resolution_clock::time_point t1 = high_resolution_clock::now();
+					LabelGraph g;
+					VertexDescriptor root = boost::add_vertex(g);
+					g[root].name.set("");
+					cout << " Processing " + key << endl;
+					gTopNameServers.push_back(it->second);
+					BuildZoneLabelGraphs(zoneFilePath, it->second, g, root);
+					//process subdomains
+					for (auto& subdomain : value) {
+						fileName = subdomain + "..txt";
+						zoneFilePath = (boost::filesystem::path{ zoneFilesdirectory } / boost::filesystem::path{ fileName }).string();
+						if (file_exists(zoneFilePath)) {
+							auto itsub = zoneFileNameToNS.find(fileName);
+							if (itsub != zoneFileNameToNS.end()) {
+								BuildZoneLabelGraphs(zoneFilePath, itsub->second, g, root);
+							}
+						}
+					}
+					high_resolution_clock::time_point t2 = high_resolution_clock::now();
+					duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
+					json output = json::array();
+					vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>> nodeFunctions;
+					vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions;
+					CensusProperties(key, nodeFunctions, pathFunctions, output);
+					std::bitset<RRType::N> typesReq;
+					typesReq.set(RRType::NS);
+					GenerateECAndCheckProperties(g, root, key, typesReq, true, nodeFunctions, pathFunctions, output);
+					high_resolution_clock::time_point t3 = high_resolution_clock::now();
+					duration<double> time_span_EC = duration_cast<duration<double>>(t3 - t2);
+					json filteredOutput = json::array();
+					filteredOutput["Differences"] = {};
+					for (json j : output) {
+						bool found = false;
+						for (json l : filteredOutput["Differences"]) {
+							if (l == j) {
+								found = true;
+								break;
+							}
+						}
+						if (!found) filteredOutput["Differences"].push_back(j);
+					}
+					filteredOutput["ECs"] = gECcount;
+					filteredOutput["graph building"] = time_span.count();
+					filteredOutput["property checking"] = time_span_EC.count();
+					std::ofstream ofs;
+					auto outputFile = (boost::filesystem::path{ outputDirectory } / boost::filesystem::path{ key+".json" }).string();
+					ofs.open(outputFile, std::ofstream::out);
+					ofs << filteredOutput.dump(4);
+					ofs << "\n";
+					ofs.close();
+				}
+			}
+		}
+	}
+	exit(0);
 }
 
 static const char USAGE[] =
