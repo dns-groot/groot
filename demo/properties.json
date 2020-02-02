@@ -42,5 +42,19 @@
 				"Types": ["CNAME","A"]
 			}
 		]
+	},
+	{
+		"Domain": "mtn.net.sy.",
+		"SubDomain": true,
+		"Properties":[
+			{
+				"PropertyName": "QueryRewrite",
+				"Value": "mtn.net.sy."
+			},
+			{
+				"PropertyName": "Rewrites",
+				"Value": 0
+			}
+		]
 	}
 ]

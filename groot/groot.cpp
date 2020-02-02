@@ -315,7 +315,7 @@ void DNSCensus(string zoneFilesdirectory, string zoneNS, string tldSubDomainMap,
 	i >> tldMap;
 	std::map<string, string> zoneFileNameToNS;
 	ZoneFileNSMap(zoneNS, zoneFileNameToNS);
-
+	cout << "Zone File to NS map generated" << endl;
 	for (auto& [key, value] : tldMap.items()) {
 		if (value.size() < 100) {
 			gECcount = 0;
@@ -339,7 +339,8 @@ void DNSCensus(string zoneFilesdirectory, string zoneNS, string tldSubDomainMap,
 					BuildZoneLabelGraphs(zoneFilePath, it->second, g, root);
 					//process subdomains
 					for (auto& subdomain : value) {
-						fileName = subdomain + "..txt";
+						string subd = subdomain.get<string>();
+						fileName = subd + "..txt";
 						zoneFilePath = (boost::filesystem::path{ zoneFilesdirectory } / boost::filesystem::path{ fileName }).string();
 						if (file_exists(zoneFilePath)) {
 							auto itsub = zoneFileNameToNS.find(fileName);
@@ -359,7 +360,7 @@ void DNSCensus(string zoneFilesdirectory, string zoneNS, string tldSubDomainMap,
 					GenerateECAndCheckProperties(g, root, key, typesReq, true, nodeFunctions, pathFunctions, output);
 					high_resolution_clock::time_point t3 = high_resolution_clock::now();
 					duration<double> time_span_EC = duration_cast<duration<double>>(t3 - t2);
-					json filteredOutput = json::array();
+					json filteredOutput;
 					filteredOutput["Differences"] = {};
 					for (json j : output) {
 						bool found = false;
@@ -432,16 +433,16 @@ int main(int argc, const char** argv)
 		properties_file = p->second.asString();
 	}
 
-	bool verbose = args.find("--verbose")->second.asBool();
-	bool debug_dot = args.find("--debug")->second.asBool();
+	//bool verbose = args.find("--verbose")->second.asBool();
+	//bool debug_dot = args.find("--debug")->second.asBool();
 
 	// TODO: validate that the directory and property files exist
 	json output = json::array();
 	//profiling_net();
 	//bench(zone_directory, properties_file);
 	//checkHotmailDomains(zone_directory, properties_file, output);
-	checkUCLADomains(zone_directory, properties_file, output);
-	//demo(zone_directory, properties_file, output);
+	//checkUCLADomains(zone_directory, properties_file, output);
+	demo(zone_directory, properties_file, output);
 	json filteredOutput = json::array();
 	for (json j : output) {
 		bool found = false;
