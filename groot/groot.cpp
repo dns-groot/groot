@@ -433,8 +433,9 @@ int main(int argc, const char** argv)
 		properties_file = p->second.asString();
 	}
 
-	//bool verbose = args.find("--verbose")->second.asBool();
-	//bool debug_dot = args.find("--debug")->second.asBool();
+	/*bool verbose = args.find("--verbose")->second.asBool();
+	bool debug_dot = args.find("--debug")->second.asBool();*/
+
 
 	// TODO: validate that the directory and property files exist
 	json output = json::array();

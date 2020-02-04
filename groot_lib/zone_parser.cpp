@@ -165,19 +165,20 @@ struct Parser
 				//compare returns zero when equal
 				if (!type.compare("NS") || !type.compare("CNAME") || !type.compare("DNAME") || !type.compare("MX")) {
 					if (!boost::algorithm::ends_with(rdata, ".")) {
-						if (relativeDomainSuffix.length() > 0) {
-							if (rdata.compare("@") == 0) {
-								rdata = relativeDomainSuffix;
-							}
-							else {
-								rdata = rdata + "." + relativeDomainSuffix;
-							}
-						}
-						else {
-							cout << "Encountered @ symbol but relative domain is empty for rdata";
-							currentRecord.clear();
-							return false;
-						}
+						//if (relativeDomainSuffix.length() > 0) {
+						//	if (rdata.compare("@") == 0) {
+						//		rdata = relativeDomainSuffix;
+						//	}
+						//	else {
+						//		rdata = rdata + "." + relativeDomainSuffix;
+						//	}
+						//}
+						//else {
+						//	cout << "Encountered @ symbol but relative domain is empty for rdata";
+						//	currentRecord.clear();
+						//	return false;
+						//}
+						rdata = rdata + "." + relativeDomainSuffix;
 					}
 				}
 				boost::to_lower(rdata);
