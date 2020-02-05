@@ -12,6 +12,7 @@
 #include <boost/serialization/bitset.hpp>
 #include <boost/graph/adj_list_serialize.hpp>
 #include <iostream>
+#include <unordered_map> 
 #include "resource_record.h"
 #include "graph.h"
 
@@ -52,7 +53,7 @@ struct Zone {
 	int zoneId;
 	ZoneVertexDescriptor startVertex =0;
 	vector<Label> origin;
-	std::map<VertexDescriptor, LabelMap> domainChildLabelMap;
+	std::unordered_map<VertexDescriptor, LabelMap> domainChildLabelMap;
 private:
 	friend class boost::serialization::access;
 	template <typename Archive>
@@ -63,9 +64,10 @@ private:
 	}
 };
 
-extern std::map<string, std::vector<int>> gNameServerZoneMap;
+extern std::unordered_map<string, std::vector<int>> gNameServerZoneMap;
 extern std::vector<string> gTopNameServers;
-extern std::map<int, Zone> gZoneIdToZoneMap;
+extern std::unordered_map<int, Zone> gZoneIdToZoneMap;
+extern int zoneId;
 
 string SearchForNameServer(int zoneId);
 bool RequireGlueRecords(Zone z, vector<ResourceRecord>& NSRecords);
@@ -74,8 +76,8 @@ bool RequireGlueRecords(Zone z, vector<ResourceRecord>& NSRecords);
 void ParseZoneFile(string& file, LabelGraph& g, const VertexDescriptor& root, Zone& z);
 
 //ZoneLookUp
-vector<ResourceRecord> GlueRecordsLookUp(ZoneGraph& g, ZoneVertexDescriptor root, vector<ResourceRecord>& NSRecords, std::map<VertexDescriptor, LabelMap>& domainChildLabelMap);
-ZoneVertexDescriptor ZoneGraphBuilder(ResourceRecord& record, Zone& z);
+vector<ResourceRecord> GlueRecordsLookUp(ZoneGraph& g, ZoneVertexDescriptor root, vector<ResourceRecord>& NSRecords, std::unordered_map<VertexDescriptor, LabelMap>& domainChildLabelMap);
+boost::optional<ZoneVertexDescriptor> ZoneGraphBuilder(ResourceRecord& record, Zone& z);
 void ZoneGraphBuilder(vector<ResourceRecord>& rrs, Zone& z);
 string ReturnTagToString(ReturnTag& r);
 void BuildZoneLabelGraphs(string filePath, string nameServer, LabelGraph& g, const VertexDescriptor& root);

@@ -3,7 +3,7 @@
 #include "interpreter.h"
 #include "properties.h"
 
-std::map<VertexDescriptor, LabelMap> gDomainChildLabelMap;
+std::unordered_map<VertexDescriptor, LabelMap> gDomainChildLabelMap;
 
 
 std::size_t hash_value(Label const& l)
@@ -77,7 +77,7 @@ VertexDescriptor AddNodes(LabelGraph& g, VertexDescriptor closetEncloser, vector
 	return closetEncloser;
 }
 
-void LabelGraphBuilder(ResourceRecord& record, LabelGraph& g, const VertexDescriptor root, int& zoneId, int& zoneVertexId) {
+void LabelGraphBuilder(ResourceRecord& record, LabelGraph& g, const VertexDescriptor root, int& zoneId, int zoneVertexId) {
 	
 	if (record.get_type() != RRType::N) {
 		int index = 0;

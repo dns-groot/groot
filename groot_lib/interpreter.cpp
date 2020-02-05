@@ -111,8 +111,7 @@ boost::optional<int> GetRelevantZone(string ns, EC& query) {
 		for (auto zid : it->second) {
 			int i = 0;
 			bool valid = true;
-			auto currentZone = gZoneIdToZoneMap.find(zid);
-			for (Label& l : currentZone->second.origin) {
+			for (Label& l : gZoneIdToZoneMap.find(zid)->second.origin) {
 				if (i >= queryLabels.size() || l.n != queryLabels[i].n) {
 					valid = false;
 					break;
@@ -193,28 +192,49 @@ vector<ResourceRecord> SeparateGlueRecords(vector<ResourceRecord> records) {
 }
 
 vector<tuple<ResourceRecord, vector<ResourceRecord>>> PairGlueRecords(vector<ResourceRecord>& records) {
-	vector<ResourceRecord> glueRecords;
-	vector<ResourceRecord> nsRecords;
-	for (auto& r : records) {
-		if (r.get_type() == RRType::NS) {
-			nsRecords.push_back(r);
-		}
-		else if (r.get_type() == RRType::A || r.get_type() == RRType::AAAA) {
-			glueRecords.push_back(r);
-		}
-		else {
-			cout << "PairGlueRecords: Found types other than NS and A";
-		}
-	}
+	//vector<ResourceRecord> glueRecords;
+	//vector<ResourceRecord> nsRecords;
+	//for (auto& r : records) {
+	//	if (r.get_type() == RRType::NS) {
+	//		nsRecords.push_back(r);
+	//	}
+	//	else if (r.get_type() == RRType::A || r.get_type() == RRType::AAAA) {
+	//		glueRecords.push_back(r);
+	//	}
+	//	else {
+	//		cout << "PairGlueRecords: Found types other than NS and A";
+	//	}
+	//}
+	//vector<tuple<ResourceRecord, vector<ResourceRecord>>> pairs;
+	//for (auto& ns : nsRecords) {
+	//	vector<ResourceRecord> matched;
+	//	for (auto& glue : glueRecords) {
+	//		if (ns.get_rdata() == LabelsToString(glue.get_name())) {
+	//			matched.push_back(std::move(glue));
+	//		}
+	//	}
+	//	pairs.push_back(std::make_tuple(std::move(ns), std::move(matched)));
+	//}
+	//
+
 	vector<tuple<ResourceRecord, vector<ResourceRecord>>> pairs;
-	for (auto& ns : nsRecords) {
-		vector<ResourceRecord> matched;
-		for (auto& glue : glueRecords) {
-			if (ns.get_rdata() == LabelsToString(glue.get_name())) {
-				matched.push_back(std::move(glue));
+	for (int i = 0; i < records.size(); i++) {
+		if (records[i].get_type() == RRType::NS) {
+			vector<ResourceRecord> matched;
+			for (int j = i + 1; j < records.size(); j++) {
+				if (records[j].get_type() == RRType::A || records[j].get_type() == RRType::AAAA) {
+					matched.push_back(records[j]);
+				}
+				else {
+					pairs.push_back(std::make_tuple(std::move(records[i]), std::move(matched)));
+					i = j - 1;
+					break;
+				}
+			}
+			if (matched.size()) {
+				pairs.push_back(std::make_tuple(std::move(records[i]), std::move(matched)));
 			}
 		}
-		pairs.push_back(std::make_tuple(std::move(ns), std::move(matched)));
 	}
 	return pairs;
 

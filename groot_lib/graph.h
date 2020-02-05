@@ -16,7 +16,7 @@
 
 using namespace std;
 
-#define kHashMapThreshold 1000
+#define kHashMapThreshold 500
 
 //Label Graph
 struct LabelVertex {
@@ -60,11 +60,11 @@ typedef boost::graph_traits<LabelGraph>::vertex_iterator VertexIterator;
 typedef boost::graph_traits<LabelGraph>::edge_iterator EdgeIterator;
 
 typedef boost::unordered_map<Label, VertexDescriptor> LabelMap;
-extern std::map<VertexDescriptor, LabelMap> gDomainChildLabelMap;
+extern std::unordered_map<VertexDescriptor, LabelMap> gDomainChildLabelMap;
 
 std::size_t hash_value(Label const& l);
 //void LabelGraphBuilder(vector<ResourceRecord>&, LabelGraph&, const VertexDescriptor);
-void LabelGraphBuilder(ResourceRecord&, LabelGraph&, const VertexDescriptor, int&, int&);
+void LabelGraphBuilder(ResourceRecord&, LabelGraph&, const VertexDescriptor, int&, int);
 
 //Equivalence Classes
 struct EC {

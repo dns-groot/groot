@@ -1,9 +1,10 @@
 ﻿#include "zone.h"
 #include "graph.h"
 
-std::map<string, std::vector<int>> gNameServerZoneMap;
+std::unordered_map<string, std::vector<int>> gNameServerZoneMap;
 std::vector<string> gTopNameServers;
-std::map<int, Zone> gZoneIdToZoneMap;
+std::unordered_map<int, Zone> gZoneIdToZoneMap;
+int zoneId = 0;
 
 string ReturnTagToString(ReturnTag& r) {
 	if (r == ReturnTag::ANS)
@@ -40,7 +41,7 @@ LabelMap ConstructLabelMap(const ZoneGraph& g, VertexDescriptor node) {
 	return m;
 }
 
-ZoneVertexDescriptor GetAncestor(const ZoneGraph& g, const ZoneVertexDescriptor root, const vector<Label>& labels, std::map<VertexDescriptor, LabelMap>& domainChildLabelMap, int& index) {
+ZoneVertexDescriptor GetAncestor(const ZoneGraph& g, const ZoneVertexDescriptor root, const vector<Label>& labels, std::unordered_map<VertexDescriptor, LabelMap>& domainChildLabelMap, int& index) {
 	/*Given a domain this function returns its closest ancestor in the existing Zone Graph. This function is used for building the Zone Graph. */
 	ZoneVertexDescriptor closestEncloser = root;
 	if (labels.size() == index) {
@@ -115,7 +116,7 @@ ZoneVertexDescriptor GetClosestEncloser(Zone& z, ZoneVertexDescriptor root, vect
 	return closestEncloser;
 }
 
-ZoneVertexDescriptor AddNodes(ZoneGraph& g, ZoneVertexDescriptor closetEncloser, vector<Label>& labels, std::map<VertexDescriptor, LabelMap>& domainChildLabelMap, int& index) {
+ZoneVertexDescriptor AddNodes(ZoneGraph& g, ZoneVertexDescriptor closetEncloser, vector<Label>& labels, std::unordered_map<VertexDescriptor, LabelMap>& domainChildLabelMap, int& index) {
 
 	for (int i = index; i < labels.size(); i++) {
 		ZoneVertexDescriptor u = boost::add_vertex(g);
@@ -135,17 +136,34 @@ ZoneVertexDescriptor AddNodes(ZoneGraph& g, ZoneVertexDescriptor closetEncloser,
 	}
 	return closetEncloser;
 }
+bool checkDuplicate(vector<ResourceRecord>& rrs, ResourceRecord& newr) {
+	for (auto& rr : rrs) {
+		if (rr.get_type() == newr.get_type()) {
+			if (rr.get_ttl() == newr.get_ttl() && rr.get_rdata() == newr.get_rdata()) {
+				return true;
+			}
+		}
+	}
+	return false;
+}
 
-ZoneVertexDescriptor ZoneGraphBuilder(ResourceRecord& record, Zone& z) {
+boost::optional<ZoneVertexDescriptor> ZoneGraphBuilder(ResourceRecord& record, Zone& z) {
 	vector<Label> labels = record.get_name();
 	int index = 0;
 	ZoneVertexDescriptor closetEncloser = GetAncestor(z.g, z.startVertex, labels, z.domainChildLabelMap, index);
 	ZoneVertexDescriptor node = AddNodes(z.g, closetEncloser, labels, z.domainChildLabelMap, index);
-	z.g[node].rrs.push_back(record);
-	if (record.get_type() == RRType::SOA) {
-		z.origin = record.get_name();
+	//TODO: This expensive operation can be removed for non DNS-CENSUS data
+	if (!checkDuplicate(z.g[node].rrs, record)) {
+		z.g[node].rrs.push_back(record);
+		if (record.get_type() == RRType::SOA) {
+			z.origin = record.get_name();
+		}
+		return node;
 	}
-	return node;
+	else {
+		return {};
+	}
+	
 }
 
 [[deprecated("Use ZoneGrapBuilder on a single RR to facilitate return of zoneVertex id")]]
@@ -164,10 +182,7 @@ void ZoneGraphBuilder(vector<ResourceRecord>& rrs, Zone& z) {
 
 void BuildZoneLabelGraphs(string filePath, string nameServer, LabelGraph& g, const VertexDescriptor& root) {
 
-	int zoneId = 1;
-	if (gZoneIdToZoneMap.begin() != gZoneIdToZoneMap.end()) {
-		zoneId = gZoneIdToZoneMap.rbegin()->first + 1;
-	}
+	zoneId++;
 	Zone zone;
 	zone.zoneId = zoneId;
 	ZoneVertexDescriptor start = boost::add_vertex(zone.g);
@@ -197,7 +212,7 @@ void BuildZoneLabelGraphs(string filePath, string nameServer, LabelGraph& g, con
 	cout << "Number of nodes in Zone Graph:" << num_vertices(zone.g) << endl << flush;*/
 }
 
-vector<ResourceRecord> GlueRecordsLookUp(ZoneGraph& g, ZoneVertexDescriptor root, vector<ResourceRecord>& NSRecords, std::map<VertexDescriptor, LabelMap>& domainChildLabelMap) {
+vector<ResourceRecord> GlueRecordsLookUp(ZoneGraph& g, ZoneVertexDescriptor root, vector<ResourceRecord>& NSRecords, std::unordered_map<VertexDescriptor, LabelMap>& domainChildLabelMap) {
 	vector<ResourceRecord> IPrecords;
 	for (auto& record : NSRecords) {
 		vector<Label> nsName = GetLabels(record.get_rdata());
@@ -213,6 +228,25 @@ vector<ResourceRecord> GlueRecordsLookUp(ZoneGraph& g, ZoneVertexDescriptor root
 		}
 	}
 	return IPrecords;
+}
+
+void AddGlueRecords(ZoneGraph& g, ZoneVertexDescriptor root, vector<ResourceRecord>& NSRecords, std::unordered_map<VertexDescriptor, LabelMap>& domainChildLabelMap) {
+	vector<ResourceRecord> mergedRecords;
+	for (auto& record : NSRecords) {
+		vector<Label> nsName = GetLabels(record.get_rdata());
+		int index = 0;
+		mergedRecords.push_back(std::move(record));
+		ZoneVertexDescriptor closetEncloser = GetAncestor(g, root, nsName, domainChildLabelMap, index);
+		if (nsName.size() == index) {
+			//found the node
+			for (auto& noderecords : g[closetEncloser].rrs) {
+				if (noderecords.get_type() == RRType::A || noderecords.get_type() == RRType::AAAA) {
+					mergedRecords.push_back(noderecords);
+				}
+			}
+		}
+	}
+	NSRecords = std::move(mergedRecords);
 }
 
 bool RequireGlueRecords(Zone z, vector<ResourceRecord>& NSRecords) {
@@ -297,8 +331,7 @@ boost::optional<vector<ZoneLookUpAnswer>> QueryLookUpAtZone(Zone& z, EC& query, 
 		}
 		//dr < dq ∧ NS ∈ T ∧ SOA ~∈ T
 		if (NSRecords.size() && !nodeRRtypes[RRType::SOA]) {
-			vector<ResourceRecord> IPrecords = GlueRecordsLookUp(z.g, z.startVertex, NSRecords, z.domainChildLabelMap);
-			NSRecords.insert(NSRecords.end(), IPrecords.begin(), IPrecords.end());
+			AddGlueRecords(z.g, z.startVertex, NSRecords, z.domainChildLabelMap);
 			answers.push_back(std::make_tuple(ReturnTag::REF, nodeRRtypes, NSRecords));
 		}
 		else {
@@ -319,8 +352,8 @@ boost::optional<vector<ZoneLookUpAnswer>> QueryLookUpAtZone(Zone& z, EC& query, 
 			}
 			// If there are NS records, then get their glue records too.
 			if (nodeRRtypes[RRType::NS]) {
-				vector<ResourceRecord> IPrecords = GlueRecordsLookUp(z.g, z.startVertex, NSRecords, z.domainChildLabelMap);
-				NSRecords.insert(NSRecords.end(), IPrecords.begin(), IPrecords.end());
+				AddGlueRecords(z.g, z.startVertex, NSRecords, z.domainChildLabelMap);
+				
 			}
 			// Referral case (Zone-Cut)
 			if (nodeRRtypes[RRType::NS] && !nodeRRtypes[RRType::SOA]) {
@@ -397,8 +430,8 @@ boost::optional<vector<ZoneLookUpAnswer>> QueryLookUpAtZone(Zone& z, EC& query, 
 			}
 			// If there are NS records, then get their glue records too.
 			if (nodeRRtypes[RRType::NS]) {
-				vector<ResourceRecord> IPrecords = GlueRecordsLookUp(z.g, z.startVertex, NSRecords, z.domainChildLabelMap);
-				NSRecords.insert(NSRecords.end(), IPrecords.begin(), IPrecords.end());
+				AddGlueRecords(z.g, z.startVertex, NSRecords, z.domainChildLabelMap);
+				
 			}
 			// Referral case
 			if (nodeRRtypes[RRType::NS] && !nodeRRtypes[RRType::SOA]) {

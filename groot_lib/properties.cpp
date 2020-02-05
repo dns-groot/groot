@@ -665,7 +665,7 @@ void LoopChecker(InterpreterGraph& graph, IntpVD start, Path p, json& output) {
 	}
 }
 
-void CheckPropertiesOnEC(EC& query, vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions, json& output)
+void CheckPropertiesOnEC(EC& query, vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>>& pathFunctions, json& output)
 {	
 	gECcount++;
 	//cout<<QueryFormat(query)<<endl;
@@ -678,7 +678,10 @@ void CheckPropertiesOnEC(EC& query, vector<std::function<void(const InterpreterG
 	vector<IntpVD> endNodes;
 	//LoopChecker(intGraphWrapper.intG, intGraphWrapper.startVertex, Path{}, output);
 	DFS(intGraphWrapper.intG, intGraphWrapper.startVertex, Path{}, endNodes, pathFunctions);
-	//GenerateDotFileInterpreter("Int.dot", intGraphWrapper.intG);
+	/*if (intGraphWrapper.intG.m_vertices.size() > 5) {
+		GenerateDotFileInterpreter("Int.dot", intGraphWrapper.intG);
+	}
+	*/
 	for (auto f : nodeFunctions) {
 		f(intGraphWrapper.intG, endNodes);
 	}
@@ -754,7 +757,7 @@ vector<closestNode> SearchNode(LabelGraph& g, VertexDescriptor closestEncloser, 
 	return actualEnclosers;
 }
 
-void WildCardChildEC(std::vector<Label>& childrenLabels, vector<Label>& labels, std::bitset<RRType::N>& typesReq, int index, vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions, json& output) {
+void WildCardChildEC(std::vector<Label>& childrenLabels, vector<Label>& labels, std::bitset<RRType::N>& typesReq, int index, vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>>& pathFunctions, json& output) {
 
 	EC wildCardMatch;
 	wildCardMatch.name.clear();
@@ -767,7 +770,7 @@ void WildCardChildEC(std::vector<Label>& childrenLabels, vector<Label>& labels, 
 	CheckPropertiesOnEC(wildCardMatch, nodeFunctions, pathFunctions, output);
 }
 
-void NodeEC(LabelGraph& g, vector<Label>& name, std::bitset<RRType::N>& typesReq, vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions, json& output) {
+void NodeEC(LabelGraph& g, vector<Label>& name, std::bitset<RRType::N>& typesReq, vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>>& pathFunctions, json& output) {
 
 	EC present;
 	present.name = name;
@@ -776,7 +779,7 @@ void NodeEC(LabelGraph& g, vector<Label>& name, std::bitset<RRType::N>& typesReq
 	CheckPropertiesOnEC(present, nodeFunctions, pathFunctions, output);
 }
 
-void SubDomainECGeneration(LabelGraph& g, VertexDescriptor start, vector<Label> parentDomainName, std::bitset<RRType::N> typesReq, bool skipLabel, vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions, json& output) {
+void SubDomainECGeneration(LabelGraph& g, VertexDescriptor start, vector<Label> parentDomainName, std::bitset<RRType::N> typesReq, bool skipLabel, vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>>& pathFunctions, json& output) {
 
 	int len = 0;
 	for (Label l : parentDomainName) {
@@ -840,7 +843,7 @@ void SubDomainECGeneration(LabelGraph& g, VertexDescriptor start, vector<Label> 
 	}
 }
 
-void GenerateECAndCheckProperties(LabelGraph& g, VertexDescriptor root, string userInput, std::bitset<RRType::N> typesReq, bool subdomain, vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions, json& output) {
+void GenerateECAndCheckProperties(LabelGraph& g, VertexDescriptor root, string userInput, std::bitset<RRType::N> typesReq, bool subdomain, vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>>& pathFunctions, json& output) {
 	//Given an user input for domain and query types, the function searches for relevant node
 	// The search is relevant even for subdomain = False as we want to know the exact EC
 	if (userInput.length() > kMaxDomainLength) {

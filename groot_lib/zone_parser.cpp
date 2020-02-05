@@ -203,8 +203,11 @@ struct Parser
 					add = false;
 				}
 				if (add) {
-					int vertexId = ZoneGraphBuilder(RR, z);
-					LabelGraphBuilder(RR, g, root, z.zoneId, vertexId);
+					boost::optional<ZoneVertexDescriptor> vertexid = ZoneGraphBuilder(RR, z);
+					if (vertexid) {
+						LabelGraphBuilder(RR, g, root, z.zoneId, vertexid.get());
+					}
+					
 				}
 				currentRecord.clear();
 			}
