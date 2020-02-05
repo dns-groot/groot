@@ -46,6 +46,20 @@ struct zone_file_tokens : lex::lexer<Lexer>
 	}
 };
 
+bool CheckForSubDomain(vector<Label>& domain, vector<Label>  queryLabels) {
+
+	if (domain.size() > queryLabels.size()) {
+		return false;
+	}
+	for (int i = 0; i < domain.size(); i++) {
+		if (!(domain[i] == queryLabels[i])) {
+			return false;
+		}
+	}
+	return true;
+}
+
+
 struct Parser
 {
 	typedef bool result_type;
@@ -184,8 +198,14 @@ struct Parser
 				boost::to_lower(rdata);
 				boost::to_lower(name);
 				ResourceRecord RR(name, type, class_, ttl, rdata);
-				int vertexId = ZoneGraphBuilder(RR, z);
-				LabelGraphBuilder(RR, g, root, z.zoneId, vertexId);
+				bool add = true;
+				if (!type.compare("SOA") && !CheckForSubDomain(z.origin, RR.get_name())) {
+					add = false;
+				}
+				if (add) {
+					int vertexId = ZoneGraphBuilder(RR, z);
+					LabelGraphBuilder(RR, g, root, z.zoneId, vertexId);
+				}
 				currentRecord.clear();
 			}
 			break;

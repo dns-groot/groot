@@ -676,7 +676,7 @@ void CheckPropertiesOnEC(EC& query, vector<std::function<void(const InterpreterG
 		return;
 	}
 	vector<IntpVD> endNodes;
-	LoopChecker(intGraphWrapper.intG, intGraphWrapper.startVertex, Path{}, output);
+	//LoopChecker(intGraphWrapper.intG, intGraphWrapper.startVertex, Path{}, output);
 	DFS(intGraphWrapper.intG, intGraphWrapper.startVertex, Path{}, endNodes, pathFunctions);
 	//GenerateDotFileInterpreter("Int.dot", intGraphWrapper.intG);
 	for (auto f : nodeFunctions) {

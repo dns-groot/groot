@@ -105,7 +105,7 @@ boost::optional<int> GetRelevantZone(string ns, EC& query) {
 	auto queryLabels = query.name;
 	if (it != gNameServerZoneMap.end()) {
 		bool found = false;
-		int max = 0;
+		int max = -1;
 		int bestMatch = 0;
 		std::reverse(it->second.begin(), it->second.end());
 		for (auto zid : it->second) {
