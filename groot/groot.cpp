@@ -262,7 +262,7 @@ void checkUCLADomains(string directory, string properties, json& output) {
 		cout << endl;
 	}
 	//CheckStructuralDelegationConsistency(g, root, "aap.ucla.edu.", {}, output);
-	CheckAllStructuralDelegations(g, root, "", root, output);
+	//CheckAllStructuralDelegations(g, root, "", root, output);
 	t2 = high_resolution_clock::now();
 	time_span = duration_cast<duration<double>>(t2 - t1);
 	cout << " Time to check properties" << time_span.count() << endl;
@@ -474,90 +474,90 @@ void debug() {
 }
 
 
-int main(int argc, const char* argv[])
-{
-	/*
-	1 - zoneFiles directory
-	2 - domain name
-	3 - list of subdomains
-	4 - filename to name server mapping
-	5 - output directory
-	
-	*/
-	//debug();
-	/*json subdomains = json::parse(argv[3]);
-	json nsMap = json::parse(argv[4]);*/
-	std::ifstream i(argv[3]);
-	json subdomains;
-	i >> subdomains;
-	std::ifstream k(argv[4]);
-	json nsMap;
-	k >> nsMap;
-
-	gECcount = 0;
-	string fileName = string(argv[2]) + "..txt";
-	auto zoneFilePath = (boost::filesystem::path{ argv[1] } / boost::filesystem::path{ fileName }).string();
-	//check if the tld file exists
-	if (file_exists(zoneFilePath)) {
-		auto it = nsMap.find(fileName);
-		//check if the tld file to name server map exists
-		if (it != nsMap.end())
-		{
-			/*cout << "Inside " << endl;*/
-			high_resolution_clock::time_point t1 = high_resolution_clock::now();
-			LabelGraph g;
-			VertexDescriptor root = boost::add_vertex(g);
-			g[root].name.set("");
-			gTopNameServers.push_back(nsMap[fileName]);
-			BuildZoneLabelGraphs(zoneFilePath, nsMap[fileName], g, root);
-			//process subdomains
-			for (auto& subdomain : subdomains) {
-				string subd = subdomain.get<string>();
-				subd = subd + "..txt";
-				zoneFilePath = (boost::filesystem::path{ argv[1] } / boost::filesystem::path{ subd }).string();
-				if (file_exists(zoneFilePath)) {
-					auto itsub = nsMap.find(subd);
-					if (itsub != nsMap.end()) {
-						BuildZoneLabelGraphs(zoneFilePath, nsMap[subd], g, root);
-					}
-				}
-			}
-			high_resolution_clock::time_point t2 = high_resolution_clock::now();
-			duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
-			json output = json::array();
-			vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>> nodeFunctions;
-			vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions;
-			CensusProperties(string(argv[2]), nodeFunctions, pathFunctions, output);
-			std::bitset<RRType::N> typesReq;
-			typesReq.set(RRType::NS);
-			GenerateECAndCheckProperties(g, root, string(argv[2]), typesReq, true, nodeFunctions, pathFunctions, output);
-			high_resolution_clock::time_point t3 = high_resolution_clock::now();
-			duration<double> time_span_EC = duration_cast<duration<double>>(t3 - t2);
-			json filteredOutput;
-			/*filteredOutput["Differences"] = {};
-			for (json j : output) {
-				bool found = false;
-				for (json l : filteredOutput["Differences"]) {
-					if (l == j) {
-						found = true;
-						break;
-					}
-				}
-				if (!found) filteredOutput["Differences"].push_back(j);
-			}*/
-			filteredOutput["ECs"] = gECcount;
-			filteredOutput["graph building"] = time_span.count();
-			filteredOutput["property checking"] = time_span_EC.count();
-			std::ofstream ofs;
-			auto outputFile = (boost::filesystem::path{ string(argv[5]) } / boost::filesystem::path{ string(argv[2]) + ".json" }).string();
-			ofs.open(outputFile, std::ofstream::out);
-			ofs << filteredOutput.dump(4);
-			ofs << "\n";
-			ofs.close();
-		}
-	}
-	return 0;
-}
+//int main(int argc, const char* argv[])
+//{
+//	/*
+//	1 - zoneFiles directory
+//	2 - domain name
+//	3 - list of subdomains
+//	4 - filename to name server mapping
+//	5 - output directory
+//	
+//	*/
+//	//debug();
+//	/*json subdomains = json::parse(argv[3]);
+//	json nsMap = json::parse(argv[4]);*/
+//	std::ifstream i(argv[3]);
+//	json subdomains;
+//	i >> subdomains;
+//	std::ifstream k(argv[4]);
+//	json nsMap;
+//	k >> nsMap;
+//
+//	gECcount = 0;
+//	string fileName = string(argv[2]) + "..txt";
+//	auto zoneFilePath = (boost::filesystem::path{ argv[1] } / boost::filesystem::path{ fileName }).string();
+//	//check if the tld file exists
+//	if (file_exists(zoneFilePath)) {
+//		auto it = nsMap.find(fileName);
+//		//check if the tld file to name server map exists
+//		if (it != nsMap.end())
+//		{
+//			/*cout << "Inside " << endl;*/
+//			high_resolution_clock::time_point t1 = high_resolution_clock::now();
+//			LabelGraph g;
+//			VertexDescriptor root = boost::add_vertex(g);
+//			g[root].name.set("");
+//			gTopNameServers.push_back(nsMap[fileName]);
+//			BuildZoneLabelGraphs(zoneFilePath, nsMap[fileName], g, root);
+//			//process subdomains
+//			for (auto& subdomain : subdomains) {
+//				string subd = subdomain.get<string>();
+//				subd = subd + "..txt";
+//				zoneFilePath = (boost::filesystem::path{ argv[1] } / boost::filesystem::path{ subd }).string();
+//				if (file_exists(zoneFilePath)) {
+//					auto itsub = nsMap.find(subd);
+//					if (itsub != nsMap.end()) {
+//						BuildZoneLabelGraphs(zoneFilePath, nsMap[subd], g, root);
+//					}
+//				}
+//			}
+//			high_resolution_clock::time_point t2 = high_resolution_clock::now();
+//			duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
+//			json output = json::array();
+//			vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>> nodeFunctions;
+//			vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions;
+//			CensusProperties(string(argv[2]), nodeFunctions, pathFunctions, output);
+//			std::bitset<RRType::N> typesReq;
+//			typesReq.set(RRType::NS);
+//			GenerateECAndCheckProperties(g, root, string(argv[2]), typesReq, true, nodeFunctions, pathFunctions, output);
+//			high_resolution_clock::time_point t3 = high_resolution_clock::now();
+//			duration<double> time_span_EC = duration_cast<duration<double>>(t3 - t2);
+//			json filteredOutput;
+//			/*filteredOutput["Differences"] = {};
+//			for (json j : output) {
+//				bool found = false;
+//				for (json l : filteredOutput["Differences"]) {
+//					if (l == j) {
+//						found = true;
+//						break;
+//					}
+//				}
+//				if (!found) filteredOutput["Differences"].push_back(j);
+//			}*/
+//			filteredOutput["ECs"] = gECcount;
+//			filteredOutput["graph building"] = time_span.count();
+//			filteredOutput["property checking"] = time_span_EC.count();
+//			std::ofstream ofs;
+//			auto outputFile = (boost::filesystem::path{ string(argv[5]) } / boost::filesystem::path{ string(argv[2]) + ".json" }).string();
+//			ofs.open(outputFile, std::ofstream::out);
+//			ofs << filteredOutput.dump(4);
+//			ofs << "\n";
+//			ofs.close();
+//		}
+//	}
+//	return 0;
+//}
 
 static const char USAGE[] =
 R"(groot 1.0
@@ -575,69 +575,69 @@ Options:
 )";
 
 
-//int main(int argc, const char** argv)
-//{
-//	auto args = docopt::docopt(USAGE, { argv + 1, argv + argc }, true, "groot 1.0");
-//
-//	/* for (auto const& arg : args) {
-//		std::cout << arg.first << arg.second << std::endl;
-//	 }*/
-//
-//	string zone_directory;
-//	string properties_file;
-//
-//	auto z = args.find("<zone_directory>");
-//	if (!z->second)
-//	{
-//		cout << "Error: missing parameter <zone_directory>" << endl;
-//		cout << USAGE[0];
-//		exit(0);
-//	}
-//	else
-//	{
-//		zone_directory = z->second.asString();
-//	}
-//
-//	auto p = args.find("--properties");
-//	if (p->second)
-//	{
-//		properties_file = p->second.asString();
-//	}
-//
-//	/*bool verbose = args.find("--verbose")->second.asBool();
-//	bool debug_dot = args.find("--debug")->second.asBool();*/
-//
-//
-//	// TODO: validate that the directory and property files exist
-//	json output = json::array();
-//	//profiling_net();
-//	//bench(zone_directory, properties_file);
-//	//checkHotmailDomains(zone_directory, properties_file, output);
-//	//checkUCLADomains(zone_directory, properties_file, output);
-//	demo(zone_directory, properties_file, output);
-//	json filteredOutput = json::array();
-//
-//	for (json j : output) {
-//		bool found = false;
-//		for (json l : filteredOutput) {
-//			if (l == j) {
-//				found = true;
-//				break;
-//			}
-//		}
-//		if (!found) filteredOutput.push_back(j);
-//	}
-//	
-//	p = args.find("--output");
-//	string outputFile = "output.json";
-//	if (p->second)
-//	{
-//		outputFile = p->second.asString();
-//	}
-//	std::ofstream ofs;
-//	ofs.open(outputFile, std::ofstream::out);
-//	ofs << filteredOutput.dump(4);
-//	ofs << "\n";
-//	ofs.close();
-//	return 0;
-//}
+int main(int argc, const char** argv)
+{
+	auto args = docopt::docopt(USAGE, { argv + 1, argv + argc }, true, "groot 1.0");
+
+	/* for (auto const& arg : args) {
+		std::cout << arg.first << arg.second << std::endl;
+	 }*/
+
+	string zone_directory;
+	string properties_file;
+
+	auto z = args.find("<zone_directory>");
+	if (!z->second)
+	{
+		cout << "Error: missing parameter <zone_directory>" << endl;
+		cout << USAGE[0];
+		exit(0);
+	}
+	else
+	{
+		zone_directory = z->second.asString();
+	}
+
+	auto p = args.find("--properties");
+	if (p->second)
+	{
+		properties_file = p->second.asString();
+	}
+
+	/*bool verbose = args.find("--verbose")->second.asBool();
+	bool debug_dot = args.find("--debug")->second.asBool();*/
+
+
+	// TODO: validate that the directory and property files exist
+	json output = json::array();
+	//profiling_net();
+	//bench(zone_directory, properties_file);
+	//checkHotmailDomains(zone_directory, properties_file, output);
+	//checkUCLADomains(zone_directory, properties_file, output);
+	demo(zone_directory, properties_file, output);
+	json filteredOutput = json::array();
+
+	for (json j : output) {
+		bool found = false;
+		for (json l : filteredOutput) {
+			if (l == j) {
+				found = true;
+				break;
+			}
+		}
+		if (!found) filteredOutput.push_back(j);
+	}
+	
+	p = args.find("--output");
+	string outputFile = "output.json";
+	if (p->second)
+	{
+		outputFile = p->second.asString();
+	}
+	std::ofstream ofs;
+	ofs.open(outputFile, std::ofstream::out);
+	ofs << filteredOutput.dump(4);
+	ofs << "\n";
+	ofs.close();
+	return 0;
+}
