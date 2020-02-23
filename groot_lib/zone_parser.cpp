@@ -199,9 +199,9 @@ struct Parser
 				boost::to_lower(name);
 				ResourceRecord RR(name, type, class_, ttl, rdata);
 				bool add = true;
-				if (!type.compare("SOA") && !CheckForSubDomain(z.origin, RR.get_name())) {
+			/*	if (!type.compare("SOA") && !CheckForSubDomain(z.origin, RR.get_name())) {
 					add = false;
-				}
+				}*/
 				if (add) {
 					boost::optional<ZoneVertexDescriptor> vertexid = ZoneGraphBuilder(RR, z);
 					if (vertexid) {

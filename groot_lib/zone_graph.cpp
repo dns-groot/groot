@@ -153,7 +153,7 @@ boost::optional<ZoneVertexDescriptor> ZoneGraphBuilder(ResourceRecord& record, Z
 	ZoneVertexDescriptor closetEncloser = GetAncestor(z.g, z.startVertex, labels, z.domainChildLabelMap, index);
 	ZoneVertexDescriptor node = AddNodes(z.g, closetEncloser, labels, z.domainChildLabelMap, index);
 	//TODO: This expensive operation can be removed for non DNS-CENSUS data
-	if (!checkDuplicate(z.g[node].rrs, record)) {
+	/*if (!checkDuplicate(z.g[node].rrs, record)) {
 		z.g[node].rrs.push_back(record);
 		if (record.get_type() == RRType::SOA) {
 			z.origin = record.get_name();
@@ -162,8 +162,12 @@ boost::optional<ZoneVertexDescriptor> ZoneGraphBuilder(ResourceRecord& record, Z
 	}
 	else {
 		return {};
+	}*/
+	z.g[node].rrs.push_back(record);
+	if (record.get_type() == RRType::SOA) {
+		z.origin = record.get_name();
 	}
-	
+	return node;
 }
 
 [[deprecated("Use ZoneGrapBuilder on a single RR to facilitate return of zoneVertex id")]]
