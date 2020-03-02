@@ -156,6 +156,9 @@ void demo(string directory, string properties, json& output) {
 	std::ifstream metadataFile((boost::filesystem::path{ directory } / boost::filesystem::path{ "metadata.json" }).string());
 	json metadata;
 	metadataFile >> metadata;
+	std::ifstream i(properties);
+	json j;
+	i >> j;
 	for (auto& server : metadata["TopNameServers"]) {
 		gTopNameServers.push_back(server);
 	}
@@ -165,11 +168,8 @@ void demo(string directory, string properties, json& output) {
 		auto zoneFilePath = (boost::filesystem::path{ directory } / boost::filesystem::path{ filename }).string();
 		BuildZoneLabelGraphs(zoneFilePath, zone["NameServer"], g, root);
 	}
-	std::ofstream dotfile("LabelGraph.dot");
-	write_graphviz(dotfile, g, make_vertex_writer(boost::get(&LabelVertex::name, g)), make_edge_writer(boost::get(&LabelEdge::type, g)));
-	std::ifstream i(properties);
-	json j;
-	i >> j;
+	/*std::ofstream dotfile("LabelGraph.dot");
+	write_graphviz(dotfile, g, make_vertex_writer(boost::get(&LabelVertex::name, g)), make_edge_writer(boost::get(&LabelEdge::type, g)));*/
 	vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>> nodeFunctions;
 	vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions;
 	for (auto& query : j) {
