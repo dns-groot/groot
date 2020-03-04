@@ -90,9 +90,9 @@ void deserialize(T& data, string fileName) {
 	ia >> data;
 }
 
-std::bitset<RRType::N> ProcessProperties(json j, vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>>& pathFunctions, json& output) {
+std::bitset<RRType::N> ProcessProperties(json properties, json& output) {
 	std::bitset<RRType::N> typesReq;
-	for (auto& property : j) {
+	for (auto& property : properties) {
 		string name = property["PropertyName"];
 		std::bitset<RRType::N> propertyTypes;
 		if (property.find("Types") != property.end()) {
@@ -106,44 +106,44 @@ std::bitset<RRType::N> ProcessProperties(json j, vector<std::function<void(const
 		}
 
 		if (name == "ResponseConsistency") {
-			auto la = [types = std::move(propertyTypes), &output](const InterpreterGraph& graph, const Path& p){ CheckSameResponseReturned(graph, p, types, output); };
-			nodeFunctions.push_back(la);
+			auto la = [types = std::move(propertyTypes), &output](const InterpreterGraph& graph, const Path& p){ CheckSameResponseReturned(graph, p, types); };
+			gNodeFunctions.push_back(la);
 		}
 		else if (name == "ResponseReturned") {
-			auto la = [types = std::move(propertyTypes), &output](const InterpreterGraph& graph, const Path& p){ CheckResponseReturned(graph, p, types, output); };
-			nodeFunctions.push_back(la);
+			auto la = [types = std::move(propertyTypes), &output](const InterpreterGraph& graph, const Path& p){ CheckResponseReturned(graph, p, types); };
+			gNodeFunctions.push_back(la);
 		}
 		else if (name == "ResponseValue") {
 			std::set<string> values;
 			for (string v : property["Value"]) {
 				values.insert(v);
 			}
-			auto la = [types = std::move(propertyTypes), v = std::move(values), &output](const InterpreterGraph& graph, const Path& p){ CheckResponseValue(graph, p, types, v, output); };
-			nodeFunctions.push_back(la);
+			auto la = [types = std::move(propertyTypes), v = std::move(values), &output](const InterpreterGraph& graph, const Path& p){ CheckResponseValue(graph, p, types, v); };
+			gNodeFunctions.push_back(la);
 		}
 		else if (name == "Hops") {
-			auto l = [num_hops = property["Value"], &output](const InterpreterGraph& graph, const Path& p) {NumberOfHops(graph, p, num_hops, output); };
-			pathFunctions.push_back(l);
+			auto l = [num_hops = property["Value"], &output](const InterpreterGraph& graph, const Path& p) {NumberOfHops(graph, p, num_hops); };
+			gPathFunctions.push_back(l);
 		}
 		else if (name == "Rewrites") {
-			auto l = [num_rewrites = property["Value"], &output](const InterpreterGraph& graph, const Path& p) {NumberOfRewrites(graph, p, num_rewrites, output); };
-			pathFunctions.push_back(l);
+			auto l = [num_rewrites = property["Value"], &output](const InterpreterGraph& graph, const Path& p) {NumberOfRewrites(graph, p, num_rewrites); };
+			gPathFunctions.push_back(l);
 		}
 		else if (name == "DelegationConsistency") {
-			auto l = [&output](const InterpreterGraph& graph, const Path& p) {CheckDelegationConsistency(graph, p, output); };
-			pathFunctions.push_back(l);
+			auto l = [&output](const InterpreterGraph& graph, const Path& p) {CheckDelegationConsistency(graph, p); };
+			gPathFunctions.push_back(l);
 		}
 		else if (name == "LameDelegation") {
-			auto l = [&output](const InterpreterGraph& graph, const Path& p) {CheckLameDelegation(graph, p, output); };
-			pathFunctions.push_back(l);
+			auto l = [&output](const InterpreterGraph& graph, const Path& p) {CheckLameDelegation(graph, p); };
+			gPathFunctions.push_back(l);
 		}
 		else if (name == "QueryRewrite") {
-			auto l = [d = property["Value"], &output](const InterpreterGraph& graph, const Path& p) {QueryRewrite(graph, p, GetLabels(d), output); };
-			pathFunctions.push_back(l);
+			auto l = [d = property["Value"], &output](const InterpreterGraph& graph, const Path& p) {QueryRewrite(graph, p, GetLabels(d)); };
+			gPathFunctions.push_back(l);
 		}
 		else if (name == "NameServerContact") {
-			auto l = [d = property["Value"], &output](const InterpreterGraph& graph, const Path& p) {NameServerContact(graph, p, GetLabels(d), output); };
-			pathFunctions.push_back(l);
+			auto l = [d = property["Value"], &output](const InterpreterGraph& graph, const Path& p) {NameServerContact(graph, p, GetLabels(d)); };
+			gPathFunctions.push_back(l);
 		}
 	}
 	return typesReq;
@@ -170,13 +170,12 @@ void demo(string directory, string properties, json& output) {
 	}
 	/*std::ofstream dotfile("LabelGraph.dot");
 	write_graphviz(dotfile, g, make_vertex_writer(boost::get(&LabelVertex::name, g)), make_edge_writer(boost::get(&LabelEdge::type, g)));*/
-	vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>> nodeFunctions;
-	vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions;
 	for (auto& query : j) {
-		nodeFunctions.clear();
-		pathFunctions.clear();
-		std::bitset<RRType::N> typesReq = ProcessProperties(query["Properties"], nodeFunctions, pathFunctions, output);
-		GenerateECAndCheckProperties(g, root, query["Domain"], typesReq, query["SubDomain"], nodeFunctions, pathFunctions, output);
+		gNodeFunctions.clear();
+		gPathFunctions.clear();
+		gDoneECgeneration = false;
+		std::bitset<RRType::N> typesReq = ProcessProperties(query["Properties"], output);
+		GenerateECAndCheckProperties(g, root, query["Domain"], typesReq, query["SubDomain"], output);
 	}
 }
 
@@ -190,13 +189,11 @@ void bench(string directory, string input, json& output) {
 	std::ifstream i(input);
 	json j;
 	i >> j;
-	vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>> nodeFunctions;
-	vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions;
 	for (auto& query : j) {
-		nodeFunctions.clear();
-		pathFunctions.clear();
-		std::bitset<RRType::N> typesReq = ProcessProperties(query["Properties"], nodeFunctions, pathFunctions, output);
-		GenerateECAndCheckProperties(g, root, query["Domain"], typesReq, query["SubDomain"], nodeFunctions, pathFunctions, output);
+		gNodeFunctions.clear();
+		gPathFunctions.clear();
+		std::bitset<RRType::N> typesReq = ProcessProperties(query["Properties"], output);
+		GenerateECAndCheckProperties(g, root, query["Domain"], typesReq, query["SubDomain"], output);
 		cout << endl;
 	}
 }
@@ -215,17 +212,17 @@ void checkHotmailDomains(string directory, string properties, json& output) {
 	write_graphviz(dotfile, g, make_vertex_writer(boost::get(&LabelVertex::name, g)), make_edge_writer(boost::get(&LabelEdge::type, g)));
 	*/
 	//CheckStructuralDelegationConsistency(g, root, "bay003.hotmail.com.", {});
-	CheckAllStructuralDelegations(g, root, "", root, output);
+	CheckAllStructuralDelegations(g, root, "", root); // Need to pop out from the queue
 	/*std::ifstream i(properties);
 	json j;
 	i >> j;
-	vector<std::function<void(const InterpreterGraph&, const vector<InterpreterVertexDescriptor>&)>> nodeFunctions;
-	vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions;
+	vector<std::function<void(const InterpreterGraph&, const vector<InterpreterVertexDescriptor>&)>> gNodeFunctions;
+	vector<std::function<void(const InterpreterGraph&, const Path&)>> gPathFunctions;
 	for (auto& query : j) {
-		nodeFunctions.clear();
-		pathFunctions.clear();
-		std::bitset<RRType::N> typesReq = ProcessProperties(query["Properties"], nodeFunctions, pathFunctions);
-		GenerateECAndCheckProperties(g, root, query["Domain"], typesReq, query["SubDomain"], nodeFunctions, pathFunctions);
+		gNodeFunctions.clear();
+		gPathFunctions.clear();
+		std::bitset<RRType::N> typesReq = ProcessProperties(query["Properties"], gNodeFunctions, gPathFunctions);
+		GenerateECAndCheckProperties(g, root, query["Domain"], typesReq, query["SubDomain"], gNodeFunctions, gPathFunctions);
 		cout << endl;
 	}*/
 }
@@ -244,7 +241,7 @@ void checkUCLADomains(string directory, string properties, json& output) {
 		}
 		else {
 			BuildZoneLabelGraphs(entry.path().string(), "ns1.dns.ucla.edu.", g, root);
-		}	
+		}
 	}
 	high_resolution_clock::time_point t2 = high_resolution_clock::now();
 	duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
@@ -252,13 +249,13 @@ void checkUCLADomains(string directory, string properties, json& output) {
 	std::ifstream i(properties);
 	json j;
 	i >> j;
-	vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>> nodeFunctions;
-	vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions;
+	vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>> gNodeFunctions;
+	vector<std::function<void(const InterpreterGraph&, const Path&)>> gPathFunctions;
 	for (auto& query : j) {
-		nodeFunctions.clear();
-		pathFunctions.clear();
-		std::bitset<RRType::N> typesReq = ProcessProperties(query["Properties"], nodeFunctions, pathFunctions, output);
-		GenerateECAndCheckProperties(g, root, query["Domain"], typesReq, query["SubDomain"], nodeFunctions, pathFunctions, output);
+		gNodeFunctions.clear();
+		gPathFunctions.clear();
+		std::bitset<RRType::N> typesReq = ProcessProperties(query["Properties"], output);
+		GenerateECAndCheckProperties(g, root, query["Domain"], typesReq, query["SubDomain"], output);
 		cout << endl;
 	}
 	//CheckStructuralDelegationConsistency(g, root, "aap.ucla.edu.", {}, output);
@@ -299,14 +296,14 @@ void ZoneFileNSMap(string file, std::map<string, string>& zoneFileNameToNS) {
 }
 
 
-void CensusProperties(string domain, vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>>& pathFunctions, json& output) {
-			
-	auto l = [d = domain, &output](const InterpreterGraph& graph, const Path& p) {QueryRewrite(graph, p, GetLabels(d), output); };
-	pathFunctions.push_back(l);
-	auto name = [d = domain, &output](const InterpreterGraph& graph, const Path& p) {NameServerContact(graph, p, GetLabels(d), output); };
-	pathFunctions.push_back(name);
-	auto re = [num_rewrites = 3, &output](const InterpreterGraph& graph, const Path& p) {NumberOfRewrites(graph, p, num_rewrites, output); };
-	pathFunctions.push_back(re);
+void CensusProperties(string domain, vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>>& gNodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>>& gPathFunctions, json& output) {
+
+	auto l = [d = domain, &output](const InterpreterGraph& graph, const Path& p) {QueryRewrite(graph, p, GetLabels(d)); };
+	gPathFunctions.push_back(l);
+	auto name = [d = domain, &output](const InterpreterGraph& graph, const Path& p) {NameServerContact(graph, p, GetLabels(d)); };
+	gPathFunctions.push_back(name);
+	auto re = [num_rewrites = 3, &output](const InterpreterGraph& graph, const Path& p) {NumberOfRewrites(graph, p, num_rewrites); };
+	gPathFunctions.push_back(re);
 }
 
 void DNSCensus(string zoneFilesdirectory, string zoneNS, string tldSubDomainMap, string outputDirectory) {
@@ -352,12 +349,12 @@ void DNSCensus(string zoneFilesdirectory, string zoneNS, string tldSubDomainMap,
 					high_resolution_clock::time_point t2 = high_resolution_clock::now();
 					duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
 					json output = json::array();
-					vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>> nodeFunctions;
-					vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions;
-					CensusProperties(key, nodeFunctions, pathFunctions, output);
+					vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>> gNodeFunctions;
+					vector<std::function<void(const InterpreterGraph&, const Path&)>> gPathFunctions;
+					CensusProperties(key, gNodeFunctions, gPathFunctions, output);
 					std::bitset<RRType::N> typesReq;
 					typesReq.set(RRType::NS);
-					GenerateECAndCheckProperties(g, root, key, typesReq, true, nodeFunctions, pathFunctions, output);
+					GenerateECAndCheckProperties(g, root, key, typesReq, true, output);
 					high_resolution_clock::time_point t3 = high_resolution_clock::now();
 					duration<double> time_span_EC = duration_cast<duration<double>>(t3 - t2);
 					json filteredOutput;
@@ -372,11 +369,11 @@ void DNSCensus(string zoneFilesdirectory, string zoneNS, string tldSubDomainMap,
 						}
 						if (!found) filteredOutput["Differences"].push_back(j);
 					}
-					filteredOutput["ECs"] = gECcount;
+					filteredOutput["ECs"] = gECcount.load();
 					filteredOutput["graph building"] = time_span.count();
 					filteredOutput["property checking"] = time_span_EC.count();
 					std::ofstream ofs;
-					auto outputFile = (boost::filesystem::path{ outputDirectory } / boost::filesystem::path{ key+".json" }).string();
+					auto outputFile = (boost::filesystem::path{ outputDirectory } / boost::filesystem::path{ key + ".json" }).string();
 					ofs.open(outputFile, std::ofstream::out);
 					ofs << filteredOutput.dump(4);
 					ofs << "\n";
@@ -391,7 +388,7 @@ void DNSCensus(string zoneFilesdirectory, string zoneNS, string tldSubDomainMap,
 
 void debug() {
 
-	json subdomains ;
+	json subdomains;
 	json nsMap;
 	gECcount = 0;
 	// This one generates a huge graph with infinite loops kind
@@ -409,7 +406,7 @@ void debug() {
 	subdomains.push_back("www.bigcal.org");
 	nsMap["bigcal.org..txt"] = "\\(4110125364.";
 	nsMap["www.bigcal.org..txt"] = "\\(181576594.";
-	
+
 
 	auto zoneFilePath = (boost::filesystem::path{ "E:\\siva\\DNSCensus2013\\FullZones" } / boost::filesystem::path{ fileName }).string();
 	if (file_exists(zoneFilePath)) {
@@ -439,12 +436,12 @@ void debug() {
 			high_resolution_clock::time_point t2 = high_resolution_clock::now();
 			duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
 			json output = json::array();
-			vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>> nodeFunctions;
-			vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions;
-			CensusProperties(string(domain), nodeFunctions, pathFunctions, output);
+			vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>> gNodeFunctions;
+			vector<std::function<void(const InterpreterGraph&, const Path&)>> gPathFunctions;
+			CensusProperties(string(domain), gNodeFunctions, gPathFunctions, output);
 			std::bitset<RRType::N> typesReq;
 			typesReq.set(RRType::NS);
-			GenerateECAndCheckProperties(g, root, string(domain), typesReq, true, nodeFunctions, pathFunctions, output);
+			GenerateECAndCheckProperties(g, root, string(domain), typesReq, true, output);
 			high_resolution_clock::time_point t3 = high_resolution_clock::now();
 			duration<double> time_span_EC = duration_cast<duration<double>>(t3 - t2);
 			json filteredOutput;
@@ -459,7 +456,7 @@ void debug() {
 				}
 				if (!found) filteredOutput["Differences"].push_back(j);
 			}
-			filteredOutput["ECs"] = gECcount;
+			filteredOutput["ECs"] = gECcount.load();
 			filteredOutput["graph building"] = time_span.count();
 			filteredOutput["property checking"] = time_span_EC.count();
 			std::ofstream ofs;
@@ -525,12 +522,12 @@ void debug() {
 //			high_resolution_clock::time_point t2 = high_resolution_clock::now();
 //			duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
 //			json output = json::array();
-//			vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>> nodeFunctions;
-//			vector<std::function<void(const InterpreterGraph&, const Path&)>> pathFunctions;
-//			CensusProperties(string(argv[2]), nodeFunctions, pathFunctions, output);
+//			vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>> gNodeFunctions;
+//			vector<std::function<void(const InterpreterGraph&, const Path&)>> gPathFunctions;
+//			CensusProperties(string(argv[2]), gNodeFunctions, gPathFunctions, output);
 //			std::bitset<RRType::N> typesReq;
 //			typesReq.set(RRType::NS);
-//			GenerateECAndCheckProperties(g, root, string(argv[2]), typesReq, true, nodeFunctions, pathFunctions, output);
+//			GenerateECAndCheckProperties(g, root, string(argv[2]), typesReq, true, gNodeFunctions, gPathFunctions, output);
 //			high_resolution_clock::time_point t3 = high_resolution_clock::now();
 //			duration<double> time_span_EC = duration_cast<duration<double>>(t3 - t2);
 //			json filteredOutput;
@@ -627,7 +624,7 @@ int main(int argc, const char** argv)
 		}
 		if (!found) filteredOutput.push_back(j);
 	}
-	
+
 	p = args.find("--output");
 	string outputFile = "output.json";
 	if (p->second)

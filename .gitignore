@@ -344,3 +344,4 @@ healthchecksdb
 
 /zone_files
 *.txt
+*.json

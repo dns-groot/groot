@@ -2,9 +2,16 @@
 #include <numeric>
 #include <utility>
 
-long gECcount;
+const int ECConsumerCount = 8;
 
-void CheckResponseReturned(const InterpreterGraph& graph, const vector<IntpVD>& endNodes, std::bitset<RRType::N> typesReq, json& output) {
+std::atomic<long> gECcount(0);
+vector<NodeFunction> gNodeFunctions;
+vector<PathFunction> gPathFunctions;
+moodycamel::ConcurrentQueue<EC> gECQueue;
+std::atomic<bool> gDoneECgeneration(false);
+moodycamel::ConcurrentQueue<json> gJsonQueue;
+
+void CheckResponseReturned(const InterpreterGraph& graph, const vector<IntpVD>& endNodes, std::bitset<RRType::N> typesReq) {
 	/*
 	  The set of end nodes is given and checks if some non-empty response is received from all the end nodes for all the requested types.
 	  We may encounter nodes with Refused/NSnotfound in which case we have incomplete information.
@@ -24,7 +31,7 @@ void CheckResponseReturned(const InterpreterGraph& graph, const vector<IntpVD>& 
 							tmp["Property"] = "ResponseReturned";
 							tmp["Equivalence Class"] = QueryFormat(graph[vd].query);
 							tmp["Violation"] = "There was no response for T:" + RRTypesToString(std::get<1>(a) & typesReq) + " at name server:" + graph[vd].ns;
-							output.push_back(tmp);
+							gJsonQueue.enqueue(tmp);
 						}
 					}
 				}
@@ -71,7 +78,7 @@ std::bitset<RRType::N> CompareResponse(const vector<ResourceRecord>& resA, const
 	return typesDiff;
 }
 
-void CheckSameResponseReturned(const InterpreterGraph& graph, const vector<IntpVD>& endNodes, std::bitset<RRType::N> typesReq, json& output) {
+void CheckSameResponseReturned(const InterpreterGraph& graph, const vector<IntpVD>& endNodes, std::bitset<RRType::N> typesReq) {
 	/*
 	  The set of end nodes is given and checks if same response is received from all the end nodes.
 	  We may encounter nodes with Refused/NSnotfound in which case we have incomplete information.
@@ -106,7 +113,7 @@ void CheckSameResponseReturned(const InterpreterGraph& graph, const vector<IntpV
 		tmp["Property"] = "ResponseConsistency";
 		tmp["Equivalence Class"] = QueryFormat(graph[endNodes[0]].query);
 		tmp["Violation"] = "Difference in responses found";
-		output.push_back(tmp);
+		gJsonQueue.enqueue(tmp);
 	}
 }
 
@@ -123,7 +130,7 @@ void PrettyPrintResponseValue(set<string> response, set<string>& value, const In
 	tmp["Mismatches"].push_back(j);
 }
 
-void CheckResponseValue(const InterpreterGraph& graph, const vector<IntpVD>& endNodes, std::bitset<RRType::N> typesReq, set<string> values, json& output) {
+void CheckResponseValue(const InterpreterGraph& graph, const vector<IntpVD>& endNodes, std::bitset<RRType::N> typesReq, set<string> values) {
 	/*
 	  The set of end nodes is given and if the return tag is Ans then compare with the user input value.
 	  We may encounter nodes with Refused/NSnotfound in which case we have incomplete information.
@@ -157,11 +164,11 @@ void CheckResponseValue(const InterpreterGraph& graph, const vector<IntpVD>& end
 		std::string s = std::accumulate(values.begin(), values.end(), std::string{});
 		tmp["Expected"] = s;
 		tmp["Property"] = "Response Value";
-		output.push_back(tmp);
+		gJsonQueue.enqueue(tmp);
 	}
 }
 
-void NumberOfRewrites(const InterpreterGraph& graph, const Path& p, int num_rewrites, json& output) {
+void NumberOfRewrites(const InterpreterGraph& graph, const Path& p, int num_rewrites) {
 	/*
 		Number of Rewrites = Number of nodes on the path with return tag AnsQ
 	*/
@@ -185,11 +192,11 @@ void NumberOfRewrites(const InterpreterGraph& graph, const Path& p, int num_rewr
 		std::ostringstream stringStream;
 		stringStream << "Number of rewrites (" << rewrites << ") exceeded " << num_rewrites;
 		tmp["Violation"] = stringStream.str();
-		output.push_back(tmp);
+		gJsonQueue.enqueue(tmp);
 	}
 }
 
-void NumberOfHops(const InterpreterGraph& graph, const Path& p, int num_hops, json& output) {
+void NumberOfHops(const InterpreterGraph& graph, const Path& p, int num_hops) {
 	/*
 		Number of Hops = Number of name servers in the path.
 		We may encounter a Node with Refused/NSnotfound in which case we have incomplete information.
@@ -212,7 +219,7 @@ void NumberOfHops(const InterpreterGraph& graph, const Path& p, int num_hops, js
 		std::ostringstream stringStream;
 		stringStream << "Number of hops (" << nameServers.size() << ") exceeded " << num_hops;
 		tmp["Violation"] = stringStream.str();
-		output.push_back(tmp);
+		gJsonQueue.enqueue(tmp);
 	}
 }
 
@@ -239,7 +246,7 @@ tuple<vector<ResourceRecord>, vector<ResourceRecord>> GetNSGlueRecords(const vec
 	return std::make_tuple(nsRecords, glueRecords);
 }
 
-void CheckDelegationConsistency(const InterpreterGraph& graph, const Path& p, json& output)
+void CheckDelegationConsistency(const InterpreterGraph& graph, const Path& p)
 {
 	/*
 	  The path should have at least three nodes including the dummy node.
@@ -275,14 +282,14 @@ void CheckDelegationConsistency(const InterpreterGraph& graph, const Path& p, js
 					tmp["Property"] = "Delegation Consistency";
 					tmp["Equivalence Class"] = QueryFormat(query);
 					tmp["Violation"] = "Inconsistency in NS records  at " + graph[p[parentIndex]].ns + " and " + graph[p[static_cast<long long>(parentIndex) + 1]].ns;
-					output.push_back(tmp);
+					gJsonQueue.enqueue(tmp);
 				}
 				if (std::get<1>(glueDiff).size() || std::get<2>(glueDiff).size()) {
 					json tmp;
 					tmp["Property"] = "Delegation Consistency";
 					tmp["Equivalence Class"] = QueryFormat(query);
 					tmp["Violation"] = "Inconsistency in Glue records  at " + graph[p[parentIndex]].ns + " and " + graph[p[static_cast<long long>(parentIndex) + 1]].ns;
-					output.push_back(tmp);
+					gJsonQueue.enqueue(tmp);
 				}
 			}
 		}
@@ -292,7 +299,7 @@ void CheckDelegationConsistency(const InterpreterGraph& graph, const Path& p, js
 	}
 }
 
-void CheckLameDelegation(const InterpreterGraph& graph, const Path& p, json& output)
+void CheckLameDelegation(const InterpreterGraph& graph, const Path& p)
 {
 	/*
 	  The path should have at least three nodes including the dummy node.
@@ -309,13 +316,13 @@ void CheckLameDelegation(const InterpreterGraph& graph, const Path& p, json& out
 					if (i < p.size() - 1 && graph[p[static_cast<long long>(i) + 1]].answer) {
 						auto& ans = graph[p[static_cast<long long>(i) + 1]].answer.get()[0];
 						if ((std::get<0>(ans) == ReturnTag::REFUSED) && query.name == graph[p[static_cast<long long>(i) + 1]].query.name) {
-						//if ((std::get<0>(ans) == ReturnTag::REFUSED || std::get<0>(ans) == ReturnTag::NSNOTFOUND) && query.name == graph[p[static_cast<long long>(i) + 1]].query.name) {
-							// Child found and also the query matches
+							//if ((std::get<0>(ans) == ReturnTag::REFUSED || std::get<0>(ans) == ReturnTag::NSNOTFOUND) && query.name == graph[p[static_cast<long long>(i) + 1]].query.name) {
+								// Child found and also the query matches
 							json tmp;
 							tmp["Property"] = "Lame Delegation";
 							tmp["Equivalence Class"] = QueryFormat(query);
 							tmp["Violation"] = "Inconsistency at " + graph[p[i]].ns + " and " + graph[p[static_cast<long long>(i) + 1]].ns;
-							output.push_back(tmp);
+							gJsonQueue.enqueue(tmp);
 						}
 					}
 				}
@@ -332,7 +339,7 @@ bool CheckSubDomain(vector<Label>& domain, vector<Label>  queryLabels) {
 	if (domain.size() > queryLabels.size()) {
 		return false;
 	}
-	for (int i = 0; i < domain.size();i++) {
+	for (int i = 0; i < domain.size(); i++) {
 		if (!(domain[i] == queryLabels[i])) {
 			return false;
 		}
@@ -340,7 +347,7 @@ bool CheckSubDomain(vector<Label>& domain, vector<Label>  queryLabels) {
 	return true;
 }
 
-void QueryRewrite(const InterpreterGraph& graph, const Path& p, vector<Label> domain, json& output)
+void QueryRewrite(const InterpreterGraph& graph, const Path& p, vector<Label> domain)
 {
 	/*
 	  If there is a node with answer tag as AnsQ then the new query should be under the subdomain of domain.
@@ -355,29 +362,29 @@ void QueryRewrite(const InterpreterGraph& graph, const Path& p, vector<Label> do
 					tmp["Property"] = "Query Rewrite";
 					tmp["Equivalence Class"] = QueryFormat(graph[p[i]].query);
 					tmp["Violation"] = "Query is rewritten to " + QueryFormat(graph[p[static_cast<long long>(i) + 1]].query) + " at NS:" + graph[p[i]].ns + " which is not under " + LabelsToString(domain);
-					output.push_back(tmp);
+					gJsonQueue.enqueue(tmp);
 				}
 			}
 			else {
-				cout << "Implementation Error: QueryRewrite - REWRITE is the last node in the path:" << QueryFormat(graph[p[0]].query)<< endl;
+				cout << "Implementation Error: QueryRewrite - REWRITE is the last node in the path:" << QueryFormat(graph[p[0]].query) << endl;
 			}
 		}
 	}
 }
 
-void NameServerContact(const InterpreterGraph& graph, const Path& p, vector<Label> domain, json& output)
+void NameServerContact(const InterpreterGraph& graph, const Path& p, vector<Label> domain)
 {
 	/*
 	 At any point in the resolution process, the query should not be sent to a name server outside the domain.
 	*/
 	for (int i = 0; i < p.size(); i++) {
-		if (graph[p[i]].ns != "" ) {
+		if (graph[p[i]].ns != "") {
 			if (!CheckSubDomain(domain, GetLabels(graph[p[i]].ns))) {
 				json tmp;
 				tmp["Property"] = "Name Server Contact";
 				tmp["Equivalence Class"] = QueryFormat(graph[p[i]].query);
 				tmp["Violation"] = "Query is sent to NS:" + graph[p[i]].ns + " which is not under " + LabelsToString(domain);
-				output.push_back(tmp);
+				gJsonQueue.enqueue(tmp);
 			}
 		}
 	}
@@ -459,7 +466,7 @@ void ConstructOutputNS(json& j, CommonSymDiff& nsDiff, boost::optional<CommonSym
 	j["Inconsistent Pairs"].push_back(diffAB);
 }
 
-void ParentChildNSRecordsComparison(std::vector<ZoneIdGlueNSRecords>& parent, std::vector<ZoneIdGlueNSRecords>& child, string userInput, json& output) {
+void ParentChildNSRecordsComparison(std::vector<ZoneIdGlueNSRecords>& parent, std::vector<ZoneIdGlueNSRecords>& child, string userInput) {
 	// ZoneId, GlueRecords, NSRecords
 	json j;
 	std::map<int, string> zoneIdToNS;
@@ -499,11 +506,11 @@ void ParentChildNSRecordsComparison(std::vector<ZoneIdGlueNSRecords>& parent, st
 			j["Child NS"] = {};
 			for (auto c : child) j["Child NS"].push_back(SearchForNameServer(std::get<0>(c)));
 		}
-		output.push_back(j);
+		gJsonQueue.enqueue(j);
 	}
 }
 
-void CheckStructuralDelegationConsistency(LabelGraph& graph, VertexDescriptor root, string userInput, boost::optional<VertexDescriptor> labelNode, json& output)
+void CheckStructuralDelegationConsistency(LabelGraph& graph, VertexDescriptor root, string userInput, boost::optional<VertexDescriptor> labelNode)
 {
 	VertexDescriptor node;
 	if (!labelNode) {
@@ -557,23 +564,23 @@ void CheckStructuralDelegationConsistency(LabelGraph& graph, VertexDescriptor ro
 			}
 		}
 		//Compare the children and parents records
-		ParentChildNSRecordsComparison(parents, children, userInput, output);
+		ParentChildNSRecordsComparison(parents, children, userInput);
 	}
 	else {
 
 	}
 }
 
-void CheckAllStructuralDelegations(LabelGraph& graph, VertexDescriptor root, string userInput, VertexDescriptor currentNode, json& output) {
+void CheckAllStructuralDelegations(LabelGraph& graph, VertexDescriptor root, string userInput, VertexDescriptor currentNode) {
 
 	string n = "";
 	if (graph[currentNode].name.get() != "") {
 		n = graph[currentNode].name.get() + "." + userInput;
 	}
-	CheckStructuralDelegationConsistency(graph, root, n, currentNode, output);
+	CheckStructuralDelegationConsistency(graph, root, n, currentNode);
 	for (EdgeDescriptor edge : boost::make_iterator_range(out_edges(currentNode, graph))) {
 		if (graph[edge].type == normal) {
-			CheckAllStructuralDelegations(graph, root, n, edge.m_target, output);
+			CheckAllStructuralDelegations(graph, root, n, edge.m_target);
 		}
 	}
 }
@@ -622,7 +629,7 @@ void DFS(InterpreterGraph& graph, IntpVD start, Path p, vector<IntpVD>& endNodes
 	}
 }
 
-void PrettyPrintLoop(InterpreterGraph& graph, IntpVD start, Path p, json& output) {
+void PrettyPrintLoop(InterpreterGraph& graph, IntpVD start, Path p) {
 	Path loop;
 	bool found = false;
 	for (auto v : p) {
@@ -643,15 +650,15 @@ void PrettyPrintLoop(InterpreterGraph& graph, IntpVD start, Path p, json& output
 		}
 		tmp["Loop"].push_back(node);
 	}
-	output.push_back(tmp);
+	gJsonQueue.enqueue(tmp);
 }
 
-void LoopChecker(InterpreterGraph& graph, IntpVD start, Path p, json& output) {
+void LoopChecker(InterpreterGraph& graph, IntpVD start, Path p) {
 
 	EC& query = graph[start].query;
 	for (auto v : p) {
 		if (v == start) {
-			PrettyPrintLoop(graph, start, p, output);
+			PrettyPrintLoop(graph, start, p);
 			return;
 		}
 	}
@@ -659,14 +666,14 @@ void LoopChecker(InterpreterGraph& graph, IntpVD start, Path p, json& output) {
 	for (IntpED edge : boost::make_iterator_range(out_edges(start, graph))) {
 		//TODO : Edges that have side query
 		if (graph[edge].intermediateQuery) {
-			LoopChecker(graph, graph[edge].intermediateQuery.get(), p, output);
+			LoopChecker(graph, graph[edge].intermediateQuery.get(), p);
 		}
-		LoopChecker(graph, edge.m_target, p, output);
+		LoopChecker(graph, edge.m_target, p);
 	}
 }
 
-void CheckPropertiesOnEC(EC& query, vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>>& pathFunctions, json& output)
-{	
+void CheckPropertiesOnEC(EC& query)
+{
 	gECcount++;
 	//cout<<QueryFormat(query)<<endl;
 	InterpreterGraphWrapper intGraphWrapper;
@@ -677,12 +684,12 @@ void CheckPropertiesOnEC(EC& query, vector<std::function<void(const InterpreterG
 	}
 	vector<IntpVD> endNodes;
 	//LoopChecker(intGraphWrapper.intG, intGraphWrapper.startVertex, Path{}, output);
-	DFS(intGraphWrapper.intG, intGraphWrapper.startVertex, Path{}, endNodes, pathFunctions);
+	DFS(intGraphWrapper.intG, intGraphWrapper.startVertex, Path{}, endNodes, gPathFunctions);
 	/*if (intGraphWrapper.intG.m_vertices.size() > 5) {
 		GenerateDotFileInterpreter("Int.dot", intGraphWrapper.intG);
 	}
 	*/
-	for (auto f : nodeFunctions) {
+	for (auto f : gNodeFunctions) {
 		f(intGraphWrapper.intG, endNodes);
 	}
 }
@@ -757,7 +764,7 @@ vector<closestNode> SearchNode(LabelGraph& g, VertexDescriptor closestEncloser, 
 	return actualEnclosers;
 }
 
-void WildCardChildEC(std::vector<Label>& childrenLabels, vector<Label>& labels, std::bitset<RRType::N>& typesReq, int index, vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>>& pathFunctions, json& output) {
+void WildCardChildEC(std::vector<Label>& childrenLabels, vector<Label>& labels, std::bitset<RRType::N>& typesReq, int index) {
 
 	EC wildCardMatch;
 	wildCardMatch.name.clear();
@@ -766,20 +773,23 @@ void WildCardChildEC(std::vector<Label>& childrenLabels, vector<Label>& labels, 
 	}
 	wildCardMatch.rrTypes = typesReq;
 	wildCardMatch.excluded = boost::make_optional(std::move(childrenLabels));
-	//EC generated
-	CheckPropertiesOnEC(wildCardMatch, nodeFunctions, pathFunctions, output);
+	//EC generated - Push it to the global queue
+	gECQueue.enqueue(wildCardMatch);
 }
 
-void NodeEC(LabelGraph& g, vector<Label>& name, std::bitset<RRType::N>& typesReq, vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>>& pathFunctions, json& output) {
+void NodeEC(LabelGraph& g, vector<Label>& name, std::bitset<RRType::N>& typesReq, bool checkDirectly) {
 
 	EC present;
 	present.name = name;
 	present.rrTypes = typesReq;
 	//EC generated
-	CheckPropertiesOnEC(present, nodeFunctions, pathFunctions, output);
+	if (checkDirectly)CheckPropertiesOnEC(present);
+	else
+		//Push it to the global queue
+		gECQueue.enqueue(present);
 }
 
-void SubDomainECGeneration(LabelGraph& g, VertexDescriptor start, vector<Label> parentDomainName, std::bitset<RRType::N> typesReq, bool skipLabel, vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>>& pathFunctions, json& output) {
+void SubDomainECGeneration(LabelGraph& g, VertexDescriptor start, vector<Label> parentDomainName, std::bitset<RRType::N> typesReq, bool skipLabel) {
 
 	int len = 0;
 	for (Label l : parentDomainName) {
@@ -816,21 +826,21 @@ void SubDomainECGeneration(LabelGraph& g, VertexDescriptor start, vector<Label> 
 			if (g[edge.m_target].name.get() == "*") {
 				wildcardNode = edge.m_target;
 			}
-			SubDomainECGeneration(g, edge.m_target, name, typesReq, false, nodeFunctions, pathFunctions, output);
+			SubDomainECGeneration(g, edge.m_target, name, typesReq, false);
 		}
 		if (g[edge].type == dname) {
-			SubDomainECGeneration(g, edge.m_target, name, typesReq, true, nodeFunctions, pathFunctions, output);
+			SubDomainECGeneration(g, edge.m_target, name, typesReq, true);
 		}
 	}
 	g[start].len = beforeLen;
 	if (!skipLabel) {
 		// EC for the node if the node is not skipped.
-		NodeEC(g, name, typesReq, nodeFunctions, pathFunctions, output);
+		NodeEC(g, name, typesReq, false);
 	}
 
 	// wildcardNode is useful when we want to generate only positive queries and avoid the negations.
 	if (wildcardNode) {
-		WildCardChildEC(childrenLabels, name, typesReq, name.size(), nodeFunctions, pathFunctions, output);
+		WildCardChildEC(childrenLabels, name, typesReq, name.size());
 	}
 	else {
 		//Non-existent child category
@@ -839,11 +849,13 @@ void SubDomainECGeneration(LabelGraph& g, VertexDescriptor start, vector<Label> 
 		nonExistent.rrTypes.flip();
 		nonExistent.excluded = boost::make_optional(std::move(childrenLabels));
 		//EC generated
-		CheckPropertiesOnEC(nonExistent, nodeFunctions, pathFunctions, output);
+		//CheckPropertiesOnEC(nonExistent, output);
+		//Push it to the global queue
+		gECQueue.enqueue(nonExistent);
 	}
 }
 
-void GenerateECAndCheckProperties(LabelGraph& g, VertexDescriptor root, string userInput, std::bitset<RRType::N> typesReq, bool subdomain, vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>>& nodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>>& pathFunctions, json& output) {
+void GenerateECAndCheckProperties(LabelGraph& g, VertexDescriptor root, string userInput, std::bitset<RRType::N> typesReq, bool subdomain, json& output) {
 	//Given an user input for domain and query types, the function searches for relevant node
 	// The search is relevant even for subdomain = False as we want to know the exact EC
 	if (userInput.length() > kMaxDomainLength) {
@@ -869,12 +881,58 @@ void GenerateECAndCheckProperties(LabelGraph& g, VertexDescriptor root, string u
 			if (subdomain == true) {
 				vector<Label> parentDomainName = labels;
 				parentDomainName.pop_back();
-				for (auto& encloser : closestEnclosers) {
-					SubDomainECGeneration(g, encloser.first, parentDomainName, typesReq, false, nodeFunctions, pathFunctions, output);
+				vector<std::thread> ECproducers;
+				std::thread ECconsumers[ECConsumerCount];
+				std::atomic<int> doneConsumers(0);
+				if (gECQueue.size_approx() != 0) {
+					cout << " The global EC queue is non-empty in GenerateECAndCheckProperties";
 				}
+				//EC producer threads
+				for (auto& encloser : closestEnclosers) {
+					ECproducers.push_back(thread([&]() {
+						SubDomainECGeneration(g, encloser.first, parentDomainName, typesReq, false);
+						}
+					));
+				}
+				//EC consumer threads which are also JSON producer threads
+				for (int i = 0; i != ECConsumerCount; ++i) {
+					ECconsumers[i] = thread([i, &output, &doneConsumers]() {
+						EC item;
+						bool itemsLeft;
+						int id = i;
+						do {
+							itemsLeft = !gDoneECgeneration;
+							while (gECQueue.try_dequeue(item)) {
+								itemsLeft = true;
+								//cout << "Id:" << id << " EC:"<< QueryFormat(item) << endl;
+								CheckPropertiesOnEC(item);
+							}
+						} while (itemsLeft || doneConsumers.fetch_add(1, std::memory_order_acq_rel) + 1 == ECConsumerCount);
+						});
+				}
+				//JSON consumer thread
+				std::thread jsonConsumer = thread([&]() {
+					json item;
+					bool itemsLeft;
+					do {
+						itemsLeft = doneConsumers.load(std::memory_order_acquire) != ECConsumerCount;
+						while (gJsonQueue.try_dequeue(item)) {
+							itemsLeft = true;
+							output.push_back(item);
+						}
+					} while (itemsLeft);
+					});
+				for (auto& t : ECproducers) {
+					t.join();
+				}
+				gDoneECgeneration = true;
+				for (int i = 0; i != ECConsumerCount; ++i) {
+					ECconsumers[i].join();
+				}
+				jsonConsumer.join();
 			}
 			else {
-				NodeEC(g, labels, typesReq, nodeFunctions, pathFunctions, output);
+				NodeEC(g, labels, typesReq, true);
 			}
 		}
 		else {
@@ -891,12 +949,16 @@ void GenerateECAndCheckProperties(LabelGraph& g, VertexDescriptor root, string u
 			nonExistent.rrTypes = typesReq;
 			nonExistent.excluded = boost::make_optional(std::vector<Label>());
 			//EC generated
-			CheckPropertiesOnEC(nonExistent, nodeFunctions, pathFunctions, output);
+			CheckPropertiesOnEC(nonExistent);
+		}
+		// Pop of from the JSON queue when multi-threading is not used.
+		json item;
+		while (gJsonQueue.try_dequeue(item)) {
+			output.push_back(item);
 		}
 	}
 	else {
 		cout << "Error: No ClosestEnclosers found(Function: GenerateECAndCheckProperties)" << endl;
 		exit(0);
 	}
-
 }
