@@ -20,6 +20,10 @@
 #include <ctime>
 #include <ratio>
 #include <chrono>
+#include "spdlog/spdlog.h"
+#include "spdlog/sinks/basic_file_sink.h"
+
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
 
 using namespace std;
 using json = nlohmann::json;
@@ -249,8 +253,6 @@ void checkUCLADomains(string directory, string properties, json& output) {
 	std::ifstream i(properties);
 	json j;
 	i >> j;
-	vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>> gNodeFunctions;
-	vector<std::function<void(const InterpreterGraph&, const Path&)>> gPathFunctions;
 	for (auto& query : j) {
 		gNodeFunctions.clear();
 		gPathFunctions.clear();
@@ -579,6 +581,12 @@ int main(int argc, const char** argv)
 	/* for (auto const& arg : args) {
 		std::cout << arg.first << arg.second << std::endl;
 	 }*/
+	//spdlog::flush_on(spdlog::level::trace);
+	auto file_logger = spdlog::basic_logger_mt("basic_logger", "basic.txt");
+	file_logger->info("Hello");
+	spdlog::set_default_logger(file_logger);
+	spdlog::info("Hello, {}!", "World");
+	spdlog::info("Welcome to spdlog!");
 
 	string zone_directory;
 	string properties_file;
@@ -610,7 +618,7 @@ int main(int argc, const char** argv)
 	//profiling_net();
 	//bench(zone_directory, properties_file);
 	//checkHotmailDomains(zone_directory, properties_file, output);
-	//checkUCLADomains(zone_directory, properties_file, output);
+	checkUCLADomains(zone_directory, properties_file, output);
 	demo(zone_directory, properties_file, output);
 	json filteredOutput = json::array();
 

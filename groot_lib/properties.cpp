@@ -894,7 +894,8 @@ void GenerateECAndCheckProperties(LabelGraph& g, VertexDescriptor root, string u
 						}
 					));
 				}
-				//EC consumer threads which are also JSON producer threads
+				//EC consumer threads which are also JSON producer threads.
+				// After all the threads are finished the doneConsumers count would be ECConsumerCount+1
 				for (int i = 0; i != ECConsumerCount; ++i) {
 					ECconsumers[i] = thread([i, &output, &doneConsumers]() {
 						EC item;
@@ -915,7 +916,7 @@ void GenerateECAndCheckProperties(LabelGraph& g, VertexDescriptor root, string u
 					json item;
 					bool itemsLeft;
 					do {
-						itemsLeft = doneConsumers.load(std::memory_order_acquire) != ECConsumerCount;
+						itemsLeft = doneConsumers.load(std::memory_order_acquire) <= ECConsumerCount;
 						while (gJsonQueue.try_dequeue(item)) {
 							itemsLeft = true;
 							output.push_back(item);
