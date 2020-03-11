@@ -62,6 +62,11 @@ std::string Label::get() const
 	return n.get();
 }
 
+std::size_t hash_value(Label const& l)
+{
+	boost::hash<boost::flyweight<std::string, boost::flyweights::no_tracking>> hasher;
+	return hasher(l.n);
+}
 void Label::set(const std::string s)
 {
 	n = s;

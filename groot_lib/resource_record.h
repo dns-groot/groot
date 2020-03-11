@@ -8,8 +8,8 @@
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/flyweight.hpp>
 #include <boost/flyweight/serialize.hpp>
-#include <boost/flyweight/no_locking.hpp>
 #include <boost/flyweight/no_tracking.hpp>
+#include "myLogger.h"
 
 using namespace std;
 
@@ -41,7 +41,7 @@ enum RRType
 };
 
 struct Label {
-	boost::flyweight<std::string, boost::flyweights::no_locking, boost::flyweights::no_tracking> n;
+	boost::flyweight<std::string, boost::flyweights::no_tracking> n;
 	Label(std::string s) : n{ s } {};
 	Label() : n{ "" } {};
 	std::string get() const;
@@ -56,6 +56,7 @@ private:
 	}
 };
 
+std::size_t hash_value(Label const& l);
 string LabelsToString(vector<Label> name);
 RRType	ConvertToRRType(string type);
 string RRTypesToString(std::bitset<RRType::N> rrTypes);

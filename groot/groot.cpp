@@ -10,7 +10,6 @@
 #include <nlohmann/json.hpp>
 #include "../groot_lib/zone.h"
 #include "../groot_lib/graph.h"
-#include "../groot_lib/graph.h"
 #include "../groot_lib/interpreter.h"
 #include "../groot_lib/properties.h"
 #include "docopt/docopt.h"
@@ -20,10 +19,8 @@
 #include <ctime>
 #include <ratio>
 #include <chrono>
-#include "spdlog/spdlog.h"
-#include "spdlog/sinks/basic_file_sink.h"
 
-#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
+//#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
 
 using namespace std;
 using json = nlohmann::json;
@@ -573,76 +570,88 @@ Options:
   --version     Show groot version.
 )";
 
-
 int main(int argc, const char** argv)
 {
-	auto args = docopt::docopt(USAGE, { argv + 1, argv + argc }, true, "groot 1.0");
+	try {
+		auto args = docopt::docopt(USAGE, { argv + 1, argv + argc }, true, "groot 1.0");
 
-	/* for (auto const& arg : args) {
-		std::cout << arg.first << arg.second << std::endl;
-	 }*/
-	//spdlog::flush_on(spdlog::level::trace);
-	auto file_logger = spdlog::basic_logger_mt("basic_logger", "basic.txt");
-	file_logger->info("Hello");
-	spdlog::set_default_logger(file_logger);
-	spdlog::info("Hello, {}!", "World");
-	spdlog::info("Welcome to spdlog!");
+		/* for (auto const& arg : args) {
+			std::cout << arg.first << arg.second << std::endl;
+		 }*/
+		 //spdlog::init_thread_pool(8192, 1);
+		spdlog::flush_on(spdlog::level::trace);
+		auto stdout_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+		stdout_sink->set_level(spdlog::level::warn);
+		auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("log.txt", true);
+		file_sink->set_level(spdlog::level::trace);
+		std::vector<spdlog::sink_ptr> sinks{ stdout_sink, file_sink };
+		//auto logger = std::make_shared<spdlog::async_logger>("my_custom_logger", sinks.begin(), sinks.end(), spdlog::thread_pool(), spdlog::async_overflow_policy::block);
+		auto  logger = std::make_shared<spdlog::logger>("my_custom_logger", sinks.begin(), sinks.end());
+		spdlog::register_logger(logger);
 
-	string zone_directory;
-	string properties_file;
+		Logger->bind(spdlog::get("my_custom_logger"));
+		Logger->Info("Hello, I am working..");
+		Logger->Warn("Hello, I am a warning..");
+		string zone_directory;
+		string properties_file;
 
-	auto z = args.find("<zone_directory>");
-	if (!z->second)
-	{
-		cout << "Error: missing parameter <zone_directory>" << endl;
-		cout << USAGE[0];
-		exit(0);
-	}
-	else
-	{
-		zone_directory = z->second.asString();
-	}
-
-	auto p = args.find("--properties");
-	if (p->second)
-	{
-		properties_file = p->second.asString();
-	}
-
-	/*bool verbose = args.find("--verbose")->second.asBool();
-	bool debug_dot = args.find("--debug")->second.asBool();*/
-
-
-	// TODO: validate that the directory and property files exist
-	json output = json::array();
-	//profiling_net();
-	//bench(zone_directory, properties_file);
-	//checkHotmailDomains(zone_directory, properties_file, output);
-	checkUCLADomains(zone_directory, properties_file, output);
-	demo(zone_directory, properties_file, output);
-	json filteredOutput = json::array();
-
-	for (json j : output) {
-		bool found = false;
-		for (json l : filteredOutput) {
-			if (l == j) {
-				found = true;
-				break;
-			}
+		auto z = args.find("<zone_directory>");
+		if (!z->second)
+		{
+			cout << "Error: missing parameter <zone_directory>" << endl;
+			cout << USAGE[0];
+			exit(0);
 		}
-		if (!found) filteredOutput.push_back(j);
-	}
+		else
+		{
+			zone_directory = z->second.asString();
+		}
 
-	p = args.find("--output");
-	string outputFile = "output.json";
-	if (p->second)
-	{
-		outputFile = p->second.asString();
+		auto p = args.find("--properties");
+		if (p->second)
+		{
+			properties_file = p->second.asString();
+		}
+
+		/*bool verbose = args.find("--verbose")->second.asBool();
+		bool debug_dot = args.find("--debug")->second.asBool();*/
+
+
+		// TODO: validate that the directory and property files exist
+		json output = json::array();
+		//profiling_net();
+		//bench(zone_directory, properties_file);
+		//checkHotmailDomains(zone_directory, properties_file, output);
+		checkUCLADomains(zone_directory, properties_file, output);
+		//demo(zone_directory, properties_file, output);
+		json filteredOutput = json::array();
+
+		for (json j : output) {
+			bool found = false;
+			for (json l : filteredOutput) {
+				if (l == j) {
+					found = true;
+					break;
+				}
+			}
+			if (!found) filteredOutput.push_back(j);
+		}
+
+		p = args.find("--output");
+		string outputFile = "output.json";
+		if (p->second)
+		{
+			outputFile = p->second.asString();
+		}
+		std::ofstream ofs;
+		ofs.open(outputFile, std::ofstream::out);
+		ofs << filteredOutput.dump(4);
+		ofs << "\n";
+		ofs.close();
+		spdlog::shutdown();
+		return 0;
 	}
-	std::ofstream ofs;
-	ofs.open(outputFile, std::ofstream::out);
-	ofs << filteredOutput.dump(4);
-	ofs << "\n";
-	ofs.close();
-	return 0;
+	catch (exception & e) {
+		cout << " Exception:- " << e.what() << endl;
+	}
 }

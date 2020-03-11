@@ -166,8 +166,8 @@
   <ItemGroup>
     <ClInclude Include="graph.h" />
     <ClInclude Include="concurrentqueue.h" />
+    <ClInclude Include="myLogger.h" />
     <ClInclude Include="interpreter.h" />
-    <ClInclude Include="label_graph.h" />
     <ClInclude Include="properties.h" />
     <ClInclude Include="zone.h" />
     <ClInclude Include="resource_record.h" />

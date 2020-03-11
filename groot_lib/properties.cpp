@@ -897,7 +897,7 @@ void GenerateECAndCheckProperties(LabelGraph& g, VertexDescriptor root, string u
 				//EC consumer threads which are also JSON producer threads.
 				// After all the threads are finished the doneConsumers count would be ECConsumerCount+1
 				for (int i = 0; i != ECConsumerCount; ++i) {
-					ECconsumers[i] = thread([i, &output, &doneConsumers]() {
+					ECconsumers[i] = thread([i, &doneConsumers]() {
 						EC item;
 						bool itemsLeft;
 						int id = i;

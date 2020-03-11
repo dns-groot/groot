@@ -62,7 +62,6 @@ typedef boost::graph_traits<LabelGraph>::edge_iterator EdgeIterator;
 typedef boost::unordered_map<Label, VertexDescriptor> LabelMap;
 extern std::unordered_map<VertexDescriptor, LabelMap> gDomainChildLabelMap;
 
-std::size_t hash_value(Label const& l);
 //void LabelGraphBuilder(vector<ResourceRecord>&, LabelGraph&, const VertexDescriptor);
 void LabelGraphBuilder(ResourceRecord&, LabelGraph&, const VertexDescriptor, int&, int);
 
