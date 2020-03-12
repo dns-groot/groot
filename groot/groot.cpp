@@ -581,18 +581,23 @@ int main(int argc, const char** argv)
 			std::cout << arg.first << arg.second << std::endl;
 		 }*/
 		spdlog::init_thread_pool(8192, 1);
-		spdlog::flush_on(spdlog::level::info);
+		
 		auto stdout_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
 		stdout_sink->set_level(spdlog::level::err);
 		stdout_sink->set_pattern("[%x %H:%M:%S.%e] [thread %t] [%^%=7l%$] %v");
+		
 		auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("log.txt", true);
 		file_sink->set_level(spdlog::level::trace);
-		std::vector<spdlog::sink_ptr> sinks{ stdout_sink, file_sink };
 		file_sink->set_pattern("[%x %H:%M:%S.%e] [thread %t] [%^%=7l%$] %v");
+		
+		std::vector<spdlog::sink_ptr> sinks{ stdout_sink, file_sink };
 		auto logger = std::make_shared<spdlog::async_logger>("my_custom_logger", sinks.begin(), sinks.end(), spdlog::thread_pool(), spdlog::async_overflow_policy::block);
 		//auto  logger = std::make_shared<spdlog::logger>("my_custom_logger", sinks.begin(), sinks.end());
-		spdlog::register_logger(logger);
+		logger->flush_on(spdlog::level::trace);
+		logger->set_level(spdlog::level::trace);
 
+		spdlog::register_logger(logger);
+		
 		Logger->bind(spdlog::get("my_custom_logger"));
 
 		string zone_directory;
