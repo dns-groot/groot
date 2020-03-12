@@ -23,13 +23,13 @@ string ReturnTagToString(ReturnTag& r) {
 }
 
 string SearchForNameServer(int zoneId) {
-	/* Given a zoneId return the name server which hosts thay zone.*/
+	/* Given a zoneId return the name server which hosts that zone.*/
 	for (auto const& [ns, zoneIds] : gNameServerZoneMap) {
 		if (std::find(zoneIds.begin(), zoneIds.end(), zoneId) != zoneIds.end()) {
 			return ns;
 		}
 	}
-	cout << "ZoneId not found in the Name Server ZoneIds map" << endl;
+	Logger->critical(fmt::format("ZoneId {} not found in the Name Server ZoneIds map", zoneId));
 	exit(EXIT_FAILURE);
 }
 
@@ -124,7 +124,7 @@ ZoneVertexDescriptor AddNodes(ZoneGraph& g, ZoneVertexDescriptor closetEncloser,
 		ZoneEdgeDescriptor e; bool b;
 		boost::tie(e, b) = boost::add_edge(closetEncloser, u, g);
 		if (!b) {
-			cout << "Unable to add edge" << endl;
+			Logger->critical(fmt::format("zone_graph.cpp (AddNodes) - Unable to add edge to the graph"));
 			exit(EXIT_FAILURE);
 		}
 		//Only the first closestEncloser might have a map. For other cases closestEncloser will take care.
@@ -206,14 +206,12 @@ void BuildZoneLabelGraphs(string filePath, string nameServer, LabelGraph& g, con
 	}
 	it = gNameServerZoneMap.find(nameServer);
 	if (it == gNameServerZoneMap.end()) {
-		cout << "Unable to insert into map" << endl;
+		Logger->critical(fmt::format("zone_graph.cpp (BuildZoneLabelGraphs) - Unable to insert into gNameServerZoneMap"));
 		std::exit(EXIT_FAILURE);
 	}
 	else {
 		it->second.push_back(zoneId);
 	}
-	/*cout << "Number of nodes in Label Graph:" << num_vertices(g)<<endl<<flush;
-	cout << "Number of nodes in Zone Graph:" << num_vertices(zone.g) << endl << flush;*/
 }
 
 vector<ResourceRecord> GlueRecordsLookUp(ZoneGraph& g, ZoneVertexDescriptor root, vector<ResourceRecord>& NSRecords, std::unordered_map<VertexDescriptor, LabelMap>& domainChildLabelMap) {
@@ -320,7 +318,7 @@ boost::optional<vector<ZoneLookUpAnswer>> QueryLookUpAtZone(Zone& z, EC& query, 
 		}
 		completeMatch = false;
 		vector<ResourceRecord> NSRecords;
-		
+
 		for (auto& record : z.g[closestEncloser].rrs) {
 			if (record.get_type() == RRType::DNAME) {
 				// dr < dq ∧ DNAME ∈ T,  DNAME is a singleton type, there can be no other records of DNAME type at this node.
@@ -357,7 +355,7 @@ boost::optional<vector<ZoneLookUpAnswer>> QueryLookUpAtZone(Zone& z, EC& query, 
 			// If there are NS records, then get their glue records too.
 			if (nodeRRtypes[RRType::NS]) {
 				AddGlueRecords(z.g, z.startVertex, NSRecords, z.domainChildLabelMap);
-				
+
 			}
 			// Referral case (Zone-Cut)
 			if (nodeRRtypes[RRType::NS] && !nodeRRtypes[RRType::SOA]) {
@@ -435,7 +433,7 @@ boost::optional<vector<ZoneLookUpAnswer>> QueryLookUpAtZone(Zone& z, EC& query, 
 			// If there are NS records, then get their glue records too.
 			if (nodeRRtypes[RRType::NS]) {
 				AddGlueRecords(z.g, z.startVertex, NSRecords, z.domainChildLabelMap);
-				
+
 			}
 			// Referral case
 			if (nodeRRtypes[RRType::NS] && !nodeRRtypes[RRType::SOA]) {

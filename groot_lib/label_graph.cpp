@@ -50,14 +50,14 @@ VertexDescriptor GetClosestEncloser(const LabelGraph& g, VertexDescriptor root, 
 
 
 VertexDescriptor AddNodes(LabelGraph& g, VertexDescriptor closetEncloser, vector<Label> labels, int& index) {
-	
+
 	for (int i = index; i < labels.size(); i++) {
 		VertexDescriptor u = boost::add_vertex(g);
 		g[u].name = labels[i];
 		EdgeDescriptor e; bool b;
 		boost::tie(e, b) = boost::add_edge(closetEncloser, u, g);
 		if (!b) {
-			cout << "Unable to add edge" << endl;
+			Logger->critical(fmt::format("label_graph.cpp (AddNodes) - Unable to add edge to label graph"));
 			exit(EXIT_FAILURE);
 		}
 		g[e].type = normal;
@@ -72,7 +72,7 @@ VertexDescriptor AddNodes(LabelGraph& g, VertexDescriptor closetEncloser, vector
 }
 
 void LabelGraphBuilder(ResourceRecord& record, LabelGraph& g, const VertexDescriptor root, int& zoneId, int zoneVertexId) {
-	
+
 	if (record.get_type() != RRType::N) {
 		int index = 0;
 		VertexDescriptor closetEncloser = GetClosestEncloser(g, root, record.get_name(), index);
@@ -85,13 +85,13 @@ void LabelGraphBuilder(ResourceRecord& record, LabelGraph& g, const VertexDescri
 			EdgeDescriptor e; bool b;
 			boost::tie(e, b) = boost::add_edge(mainNode, secondNode, g);
 			if (!b) {
-				cout << "Unable to add edge" << endl;
+				Logger->critical(fmt::format("label_graph.cpp (LabelGraphBuilder) - Unable to add edge to label graph"));
 				exit(EXIT_FAILURE);
 			}
 			g[e].type = dname;
 		}
 		auto it = std::find_if(g[mainNode].zoneIdVertexId.begin(), g[mainNode].zoneIdVertexId.end(), [=](const std::tuple<int, int>& e) {return std::get<0>(e) == zoneId && std::get<1>(e) == zoneVertexId; });
-		if(it == g[mainNode].zoneIdVertexId.end()) g[mainNode].zoneIdVertexId.push_back(tuple<int, int>(zoneId, zoneVertexId));
+		if (it == g[mainNode].zoneIdVertexId.end()) g[mainNode].zoneIdVertexId.push_back(tuple<int, int>(zoneId, zoneVertexId));
 		g[mainNode].rrTypesAvailable.set(record.get_type());
 	}
 }

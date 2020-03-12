@@ -6,6 +6,7 @@
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include "spdlog/sinks/basic_file_sink.h"
 
+
 using namespace std;
 
 class MyLogger {
@@ -13,7 +14,7 @@ class MyLogger {
 	std::shared_ptr<spdlog::logger> _logger;
 	MyLogger() {}
 public:
-	static void bind(std::shared_ptr<spdlog::logger> logger) {
+	void bind(std::shared_ptr<spdlog::logger> logger) {
 		if (logger == nullptr) {
 			throw nullptr;
 		}
@@ -23,32 +24,32 @@ public:
 		static MyLogger instance;
 		return &instance;
 	}
-	void Trace(std::string s) {
+	void trace(std::string s) {
 		if (_logger) {
 			_logger->trace(s);
 		}
 	}
-	void Debug(std::string s) {
+	void debug(std::string s) {
 		if (_logger) {
 			_logger->debug(s);
 		}
 	}
-	void Info(std::string s) {
+	void info(std::string s) {
 		if (_logger != nullptr) {
 			_logger->info(s);
 		}
 	}
-	void Warn(std::string s) {
+	void warn(std::string s) {
 		if (_logger) {
 			_logger->warn(s);
 		}
 	}
-	void Error(std::string s) {
+	void error(std::string s) {
 		if (_logger) {
 			_logger->error(s);
 		}
 	}
-	void Critical(std::string s) {
+	void critical(std::string s) {
 		if (_logger) {
 			_logger->critical(s);
 		}

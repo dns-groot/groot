@@ -75,7 +75,7 @@ EC ProcessDNAME(ResourceRecord& record, EC& query) {
 	int i = 0;
 	for (auto& l : record.get_name()) {
 		if (!(l == query.name[i])) {
-			cout << "Error in DNAME processing" << endl;
+			Logger->critical(fmt::format("interpreter.cpp (ProcessDNAME) - Query name is not a sub-domain of the DNAME record"));
 			exit(EXIT_FAILURE);
 		}
 		i++;
@@ -107,7 +107,6 @@ boost::optional<int> GetRelevantZone(string ns, EC& query) {
 		bool found = false;
 		int max = -1;
 		int bestMatch = 0;
-		std::reverse(it->second.begin(), it->second.end());
 		for (auto zid : it->second) {
 			int i = 0;
 			bool valid = true;
@@ -156,7 +155,7 @@ IntpVD SideQuery(NameServerIntpre& nameServerNodesMap, InterpreterGraph& intG, E
 		it->second.push_back(dummy);
 	}
 	else {
-		cout << "Unable to insert into map" << endl;
+		Logger->critical(fmt::format("interpreter.cpp (SideQuery) - Unable to insert into a nameServerNodesMap"));
 		std::exit(EXIT_FAILURE);
 	}
 	StartFromTop(intG, dummy, query, nameServerNodesMap);
@@ -242,7 +241,7 @@ vector<tuple<ResourceRecord, vector<ResourceRecord>>> PairGlueRecords(vector<Res
 
 void CNAME_DNAME_SameServer(InterpreterGraph& g, IntpVD& v, NameServerIntpre& nameServerZoneMap, EC& newQuery) {
 	//Search for relevant zone at the same name server first
-	boost::optional<int> start =  GetRelevantZone(g[v].ns, newQuery);
+	boost::optional<int> start = GetRelevantZone(g[v].ns, newQuery);
 	if (start) {
 		boost::optional<IntpVD> node = InsertNode(nameServerZoneMap, g, g[v].ns, newQuery, v, {});
 		//If there was no same query earlier to this NS then continue the querying process.
@@ -256,8 +255,8 @@ void CNAME_DNAME_SameServer(InterpreterGraph& g, IntpVD& v, NameServerIntpre& na
 	}
 }
 
-void NS_SubRoutine(InterpreterGraph& g, IntpVD& v, NameServerIntpre& nameServerZoneMap, EC& newQuery,string& newNS, boost::optional<IntpVD> edgeQuery) {
-	
+void NS_SubRoutine(InterpreterGraph& g, IntpVD& v, NameServerIntpre& nameServerZoneMap, string& newNS, boost::optional<IntpVD> edgeQuery) {
+
 	boost::optional<IntpVD> node = InsertNode(nameServerZoneMap, g, newNS, g[v].query, v, edgeQuery);
 	if (node) {
 		auto it = gNameServerZoneMap.find(newNS);
@@ -279,7 +278,7 @@ void NS_SubRoutine(InterpreterGraph& g, IntpVD& v, NameServerIntpre& nameServerZ
 			answer.push_back(std::make_tuple(ReturnTag::NSNOTFOUND, g[node.get()].query.rrTypes, vector<ResourceRecord> {}));
 			g[node.get()].answer = answer;
 		}
-		
+
 	}
 }
 
@@ -320,7 +319,7 @@ void QueryResolver(Zone& z, InterpreterGraph& g, IntpVD& v, NameServerIntpre& na
 						vector<ResourceRecord> glueRecords = std::get<1>(pair);
 						//Either the Glue records have to exist or the referral to a topNameServer
 						if (glueRecords.size() || (std::find(gTopNameServers.begin(), gTopNameServers.end(), newNS) != gTopNameServers.end())) {
-							NS_SubRoutine(g, v, nameServerZoneMap, g[v].query, newNS, {});
+							NS_SubRoutine(g, v, nameServerZoneMap, newNS, {});
 						}
 						else {
 							// Have to query for the IP address of NS
@@ -330,7 +329,7 @@ void QueryResolver(Zone& z, InterpreterGraph& g, IntpVD& v, NameServerIntpre& na
 							nsQuery.rrTypes[RRType::AAAA] = 1;
 							IntpVD nsStart = SideQuery(nameServerZoneMap, g, nsQuery);
 							//TODO: Check starting from this nsStart node if we got the ip records
-							NS_SubRoutine(g, v, nameServerZoneMap, g[v].query, newNS, nsStart);
+							NS_SubRoutine(g, v, nameServerZoneMap, newNS, nsStart);
 						}
 					}
 				}
@@ -377,14 +376,14 @@ boost::optional<IntpVD> InsertNode(NameServerIntpre& nameServerNodesMap, Interpr
 			if (CheckQueryEquivalence(query, intG[n].query)) {
 				IntpED e; bool b;
 				/*if (edgeStart != n) {*/
-					boost::tie(e, b) = boost::add_edge(edgeStart, n, intG);
-					if (!b) {
-						cout << "Unable to add edge" << endl;
-						std::exit(EXIT_FAILURE);
-					}
-					if (edgeQuery) {
-						intG[e].intermediateQuery = boost::make_optional(edgeQuery.get());
-					}
+				boost::tie(e, b) = boost::add_edge(edgeStart, n, intG);
+				if (!b) {
+					Logger->critical(fmt::format("interpreter.cpp (InsertNode) - Unable to add edge to a interpretation graph"));
+					std::exit(EXIT_FAILURE);
+				}
+				if (edgeQuery) {
+					intG[e].intermediateQuery = boost::make_optional(edgeQuery.get());
+				}
 				//}
 				return {};
 			}
@@ -399,7 +398,7 @@ boost::optional<IntpVD> InsertNode(NameServerIntpre& nameServerNodesMap, Interpr
 		IntpED e; bool b;
 		boost::tie(e, b) = boost::add_edge(edgeStart, v, intG);
 		if (!b) {
-			cout << "Unable to add edge" << endl;
+			Logger->critical(fmt::format("interpreter.cpp (InsertNode) - Unable to add edge to a interpretation graph"));
 			std::exit(EXIT_FAILURE);
 		}
 		if (edgeQuery) {
@@ -409,7 +408,7 @@ boost::optional<IntpVD> InsertNode(NameServerIntpre& nameServerNodesMap, Interpr
 		return v;
 	}
 	else {
-		cout << "Unable to insert into map" << endl;
+		Logger->critical(fmt::format("interpreter.cpp (InsertNode) -Unable to insert into a nameServerNodesMap"));
 		std::exit(EXIT_FAILURE);
 	}
 
@@ -444,7 +443,7 @@ void BuildInterpretationGraph(EC& query, InterpreterGraphWrapper& intGraph_wrapp
 		it->second.push_back(intGraph_wrapper.startVertex);
 	}
 	else {
-		cout << "Unable to insert into map" << endl;
+		Logger->critical(fmt::format("interpreter.cpp (BuildInterpretationGraph) - Unable to insert node into a interpretation graph"));
 		std::exit(EXIT_FAILURE);
 	}
 	StartFromTop(intGraph_wrapper.intG, intGraph_wrapper.startVertex, query, nameServerNodesMap);

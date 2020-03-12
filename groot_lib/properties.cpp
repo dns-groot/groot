@@ -37,7 +37,7 @@ void CheckResponseReturned(const InterpreterGraph& graph, const vector<IntpVD>& 
 				}
 			}
 			else {
-				cout << "Implementation Error: CheckResponseReturned - A node in the interpretation graph with empty answer" << endl;
+				Logger->error(fmt::format("properties.cpp (CheckResponseReturned) - An implementation error - Empty answer at a node for {}", QueryFormat(graph[vd].query)));
 			}
 		}
 	}
@@ -104,7 +104,7 @@ void CheckSameResponseReturned(const InterpreterGraph& graph, const vector<IntpV
 				}
 			}
 			else {
-				cout << "Implementation Error: CheckSameResponseReturned - A node in the interpretation graph with empty answer" << endl;
+				Logger->error(fmt::format("properties.cpp (CheckSameResponseReturned) - An implementation error - Empty answer at a node for {}", QueryFormat(graph[vd].query)));
 			}
 		}
 	}
@@ -294,7 +294,7 @@ void CheckDelegationConsistency(const InterpreterGraph& graph, const Path& p)
 			}
 		}
 		else {
-			cout << "Implementation Error: CheckDelegationConsistency - The path does not start at the dummy node" << endl;
+			Logger->error(fmt::format("properties.cpp (CheckDelegationConsistency) - An implementation error - The path does not start at a dummy node for {}", QueryFormat(graph[p[0]].query)));
 		}
 	}
 }
@@ -329,7 +329,7 @@ void CheckLameDelegation(const InterpreterGraph& graph, const Path& p)
 			}
 		}
 		else {
-			cout << "Implementation Error: CheckDelegationConsistency - The path does not start at the dummy node" << endl;
+			Logger->error(fmt::format("properties.cpp (CheckLameDelegation) - An implementation error - The path does not start at a dummy node for {}", QueryFormat(graph[p[0]].query)));
 		}
 	}
 }
@@ -366,7 +366,7 @@ void QueryRewrite(const InterpreterGraph& graph, const Path& p, vector<Label> do
 				}
 			}
 			else {
-				cout << "Implementation Error: QueryRewrite - REWRITE is the last node in the path:" << QueryFormat(graph[p[0]].query) << endl;
+				Logger->error(fmt::format("properties.cpp (QueryRewrite) - An implementation error - REWRITE is the last node in the path: {}", QueryFormat(graph[p[0]].query)));
 			}
 		}
 	}
@@ -520,7 +520,7 @@ void CheckStructuralDelegationConsistency(LabelGraph& graph, VertexDescriptor ro
 			node = closestEnclosers[0].first;
 		}
 		else {
-			cout << "User Input not found in the label graph" << endl;
+			Logger->error(fmt::format("properties.cpp (CheckStructuralDelegationConsistency) - User input {}, not found in the label graph ", userInput));
 			return;
 		}
 	}
@@ -559,8 +559,8 @@ void CheckStructuralDelegationConsistency(LabelGraph& graph, VertexDescriptor ro
 				}
 			}
 			else {
-				cout << "In Function CheckStructuralDelegationConsistency: ZoneId not found ";
-				exit(0);
+				Logger->critical(fmt::format("properties.cpp (CheckStructuralDelegationConsistency) - ZoneId {} not found in the Name Server ZoneIds map"));
+				exit(EXIT_FAILURE);
 			}
 		}
 		//Compare the children and parents records
@@ -603,7 +603,7 @@ void DFS(InterpreterGraph& graph, IntpVD start, Path p, vector<IntpVD>& endNodes
 			}
 		}
 		else {
-			cout << "Empty Answer found in the interpretation graph during DFS traversal";
+			Logger->warn(fmt::format("properties.cpp (DFS) - Empty Answer found at a node in the interpretation graph for {}", QueryFormat(query)));
 		}
 	}
 	for (auto v : p) {
@@ -675,13 +675,8 @@ void LoopChecker(InterpreterGraph& graph, IntpVD start, Path p) {
 void CheckPropertiesOnEC(EC& query)
 {
 	gECcount++;
-	//cout<<QueryFormat(query)<<endl;
 	InterpreterGraphWrapper intGraphWrapper;
 	BuildInterpretationGraph(query, intGraphWrapper);
-	if (num_vertices(intGraphWrapper.intG) == 1) {
-		cout << "No NameServer exists to resolve EC- " << QueryFormat(query) << endl;
-		return;
-	}
 	vector<IntpVD> endNodes;
 	//LoopChecker(intGraphWrapper.intG, intGraphWrapper.startVertex, Path{}, output);
 	DFS(intGraphWrapper.intG, intGraphWrapper.startVertex, Path{}, endNodes, gPathFunctions);
@@ -859,12 +854,14 @@ void GenerateECAndCheckProperties(LabelGraph& g, VertexDescriptor root, string u
 	//Given an user input for domain and query types, the function searches for relevant node
 	// The search is relevant even for subdomain = False as we want to know the exact EC
 	if (userInput.length() > kMaxDomainLength) {
-		cout << userInput << " is an invalid domain name (length exceedes)" << endl;
+		Logger->warn(fmt::format("properties.cpp (GenerateECAndCheckProperties) - Userinput, {}, exceedes the valid domain length", userInput));
+		return;
 	}
 	vector<Label> labels = GetLabels(userInput);
 	for (Label& l : labels) {
 		if (l.get().length() > kMaxLabelLength) {
-			cout << userInput << " is an invalid domain name as " << l.get() << " exceedes length" << endl;
+			Logger->warn(fmt::format("properties.cpp (GenerateECAndCheckProperties) - Userinput, {}, has a label, {}, exceedeing the valid label length", userInput, l.get()));
+			return;
 		}
 	}
 	vector<closestNode> closestEnclosers = SearchNode(g, root, labels, 0);
@@ -873,8 +870,8 @@ void GenerateECAndCheckProperties(LabelGraph& g, VertexDescriptor root, string u
 		int matchedIndex = closestEnclosers[0].second;
 		for (auto& r : closestEnclosers) {
 			if (r.second != matchedIndex) {
-				cout << "Error: Multiple ClosestEnclosers with different lengths(Function: GenerateECAndCheckProperties)" << endl;
-				exit(0);
+				Logger->critical(fmt::format("properties.cpp (GenerateECAndCheckProperties) - Multiple closestEnclosers with different lengths for {}", userInput));
+				exit(EXIT_FAILURE);
 			}
 		}
 		if (labels.size() == matchedIndex) {
@@ -885,7 +882,7 @@ void GenerateECAndCheckProperties(LabelGraph& g, VertexDescriptor root, string u
 				std::thread ECconsumers[ECConsumerCount];
 				std::atomic<int> doneConsumers(0);
 				if (gECQueue.size_approx() != 0) {
-					cout << " The global EC queue is non-empty in GenerateECAndCheckProperties";
+					Logger->warn(fmt::format("properties.cpp (GenerateECAndCheckProperties) - The global EC queue is non-empty for {}", userInput));
 				}
 				//EC producer threads
 				for (auto& encloser : closestEnclosers) {
@@ -895,7 +892,7 @@ void GenerateECAndCheckProperties(LabelGraph& g, VertexDescriptor root, string u
 					));
 				}
 				//EC consumer threads which are also JSON producer threads.
-				// After all the threads are finished the doneConsumers count would be ECConsumerCount+1
+				//After all the threads are finished the doneConsumers count would be ECConsumerCount+1
 				for (int i = 0; i != ECConsumerCount; ++i) {
 					ECconsumers[i] = thread([i, &doneConsumers]() {
 						EC item;
@@ -905,7 +902,6 @@ void GenerateECAndCheckProperties(LabelGraph& g, VertexDescriptor root, string u
 							itemsLeft = !gDoneECgeneration;
 							while (gECQueue.try_dequeue(item)) {
 								itemsLeft = true;
-								//cout << "Id:" << id << " EC:"<< QueryFormat(item) << endl;
 								CheckPropertiesOnEC(item);
 							}
 						} while (itemsLeft || doneConsumers.fetch_add(1, std::memory_order_acq_rel) + 1 == ECConsumerCount);
@@ -939,7 +935,7 @@ void GenerateECAndCheckProperties(LabelGraph& g, VertexDescriptor root, string u
 		else {
 			//Sub-domain queries can not be peformed.
 			if (subdomain) {
-				cout << "The complete domain: " << userInput << " doesn't exist so sub-domain is not valid";
+				Logger->warn(fmt::format("properties.cpp (GenerateECAndCheckProperties) - The complete domain {} doesn't exist so sub-domain is not valid", userInput));
 			}
 			// The query might match a "wildcard" or its part of non-existent child nodes. We just set excluded to know there is some negation set there.
 			EC nonExistent;
@@ -959,7 +955,7 @@ void GenerateECAndCheckProperties(LabelGraph& g, VertexDescriptor root, string u
 		}
 	}
 	else {
-		cout << "Error: No ClosestEnclosers found(Function: GenerateECAndCheckProperties)" << endl;
-		exit(0);
+		Logger->critical(fmt::format("properties.cpp (GenerateECAndCheckProperties) - No closestEnclosers found for {}", userInput));
+		exit(EXIT_FAILURE);
 	}
 }

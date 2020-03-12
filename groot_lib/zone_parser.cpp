@@ -14,9 +14,11 @@
 #include "zone.h"
 #include "graph.h"
 
+
 using namespace std;
 namespace lex = boost::spirit::lex;
 
+string gFileName = "";
 
 enum TokenIds
 {
@@ -69,13 +71,13 @@ struct Parser
 	{
 		switch (t.id()) {
 		case ID_LPAREN:
-			++parenCount; 
+			++parenCount;
 			break;
 		case ID_RPAREN:
-			--parenCount; 
+			--parenCount;
 			if (parenCount < 0)
 			{
-				cout << "unmatched right parenthesis at line: " << l << ", column: " ;
+				Logger->error(fmt::format("Unmatched right parenthesis at line - {} in file - {}", l, gFileName));
 				return false;
 			}
 			break;
@@ -85,7 +87,7 @@ struct Parser
 			currentRecord.push_back(std::move(tokenvalue));
 			break;
 		}
-		/*case ID_COMMENT: 
+		/*case ID_COMMENT:
 		{
 			std::string tokenvalue(t.value().begin(), t.value().end());
 			if (tokenvalue.find("Default zone scope in zone") != std::string::npos) {
@@ -96,7 +98,7 @@ struct Parser
 			break;
 		}*/
 		case ID_EOL:
-			++l; 
+			++l;
 			if (parenCount == 0 && currentRecord.size() > 0)
 			{
 				// Control entry $ORIGIN - Sets the origin for relative domain names
@@ -108,7 +110,7 @@ struct Parser
 				}
 				// Control entry $INCLUDE - Inserts the named file( currently unhandled)
 				if (currentRecord[0].compare("$INCLUDE") == 0) {
-					cout << "Found $INCLUDE entry ";
+					Logger->error(fmt::format("Found $INCLUDE entry at line - {} in file - {}", l, gFileName));
 					return false;
 				}
 				// Control entry $TTL - The TTL for records without explicit TTL value
@@ -127,7 +129,7 @@ struct Parser
 						defaultValues.set_name(relativeDomainSuffix);
 					}
 					else {
-						cout << "Encountered @ symbol but relative domain is empty ";
+						Logger->error(fmt::format("Encountered @ symbol but relative domain is empty at line - {} in file - {}", l, gFileName));
 						return false;
 					}
 				}
@@ -135,7 +137,7 @@ struct Parser
 				// Search for the index where the RR type is found
 				int typeIndex = GetTypeIndex(currentRecord);
 				if (typeIndex == -1) {
-					//cout << "The RR type not found";
+					//Logger->warn(fmt::format("RR type not handled for the RR at line- {} in file- {}", l, gFileName));
 					currentRecord.clear();
 					return true;
 				}
@@ -151,8 +153,8 @@ struct Parser
 						rdata += field + " ";
 					}
 					if (i < typeIndex) {
-						if (boost::iequals(field,"CH")) {
-							cout << "Found CH class? ";
+						if (boost::iequals(field, "CH")) {
+							Logger->warn(fmt::format("Found CH class for the RR at line - {} in file - {}", l, gFileName));
 							class_ = 3;
 						}
 						else if (boost::iequals(field, "IN")) {
@@ -199,15 +201,15 @@ struct Parser
 				boost::to_lower(name);
 				ResourceRecord RR(name, type, class_, ttl, rdata);
 				bool add = true;
-			/*	if (!type.compare("SOA") && !CheckForSubDomain(z.origin, RR.get_name())) {
-					add = false;
-				}*/
+				/*	if (!type.compare("SOA") && !CheckForSubDomain(z.origin, RR.get_name())) {
+						add = false;
+					}*/
 				if (add) {
 					boost::optional<ZoneVertexDescriptor> vertexid = ZoneGraphBuilder(RR, z);
 					if (vertexid) {
 						LabelGraphBuilder(RR, g, root, z.zoneId, vertexid.get());
 					}
-					
+
 				}
 				currentRecord.clear();
 			}
@@ -254,7 +256,8 @@ inline string ReadFromFile(char const* infile)
 {
 	ifstream instream(infile);
 	if (!instream.is_open()) {
-		cerr << "Couldn't open file: " << infile << endl;
+		//cerr << "Couldn't open file: " << infile << endl;
+		Logger->critical(fmt::format("zone_parser.cpp - couldn't open file - {}", infile));
 		exit(-1);
 	}
 	instream.unsetf(ios::skipws);
@@ -269,21 +272,21 @@ void ParseZoneFile(string& file, LabelGraph& g, const VertexDescriptor& root, Zo
 	char const* first = str.c_str();
 	char const* last = &first[str.size()];
 
+	gFileName = file;
 	// mutable state that will be updated by the parser.
 	size_t l = 0;
 	int parenCount = 0;
 	string relative_domain;
-	if (boost::algorithm::ends_with(file, ".dns")) {
-		//For the hotmail.com zone files
-		vector<string> strs;
-		boost::split(strs, file, boost::is_any_of("\\"));
-		relative_domain = strs.back();
-		relative_domain = relative_domain.substr(0, relative_domain.length() - 3);
-		boost::to_lower(relative_domain);
-	}
+	//if (boost::algorithm::ends_with(file, ".dns")) {
+	//	//For the hotmail.com zone files
+	//	vector<string> strs;
+	//	boost::split(strs, file, boost::is_any_of("\\"));
+	//	relative_domain = strs.back();
+	//	relative_domain = relative_domain.substr(0, relative_domain.length() - 3);
+	//	boost::to_lower(relative_domain);
+	//}
 	ResourceRecord defaultValues("", "", 0, 0, "");
 	vector<string> currentRecord;
-	int zoneId = 0;
 
 	// parse the zone file from the given string.
 	zone_file_tokens<lex::lexertl::lexer<> > zone_functor;
@@ -303,6 +306,9 @@ void ParseZoneFile(string& file, LabelGraph& g, const VertexDescriptor& root, Zo
 	// check if parsing was successful.
 	if (!r)
 	{
-		cout << "failed to parse zone file\n";
+		Logger->error(fmt::format("Failed to completely parse zone file - {}", gFileName));
+	}
+	else {
+		Logger->debug(fmt::format("Successfully parsed zone file - {}", gFileName));
 	}
 }

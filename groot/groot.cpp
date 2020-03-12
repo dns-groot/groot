@@ -157,9 +157,11 @@ void demo(string directory, string properties, json& output) {
 	std::ifstream metadataFile((boost::filesystem::path{ directory } / boost::filesystem::path{ "metadata.json" }).string());
 	json metadata;
 	metadataFile >> metadata;
+	Logger->debug("groot.cpp (demo) - Successfully read metadata.json file");
 	std::ifstream i(properties);
 	json j;
 	i >> j;
+	Logger->debug("groot.cpp (demo) - Successfully read properties.json file");
 	for (auto& server : metadata["TopNameServers"]) {
 		gTopNameServers.push_back(server);
 	}
@@ -169,6 +171,7 @@ void demo(string directory, string properties, json& output) {
 		auto zoneFilePath = (boost::filesystem::path{ directory } / boost::filesystem::path{ filename }).string();
 		BuildZoneLabelGraphs(zoneFilePath, zone["NameServer"], g, root);
 	}
+	Logger->debug("groot.cpp (demo) - Label graph and Zone graphs built");
 	/*std::ofstream dotfile("LabelGraph.dot");
 	write_graphviz(dotfile, g, make_vertex_writer(boost::get(&LabelVertex::name, g)), make_edge_writer(boost::get(&LabelEdge::type, g)));*/
 	for (auto& query : j) {
@@ -176,7 +179,9 @@ void demo(string directory, string properties, json& output) {
 		gPathFunctions.clear();
 		gDoneECgeneration = false;
 		std::bitset<RRType::N> typesReq = ProcessProperties(query["Properties"], output);
+		Logger->debug(fmt::format("groot.cpp (demo) - Started property checking for {}", query["Domain"]));
 		GenerateECAndCheckProperties(g, root, query["Domain"], typesReq, query["SubDomain"], output);
+		Logger->debug(fmt::format("groot.cpp (demo) - Finished property checking for {}", query["Domain"]));
 	}
 }
 
@@ -195,7 +200,6 @@ void bench(string directory, string input, json& output) {
 		gPathFunctions.clear();
 		std::bitset<RRType::N> typesReq = ProcessProperties(query["Properties"], output);
 		GenerateECAndCheckProperties(g, root, query["Domain"], typesReq, query["SubDomain"], output);
-		cout << endl;
 	}
 }
 
@@ -246,7 +250,7 @@ void checkUCLADomains(string directory, string properties, json& output) {
 	}
 	high_resolution_clock::time_point t2 = high_resolution_clock::now();
 	duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
-	cout << " Time took for Label graph and zone graphs" << time_span.count() << endl;
+	cout << "Time to build label graph and zone graphs: " << time_span.count() << endl;
 	std::ifstream i(properties);
 	json j;
 	i >> j;
@@ -255,14 +259,13 @@ void checkUCLADomains(string directory, string properties, json& output) {
 		gPathFunctions.clear();
 		std::bitset<RRType::N> typesReq = ProcessProperties(query["Properties"], output);
 		GenerateECAndCheckProperties(g, root, query["Domain"], typesReq, query["SubDomain"], output);
-		cout << endl;
 	}
 	//CheckStructuralDelegationConsistency(g, root, "aap.ucla.edu.", {}, output);
 	//CheckAllStructuralDelegations(g, root, "", root, output);
 	t2 = high_resolution_clock::now();
 	time_span = duration_cast<duration<double>>(t2 - t1);
-	cout << " Time to check properties" << time_span.count() << endl;
-	cout << " Total Number of ECs" << gECcount << endl;
+	cout << "Time to check properties: " << time_span.count() << endl;
+	cout << "Total Number of ECs: " << gECcount << endl;
 }
 
 inline bool file_exists(const std::string& name) {
@@ -413,7 +416,6 @@ void debug() {
 		//check if the tld file to name server map exists
 		if (it != nsMap.end())
 		{
-			/*cout << "Inside " << endl;*/
 			high_resolution_clock::time_point t1 = high_resolution_clock::now();
 			LabelGraph g;
 			VertexDescriptor root = boost::add_vertex(g);
@@ -578,35 +580,34 @@ int main(int argc, const char** argv)
 		/* for (auto const& arg : args) {
 			std::cout << arg.first << arg.second << std::endl;
 		 }*/
-		 //spdlog::init_thread_pool(8192, 1);
-		spdlog::flush_on(spdlog::level::trace);
+		spdlog::init_thread_pool(8192, 1);
+		spdlog::flush_on(spdlog::level::info);
 		auto stdout_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-		stdout_sink->set_level(spdlog::level::warn);
+		stdout_sink->set_level(spdlog::level::err);
+		stdout_sink->set_pattern("[%x %H:%M:%S.%e] [thread %t] [%^%=7l%$] %v");
 		auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("log.txt", true);
 		file_sink->set_level(spdlog::level::trace);
 		std::vector<spdlog::sink_ptr> sinks{ stdout_sink, file_sink };
-		//auto logger = std::make_shared<spdlog::async_logger>("my_custom_logger", sinks.begin(), sinks.end(), spdlog::thread_pool(), spdlog::async_overflow_policy::block);
-		auto  logger = std::make_shared<spdlog::logger>("my_custom_logger", sinks.begin(), sinks.end());
+		file_sink->set_pattern("[%x %H:%M:%S.%e] [thread %t] [%^%=7l%$] %v");
+		auto logger = std::make_shared<spdlog::async_logger>("my_custom_logger", sinks.begin(), sinks.end(), spdlog::thread_pool(), spdlog::async_overflow_policy::block);
+		//auto  logger = std::make_shared<spdlog::logger>("my_custom_logger", sinks.begin(), sinks.end());
 		spdlog::register_logger(logger);
 
 		Logger->bind(spdlog::get("my_custom_logger"));
-		Logger->Info("Hello, I am working..");
-		Logger->Warn("Hello, I am a warning..");
+
 		string zone_directory;
 		string properties_file;
-
 		auto z = args.find("<zone_directory>");
 		if (!z->second)
 		{
-			cout << "Error: missing parameter <zone_directory>" << endl;
+			Logger->critical(fmt::format("groot.cpp (main) - missing parameter <zone_directory>"));
 			cout << USAGE[0];
-			exit(0);
+			exit(EXIT_FAILURE);
 		}
 		else
 		{
 			zone_directory = z->second.asString();
 		}
-
 		auto p = args.find("--properties");
 		if (p->second)
 		{
@@ -616,16 +617,15 @@ int main(int argc, const char** argv)
 		/*bool verbose = args.find("--verbose")->second.asBool();
 		bool debug_dot = args.find("--debug")->second.asBool();*/
 
-
 		// TODO: validate that the directory and property files exist
 		json output = json::array();
 		//profiling_net();
 		//bench(zone_directory, properties_file);
 		//checkHotmailDomains(zone_directory, properties_file, output);
-		checkUCLADomains(zone_directory, properties_file, output);
-		//demo(zone_directory, properties_file, output);
+		//checkUCLADomains(zone_directory, properties_file, output);
+		demo(zone_directory, properties_file, output);
+		Logger->debug("groot.cpp (main) - Finished checking properties");
 		json filteredOutput = json::array();
-
 		for (json j : output) {
 			bool found = false;
 			for (json l : filteredOutput) {
@@ -648,10 +648,11 @@ int main(int argc, const char** argv)
 		ofs << filteredOutput.dump(4);
 		ofs << "\n";
 		ofs.close();
-		spdlog::shutdown();
+		Logger->debug(fmt::format("groot.cpp (main) - Output written to {}", outputFile));
+		spdlog::shutdown();	
 		return 0;
 	}
 	catch (exception & e) {
-		cout << " Exception:- " << e.what() << endl;
+		cout << "Exception:- " << e.what() << endl;
 	}
 }
