@@ -179,9 +179,9 @@ void demo(string directory, string properties, json& output) {
 		gPathFunctions.clear();
 		gDoneECgeneration = false;
 		std::bitset<RRType::N> typesReq = ProcessProperties(query["Properties"], output);
-		Logger->debug(fmt::format("groot.cpp (demo) - Started property checking for {}", query["Domain"]));
+		Logger->debug(fmt::format("groot.cpp (demo) - Started property checking for {}", string(query["Domain"])));
 		GenerateECAndCheckProperties(g, root, query["Domain"], typesReq, query["SubDomain"], output);
-		Logger->debug(fmt::format("groot.cpp (demo) - Finished property checking for {}", query["Domain"]));
+		Logger->debug(fmt::format("groot.cpp (demo) - Finished property checking for {}",string(query["Domain"])));
 	}
 }
 
