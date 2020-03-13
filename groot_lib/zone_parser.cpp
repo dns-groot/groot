@@ -212,6 +212,7 @@ struct Parser
 
 				}
 				currentRecord.clear();
+				Logger->debug(fmt::format("zone_parser.cpp (Parser) Parsed {} in file {}", l, gFileName));
 			}
 			break;
 		case ID_OTHER:
@@ -276,7 +277,7 @@ void ParseZoneFile(string& file, LabelGraph& g, const VertexDescriptor& root, Zo
 	// mutable state that will be updated by the parser.
 	size_t l = 0;
 	int parenCount = 0;
-	string relative_domain;
+	string relative_domain="";
 	//if (boost::algorithm::ends_with(file, ".dns")) {
 	//	//For the hotmail.com zone files
 	//	vector<string> strs;
