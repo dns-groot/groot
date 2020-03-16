@@ -87,6 +87,10 @@ struct Parser
 			currentRecord.push_back(std::move(tokenvalue));
 			break;
 		}
+		case ID_WHITESPACE: {
+			if (currentRecord.size() == 0)currentRecord.push_back("");
+			break;
+		}
 		/*case ID_COMMENT:
 		{
 			std::string tokenvalue(t.value().begin(), t.value().end());
@@ -160,13 +164,16 @@ struct Parser
 						else if (boost::iequals(field, "IN")) {
 							class_ = 1;
 						}
+						else if (i == 0 && field.size() > 0) {
+							name = field;
+							defaultValues.set_name(field);
+						}
 						else if (isInteger(field)) {
 							ttl = std::stoi(field);
 							if (defaultValues.get_ttl() == 0) defaultValues.set_ttl(ttl);
 						}
 						else {
-							name = field;
-							defaultValues.set_name(field);
+							Logger->warn(fmt::format("RR at line - {} in file - {} is not following the DNS grammar", l, gFileName));
 						}
 					}
 					i++;
@@ -174,6 +181,9 @@ struct Parser
 				rdata = rdata.substr(0, rdata.size() - 1);
 				if (name.length() == 0) {
 					name = LabelsToString(defaultValues.get_name());
+				}
+				else if (type == "SOA" and relativeDomainSuffix.size() == 0) {
+					relativeDomainSuffix = name;
 				}
 				if (!boost::algorithm::ends_with(name, ".")) {
 					name = name + "." + relativeDomainSuffix;
@@ -212,13 +222,12 @@ struct Parser
 
 				}
 				currentRecord.clear();
-				Logger->debug(fmt::format("zone_parser.cpp (Parser) Parsed {} in file {}", l, gFileName));
+				Logger->trace(fmt::format("zone_parser.cpp (Parser) Parsed line {} in file {}", l, gFileName));
 			}
 			break;
 		case ID_OTHER:
 			break;
 		}
-
 		// continue on
 		return true;
 	}

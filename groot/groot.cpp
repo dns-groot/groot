@@ -565,10 +565,11 @@ a collection of zone files along with a collection of user-
 defined properties and systematically checks if any input to
 DNS can lead to a property violation for the properties.
 
-Usage: groot [-h] [--properties=<properties_file>] <zone_directory> [--output=<output_file>]
+Usage: groot [-hv] [--properties=<properties_file>] <zone_directory> [--output=<output_file>]
 
 Options:
   -h --help     Show this help screen.
+  -v --verbose  Print more information.  
   --version     Show groot version.
 )";
 
@@ -594,8 +595,14 @@ int main(int argc, const char** argv)
 		auto logger = std::make_shared<spdlog::async_logger>("my_custom_logger", sinks.begin(), sinks.end(), spdlog::thread_pool(), spdlog::async_overflow_policy::block);
 		//auto  logger = std::make_shared<spdlog::logger>("my_custom_logger", sinks.begin(), sinks.end());
 		logger->flush_on(spdlog::level::trace);
-		logger->set_level(spdlog::level::trace);
-
+		
+		bool verbose = args.find("--verbose")->second.asBool();
+		if (verbose) {
+			logger->set_level(spdlog::level::trace);
+		}
+		else {
+			logger->set_level(spdlog::level::debug);
+		}
 		spdlog::register_logger(logger);
 		
 		Logger->bind(spdlog::get("my_custom_logger"));
@@ -619,8 +626,8 @@ int main(int argc, const char** argv)
 			properties_file = p->second.asString();
 		}
 
-		/*bool verbose = args.find("--verbose")->second.asBool();
-		bool debug_dot = args.find("--debug")->second.asBool();*/
+		
+		/*bool debug_dot = args.find("--debug")->second.asBool();*/
 
 		// TODO: validate that the directory and property files exist
 		json output = json::array();
