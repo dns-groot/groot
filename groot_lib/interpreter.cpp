@@ -22,7 +22,7 @@ public:
 			}
 		}
 		//label += RRTypesToString(answerTypes) + "\"]";
-		label += "\"\]";
+		label += "\"]";
 		if (nameServer == "") {
 			label = label + " [shape=diamond]";
 		}

@@ -16,7 +16,7 @@
 #include "graph.h"
 #include "zone.h"
 #include "interpreter.h"
-#include <nlohmann\json.hpp>
+#include <nlohmann/json.hpp>
 #include "concurrentqueue.h"
 
 using namespace std;
