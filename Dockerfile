@@ -8,12 +8,11 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
     apt-get upgrade -yq && \
     apt-get install -yq binutils \
-                        libboost-dev\
                         cmake curl \
                         g++ git \
-                        patch \
+                        patch python \
                         sudo \
-                        time tzdata \
+                        tar time tzdata \
                         unzip \
                         && \
     apt-get autoremove -y --purge
@@ -26,12 +25,18 @@ RUN adduser --disabled-password --home $HOME --shell /bin/bash --gecos '' groot 
 USER groot
 WORKDIR $HOME
 
-ENV LC_CTYPE=C.UTF-8
+RUN git clone  https://github.com/dns-groot/groot.git
+RUN git clone https://github.com/Microsoft/vcpkg.git
 
-RUN git clone --recurse-submodules https://github.com/dns-groot/groot.git
+WORKDIR $HOME/vcpkg
+RUN ./bootstrap-vcpkg.sh
+RUN ./vcpkg integrate install
+RUN ./vcpkg install boost nlohmann-json docopt spdlog
 
 WORKDIR $HOME/groot
-
 RUN git checkout EC-generation
 
+RUN mkdir build
+
 CMD [ "bash" ]
+
