@@ -3,11 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29102.190
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "groot_lib", "groot_lib\groot_lib.vcxproj", "{D2A89E18-94E6-474F-B0EB-F0881A5478B1}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libgroot", "src\libgroot.vcxproj", "{D2A89E18-94E6-474F-B0EB-F0881A5478B1}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tests", "tests\tests.vcxproj", "{BD35F99A-458A-4D58-8F11-3A0222979FFF}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "groot", "groot\groot.vcxproj", "{87121386-9CBC-4701-9985-C3353B67FFA9}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "groot", "bin\groot.vcxproj", "{87121386-9CBC-4701-9985-C3353B67FFA9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

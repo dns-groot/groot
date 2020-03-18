@@ -346,3 +346,4 @@ zone_files
 *.json
 Data
 build
+!/bin

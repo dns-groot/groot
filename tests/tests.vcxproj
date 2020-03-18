@@ -154,7 +154,7 @@
     <ClCompile Include="tests.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\groot_lib\groot_lib.vcxproj">
+    <ProjectReference Include="..\src\libgroot.vcxproj">
       <Project>{d2a89e18-94e6-474f-b0eb-f0881a5478b1}</Project>
     </ProjectReference>
   </ItemGroup>

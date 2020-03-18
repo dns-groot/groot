@@ -8,10 +8,10 @@
 #include "boost/graph/topological_sort.hpp"
 #include <boost/graph/graphviz.hpp>
 #include <nlohmann/json.hpp>
-#include "../groot_lib/zone.h"
-#include "../groot_lib/graph.h"
-#include "../groot_lib/interpreter.h"
-#include "../groot_lib/properties.h"
+#include "../src/zone.h"
+#include "../src/graph.h"
+#include "../src/interpreter.h"
+#include "../src/properties.h"
 #include "docopt/docopt.h"
 #include <boost/regex.hpp>
 #include <boost/filesystem.hpp>
