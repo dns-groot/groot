@@ -152,6 +152,7 @@ std::bitset<RRType::N> ProcessProperties(json properties, json& output) {
 void demo(string directory, string properties, json& output) {
 	LabelGraph g;
 	VertexDescriptor root = boost::add_vertex(g);
+	high_resolution_clock::time_point t1 = high_resolution_clock::now();
 	g[root].name.set(".");
 	std::ifstream metadataFile((filesystem::path{ directory } / filesystem::path{ "metadata.json" }).string());
 	json metadata;
@@ -171,6 +172,9 @@ void demo(string directory, string properties, json& output) {
 		BuildZoneLabelGraphs(zoneFilePath, zone["NameServer"], g, root);
 	}
 	Logger->debug("groot.cpp (demo) - Label graph and Zone graphs built");
+	high_resolution_clock::time_point t2 = high_resolution_clock::now();
+	duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
+	cout << "Time to build label graph and zone graphs: " << time_span.count() << endl;
 	/*std::ofstream dotfile("LabelGraph.dot");
 	write_graphviz(dotfile, g, make_vertex_writer(boost::get(&LabelVertex::name, g)), make_edge_writer(boost::get(&LabelEdge::type, g)));*/
 	for (auto& query : j) {
@@ -182,6 +186,10 @@ void demo(string directory, string properties, json& output) {
 		GenerateECAndCheckProperties(g, root, query["Domain"], typesReq, query["SubDomain"], output);
 		Logger->debug(fmt::format("groot.cpp (demo) - Finished property checking for {}",string(query["Domain"])));
 	}
+	t2 = high_resolution_clock::now();
+	time_span = duration_cast<duration<double>>(t2 - t1);
+	cout << "Time to check properties: " << time_span.count() << endl;
+	cout << "Total Number of ECs: " << gECcount << endl;
 }
 
 
