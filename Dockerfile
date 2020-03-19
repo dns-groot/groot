@@ -10,7 +10,7 @@ RUN apt-get update && \
     apt-get install -yq binutils \
                         cmake curl \
                         g++-8 git \
-                        patch python \
+                        patch python3 \
                         sudo \
                         tar time tzdata \
                         unzip \
