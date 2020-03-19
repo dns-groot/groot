@@ -39,7 +39,6 @@ RUN ./vcpkg install boost-serialization boost-flyweight boost-dynamic-bitset boo
 
 
 WORKDIR $HOME/groot
-RUN git checkout EC-generation
 
 RUN mkdir build && \ 
     cd build && \
