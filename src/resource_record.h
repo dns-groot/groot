@@ -1,14 +1,17 @@
 #pragma once
+
+#include <bitset>
 #include <cstdint>
 #include <string>
-#include <bitset>
 #include <unordered_map> 
-#include <boost/serialization/access.hpp>
+
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/flyweight.hpp>
-#include <boost/flyweight/serialize.hpp>
 #include <boost/flyweight/no_tracking.hpp>
+#include <boost/flyweight/serialize.hpp>
+#include <boost/serialization/access.hpp>
+
 #include "myLogger.h"
 
 using namespace std;

@@ -34,7 +34,9 @@ RUN git clone https://github.com/Microsoft/vcpkg.git
 WORKDIR $HOME/vcpkg
 RUN ./bootstrap-vcpkg.sh
 RUN ./vcpkg integrate install
-RUN ./vcpkg install boost nlohmann-json docopt spdlog
+RUN ./vcpkg install nlohmann-json docopt spdlog
+RUN ./vcpkg install boost-serialization boost-flyweight boost-dynamic-bitset boost-graph  
+
 
 WORKDIR $HOME/groot
 RUN git checkout EC-generation

@@ -1,23 +1,20 @@
 #pragma once
-#include <string>
-#include <vector>
-#include <boost/graph/adjacency_list.hpp>
-#include <boost/dynamic_bitset.hpp>
-#include <boost/archive/text_oarchive.hpp>
-#include <boost/archive/text_iarchive.hpp>
-#include <boost/serialization/vector.hpp>
-#include <boost/serialization/string.hpp>
-#include <boost/serialization/optional.hpp>
-#include <boost/serialization/bitset.hpp>
-#include <boost/graph/adj_list_serialize.hpp>
+
 #include <iostream>
 #include <map> 
+#include <numeric>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include <nlohmann/json.hpp>
+
+#include "concurrentqueue.h"
 #include "resource_record.h"
 #include "graph.h"
 #include "zone.h"
 #include "interpreter.h"
-#include <nlohmann/json.hpp>
-#include "concurrentqueue.h"
+
 
 using namespace std;
 using json = nlohmann::json;

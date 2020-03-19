@@ -1,6 +1,4 @@
 #include "properties.h"
-#include <numeric>
-#include <utility>
 
 const int ECConsumerCount = 8;
 

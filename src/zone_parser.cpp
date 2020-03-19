@@ -1,18 +1,19 @@
 // For reference https://www.boost.org/doc/libs/1_70_0/libs/spirit/doc/html/spirit/lex/tutorials/lexer_quickstart1.html
 
-#include <boost/config/warning_disable.hpp>
-#include <boost/spirit/include/lex_lexertl.hpp>
-#include <boost/bind.hpp>
-#include <boost/ref.hpp>
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include <string>
-#include <boost/assign/list_of.hpp>
+
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string.hpp>
-#include "resource_record.h"
-#include "zone.h"
+#include <boost/bind.hpp>
+#include <boost/config/warning_disable.hpp>
+#include <boost/ref.hpp>
+#include <boost/spirit/include/lex_lexertl.hpp>
+
 #include "graph.h"
+#include "zone.h"
+
 
 
 using namespace std;

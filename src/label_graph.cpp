@@ -1,4 +1,5 @@
 #include <boost/algorithm/string.hpp>
+
 #include "graph.h"
 #include "interpreter.h"
 #include "properties.h"
