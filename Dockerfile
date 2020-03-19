@@ -15,7 +15,7 @@ RUN apt-get update && \
                         tar time tzdata \
                         unzip \
                         && \
-    apt-get purge gcc g++ && \
+    apt-get purge -y gcc g++ && \
     apt-get autoremove -y --purge
 
 RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 10 && \
