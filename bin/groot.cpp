@@ -4,17 +4,16 @@
 #include <string> 
 #include <vector>
 #include <fstream>
-#include "boost/graph/adjacency_list.hpp"
-#include "boost/graph/topological_sort.hpp"
+#include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/topological_sort.hpp>
 #include <boost/graph/graphviz.hpp>
 #include <nlohmann/json.hpp>
 #include "../src/zone.h"
 #include "../src/graph.h"
 #include "../src/interpreter.h"
 #include "../src/properties.h"
-#include "docopt/docopt.h"
+#include <docopt/docopt.h>
 #include <boost/regex.hpp>
-#include <boost/filesystem.hpp>
 #include <filesystem>
 #include <ctime>
 #include <ratio>
@@ -154,7 +153,7 @@ void demo(string directory, string properties, json& output) {
 	LabelGraph g;
 	VertexDescriptor root = boost::add_vertex(g);
 	g[root].name.set(".");
-	std::ifstream metadataFile((boost::filesystem::path{ directory } / boost::filesystem::path{ "metadata.json" }).string());
+	std::ifstream metadataFile((filesystem::path{ directory } / filesystem::path{ "metadata.json" }).string());
 	json metadata;
 	metadataFile >> metadata;
 	Logger->debug("groot.cpp (demo) - Successfully read metadata.json file");
@@ -168,7 +167,7 @@ void demo(string directory, string properties, json& output) {
 	for (auto& zone : metadata["ZoneFiles"]) {
 		string filename;
 		zone["FileName"].get_to(filename);
-		auto zoneFilePath = (boost::filesystem::path{ directory } / boost::filesystem::path{ filename }).string();
+		auto zoneFilePath = (filesystem::path{ directory } / filesystem::path{ filename }).string();
 		BuildZoneLabelGraphs(zoneFilePath, zone["NameServer"], g, root);
 	}
 	Logger->debug("groot.cpp (demo) - Label graph and Zone graphs built");
@@ -208,7 +207,7 @@ void checkHotmailDomains(string directory, string properties, json& output) {
 	LabelGraph g;
 	VertexDescriptor root = boost::add_vertex(g);
 	g[root].name.set("");
-	//auto zoneFilePath = (boost::filesystem::path{ "C:\\Users\\Administrator\\Desktop\\groot\\zone_files" } / boost::filesystem::path{ "hotmail.com" } / boost::filesystem::path{ "hotmail.com - Copy.dns" }).string();
+	//auto zoneFilePath = (filesystem::path{ "C:\\Users\\Administrator\\Desktop\\groot\\zone_files" } / filesystem::path{ "hotmail.com" } / filesystem::path{ "hotmail.com - Copy.dns" }).string();
 	gTopNameServers.push_back("ns1.msft.net.");
 	for (auto& entry : filesystem::directory_iterator(directory)) {
 		BuildZoneLabelGraphs(entry.path().string(), "ns1.msft.com", g, root);
@@ -268,11 +267,6 @@ void checkUCLADomains(string directory, string properties, json& output) {
 	cout << "Total Number of ECs: " << gECcount << endl;
 }
 
-inline bool file_exists(const std::string& name) {
-	struct stat buffer;
-	return (stat(name.c_str(), &buffer) == 0);
-}
-
 void ZoneFileNSMap(string file, std::map<string, string>& zoneFileNameToNS) {
 	std::ifstream infile(file);
 	std::string line;
@@ -319,9 +313,9 @@ void DNSCensus(string zoneFilesdirectory, string zoneNS, string tldSubDomainMap,
 		if (value.size() < 100) {
 			gECcount = 0;
 			string fileName = key + "..txt";
-			auto zoneFilePath = (boost::filesystem::path{ zoneFilesdirectory } / boost::filesystem::path{ fileName }).string();
+			auto zoneFilePath = (filesystem::path{ zoneFilesdirectory } / filesystem::path{ fileName }).string();
 			//check if the tld file exists
-			if (file_exists(zoneFilePath)) {
+			if (filesystem::exists(zoneFilePath)) {
 				auto it = zoneFileNameToNS.find(fileName);
 				//check if the tld file to name server map exists
 				if (it != zoneFileNameToNS.end())
@@ -340,8 +334,8 @@ void DNSCensus(string zoneFilesdirectory, string zoneNS, string tldSubDomainMap,
 					for (auto& subdomain : value) {
 						string subd = subdomain.get<string>();
 						fileName = subd + "..txt";
-						zoneFilePath = (boost::filesystem::path{ zoneFilesdirectory } / boost::filesystem::path{ fileName }).string();
-						if (file_exists(zoneFilePath)) {
+						zoneFilePath = (filesystem::path{ zoneFilesdirectory } / filesystem::path{ fileName }).string();
+						if (filesystem::exists(zoneFilePath)) {
 							auto itsub = zoneFileNameToNS.find(fileName);
 							if (itsub != zoneFileNameToNS.end()) {
 								BuildZoneLabelGraphs(zoneFilePath, itsub->second, g, root);
@@ -375,7 +369,7 @@ void DNSCensus(string zoneFilesdirectory, string zoneNS, string tldSubDomainMap,
 					filteredOutput["graph building"] = time_span.count();
 					filteredOutput["property checking"] = time_span_EC.count();
 					std::ofstream ofs;
-					auto outputFile = (boost::filesystem::path{ outputDirectory } / boost::filesystem::path{ key + ".json" }).string();
+					auto outputFile = (filesystem::path{ outputDirectory } / filesystem::path{ key + ".json" }).string();
 					ofs.open(outputFile, std::ofstream::out);
 					ofs << filteredOutput.dump(4);
 					ofs << "\n";
@@ -410,8 +404,8 @@ void debug() {
 	nsMap["www.bigcal.org..txt"] = "\\(181576594.";
 
 
-	auto zoneFilePath = (boost::filesystem::path{ "E:\\siva\\DNSCensus2013\\FullZones" } / boost::filesystem::path{ fileName }).string();
-	if (file_exists(zoneFilePath)) {
+	auto zoneFilePath = (filesystem::path{ "E:\\siva\\DNSCensus2013\\FullZones" } / filesystem::path{ fileName }).string();
+	if (filesystem::exists(zoneFilePath)) {
 		auto it = nsMap.find(fileName);
 		//check if the tld file to name server map exists
 		if (it != nsMap.end())
@@ -426,8 +420,8 @@ void debug() {
 			for (auto& subdomain : subdomains) {
 				string subd = subdomain.get<string>();
 				subd = subd + "..txt";
-				zoneFilePath = (boost::filesystem::path{ "E:\\siva\\DNSCensus2013\\FullZones" } / boost::filesystem::path{ subd }).string();
-				if (file_exists(zoneFilePath)) {
+				zoneFilePath = (filesystem::path{ "E:\\siva\\DNSCensus2013\\FullZones" } / filesystem::path{ subd }).string();
+				if (filesystem::exists(zoneFilePath)) {
 					auto itsub = nsMap.find(subd);
 					if (itsub != nsMap.end()) {
 						BuildZoneLabelGraphs(zoneFilePath, nsMap[subd], g, root);
@@ -461,7 +455,7 @@ void debug() {
 			filteredOutput["graph building"] = time_span.count();
 			filteredOutput["property checking"] = time_span_EC.count();
 			std::ofstream ofs;
-			auto outputFile = (boost::filesystem::path{ string("E:\\siva\\SecondLevelOutputs - Copy\\") } / boost::filesystem::path{ string(domain) + ".json" }).string();
+			auto outputFile = (filesystem::path{ string("E:\\siva\\SecondLevelOutputs - Copy\\") } / filesystem::path{ string(domain) + ".json" }).string();
 			ofs.open(outputFile, std::ofstream::out);
 			ofs << filteredOutput.dump(4);
 			ofs << "\n";
@@ -494,9 +488,9 @@ void debug() {
 //
 //	gECcount = 0;
 //	string fileName = string(argv[2]) + "..txt";
-//	auto zoneFilePath = (boost::filesystem::path{ argv[1] } / boost::filesystem::path{ fileName }).string();
+//	auto zoneFilePath = (filesystem::path{ argv[1] } / filesystem::path{ fileName }).string();
 //	//check if the tld file exists
-//	if (file_exists(zoneFilePath)) {
+//	if (filesystem::exists(zoneFilePath)) {
 //		auto it = nsMap.find(fileName);
 //		//check if the tld file to name server map exists
 //		if (it != nsMap.end())
@@ -512,8 +506,8 @@ void debug() {
 //			for (auto& subdomain : subdomains) {
 //				string subd = subdomain.get<string>();
 //				subd = subd + "..txt";
-//				zoneFilePath = (boost::filesystem::path{ argv[1] } / boost::filesystem::path{ subd }).string();
-//				if (file_exists(zoneFilePath)) {
+//				zoneFilePath = (filesystem::path{ argv[1] } / filesystem::path{ subd }).string();
+//				if (filesystem::exists(zoneFilePath)) {
 //					auto itsub = nsMap.find(subd);
 //					if (itsub != nsMap.end()) {
 //						BuildZoneLabelGraphs(zoneFilePath, nsMap[subd], g, root);
@@ -547,7 +541,7 @@ void debug() {
 //			filteredOutput["graph building"] = time_span.count();
 //			filteredOutput["property checking"] = time_span_EC.count();
 //			std::ofstream ofs;
-//			auto outputFile = (boost::filesystem::path{ string(argv[5]) } / boost::filesystem::path{ string(argv[2]) + ".json" }).string();
+//			auto outputFile = (filesystem::path{ string(argv[5]) } / filesystem::path{ string(argv[2]) + ".json" }).string();
 //			ofs.open(outputFile, std::ofstream::out);
 //			ofs << filteredOutput.dump(4);
 //			ofs << "\n";
