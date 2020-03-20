@@ -7,10 +7,11 @@ ENV HOME /home/groot
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
     apt-get upgrade -yq && \
-    apt-get install -yq binutils \
+    apt-get install -yq apt-utils\
+                        binutils \
                         cmake curl \
                         g++-8 git \
-                        patch python3 \
+                        patch \
                         sudo \
                         tar time tzdata \
                         unzip \
