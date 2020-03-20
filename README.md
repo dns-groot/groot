@@ -40,7 +40,7 @@ The `/host/dir` on the host system would then be accessible within the container
 
 <details>
 
-<summary><kbd>:arrow_down: CLICK</kbd>to reveal instructions</summary>
+<summary><kbd>:arrow_down: CLICK</kbd> to reveal instructions</summary>
 
 #### Installation for Windows
 1. Install [`vcpkg`](https://docs.microsoft.com/en-us/cpp/build/vcpkg?view=vs-2019) package manager to install dependecies. 
