@@ -76,7 +76,7 @@ string SearchForNameServer(int zoneId);
 bool RequireGlueRecords(Zone z, vector<ResourceRecord>& NSRecords);
 
 //Zone parser
-void ParseZoneFile(string& file, LabelGraph& g, const VertexDescriptor& root, Zone& z);
+int ParseZoneFile(string& file, LabelGraph& g, const VertexDescriptor& root, Zone& z);
 
 //ZoneLookUp
 vector<ResourceRecord> GlueRecordsLookUp(ZoneGraph& g, ZoneVertexDescriptor root, vector<ResourceRecord>& NSRecords, std::unordered_map<VertexDescriptor, LabelMap>& domainChildLabelMap);

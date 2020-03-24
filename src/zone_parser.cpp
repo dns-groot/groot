@@ -20,6 +20,7 @@ using namespace std;
 namespace lex = boost::spirit::lex;
 
 string gFileName = "";
+int gRRsParsed = 0;
 
 enum TokenIds
 {
@@ -152,22 +153,29 @@ struct Parser
 				uint16_t class_ = 1;
 				uint32_t ttl = defaultValues.get_ttl();
 				int i = 0;
+				if (typeIndex > 3) {
+					Logger->warn(fmt::format("RR at line - {} in file - {} is not following the DNS grammar (typeIndex > 3)", l, gFileName));
+					currentRecord.clear();
+					return true;
+				}
 				for (auto& field : currentRecord)
 				{
 					if (i > typeIndex) {
 						rdata += field + " ";
 					}
 					if (i < typeIndex) {
-						if (boost::iequals(field, "CH")) {
+						if (i == 0) {
+							if (field.size() > 0) {
+								name = field;
+								defaultValues.set_name(field);
+							}
+						}
+						else if (boost::iequals(field, "CH")) {
 							Logger->warn(fmt::format("Found CH class for the RR at line - {} in file - {}", l, gFileName));
 							class_ = 3;
 						}
 						else if (boost::iequals(field, "IN")) {
 							class_ = 1;
-						}
-						else if (i == 0 && field.size() > 0) {
-							name = field;
-							defaultValues.set_name(field);
 						}
 						else if (isInteger(field)) {
 							ttl = std::stoi(field);
@@ -175,6 +183,8 @@ struct Parser
 						}
 						else {
 							Logger->warn(fmt::format("RR at line - {} in file - {} is not following the DNS grammar", l, gFileName));
+							currentRecord.clear();
+							return true;
 						}
 					}
 					i++;
@@ -188,6 +198,7 @@ struct Parser
 				}
 				if (!boost::algorithm::ends_with(name, ".")) {
 					name = name + "." + relativeDomainSuffix;
+					defaultValues.set_name(name);
 				}
 				//compare returns zero when equal
 				if (!type.compare("NS") || !type.compare("CNAME") || !type.compare("DNAME") || !type.compare("MX")) {
@@ -210,6 +221,7 @@ struct Parser
 				}
 				boost::to_lower(rdata);
 				boost::to_lower(name);
+				gRRsParsed++;
 				ResourceRecord RR(name, type, class_, ttl, rdata);
 				bool add = true;
 				/*	if (!type.compare("SOA") && !CheckForSubDomain(z.origin, RR.get_name())) {
@@ -234,7 +246,7 @@ struct Parser
 	}
 
 	int GetTypeIndex(vector<string>& current_record) const {
-		std::vector<string> types{ "A", "MX", "NS", "CNAME", "SOA", "PTR", "TXT", "AAAA", "SRV", "DNAME","RRSIG","NSEC", "SPF" };
+		std::vector<string> types{ "A", "MX", "NS", "CNAME", "SOA", "PTR", "TXT", "AAAA", "SRV", "DNAME","RRSIG","NSEC", "DS","SPF" };
 
 		int index = -1;
 		int i = 0;
@@ -276,7 +288,7 @@ inline string ReadFromFile(char const* infile)
 		istreambuf_iterator<char>());
 }
 
-void ParseZoneFile(string& file, LabelGraph& g, const VertexDescriptor& root, Zone& z)
+int ParseZoneFile(string& file, LabelGraph& g, const VertexDescriptor& root, Zone& z)
 {
 	// get the zone file input as a string.
 	string str(ReadFromFile(file.c_str()));
@@ -284,6 +296,7 @@ void ParseZoneFile(string& file, LabelGraph& g, const VertexDescriptor& root, Zo
 	char const* last = &first[str.size()];
 
 	gFileName = file;
+	gRRsParsed = 0;
 	// mutable state that will be updated by the parser.
 	size_t l = 0;
 	int parenCount = 0;
@@ -322,4 +335,5 @@ void ParseZoneFile(string& file, LabelGraph& g, const VertexDescriptor& root, Zo
 	else {
 		Logger->debug(fmt::format("Successfully parsed zone file - {}", gFileName));
 	}
+	return gRRsParsed;
 }
