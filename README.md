@@ -3,9 +3,8 @@ Groot
 ==========
 <!---
 [![](https://img.shields.io/docker/cloud/build/sivakesava/groot.svg?logo=docker&style=popout&label=Docker+Image)][docker-hub]
---->
 [![](https://github.com/dns-groot/groot/workflows/Docker%20Image%20CI/badge.svg?logo=docker&style=popout&label=Docker+Image)](https://github.com/dns-groot/groot/actions?query=workflow%3A%22Docker+Image+CI%22)
-
+-->
 [![](https://img.shields.io/github/workflow/status/dns-groot/groot/Docker%20Image%20CI/master?logo=docker&style=popout&label=Docker+Image)](https://github.com/dns-groot/groot/actions?query=workflow%3A%22Docker+Image+CI%22)
 
 
