@@ -165,7 +165,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="graph.h" />
-    <ClInclude Include="concurrentqueue.h" />
     <ClInclude Include="myLogger.h" />
     <ClInclude Include="interpreter.h" />
     <ClInclude Include="properties.h" />

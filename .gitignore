@@ -342,7 +342,7 @@ healthchecksdb
 *.dot
 *.png
 
-zone_files
+zone_files*
 *.json
 Data
 build

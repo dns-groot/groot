@@ -9,7 +9,7 @@
 
 #include <nlohmann/json.hpp>
 
-#include "concurrentqueue.h"
+#include "../concurrentqueue/concurrentqueue.h"
 #include "resource_record.h"
 #include "graph.h"
 #include "zone.h"

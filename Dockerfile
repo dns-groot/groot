@@ -29,7 +29,7 @@ RUN adduser --disabled-password --home $HOME --shell /bin/bash --gecos '' groot 
 USER groot
 WORKDIR $HOME
 
-RUN git clone  https://github.com/dns-groot/groot.git
+RUN git clone --recurse-submodules https://github.com/dns-groot/groot.git
 RUN git clone https://github.com/Microsoft/vcpkg.git
 
 WORKDIR $HOME/vcpkg
