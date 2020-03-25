@@ -150,6 +150,8 @@ std::bitset<RRType::N> ProcessProperties(json properties, json& output) {
 }
 
 void demo(string directory, string properties, json& output) {
+	
+	Logger->debug("groot.cpp - demo function called");
 	LabelGraph g;
 	VertexDescriptor root = boost::add_vertex(g);
 	high_resolution_clock::time_point t1 = high_resolution_clock::now();
@@ -668,5 +670,6 @@ int main(int argc, const char** argv)
 	}
 	catch (exception & e) {
 		cout << "Exception:- " << e.what() << endl;
+		spdlog::shutdown();
 	}
 }

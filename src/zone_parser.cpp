@@ -40,9 +40,9 @@ struct zone_file_tokens : lex::lexer<Lexer>
 	{
 		this->self.add
 		(";[^\n]+", ID_COMMENT)
+			("((\\\\\\()*(\\\\\\))*[^ ;\t\r\n\\(\\)]+)+", ID_WORD)
 			("\\(", ID_LPAREN)
 			("\\)", ID_RPAREN)
-			("[^ ;\t\r\n\\(\\)]+", ID_WORD)
 			("\n", ID_EOL)
 			("[ \t]+", ID_WHITESPACE)
 			(".", ID_OTHER)
@@ -93,16 +93,16 @@ struct Parser
 			if (currentRecord.size() == 0)currentRecord.push_back("");
 			break;
 		}
-		/*case ID_COMMENT:
-		{
-			std::string tokenvalue(t.value().begin(), t.value().end());
-			if (tokenvalue.find("Default zone scope in zone") != std::string::npos) {
-				vector<string> strs;
-				boost::split(strs, tokenvalue, boost::is_any_of(" "));
-				relativeDomainSuffix = strs.back();
-			}
-			break;
-		}*/
+						  /*case ID_COMMENT:
+						  {
+							  std::string tokenvalue(t.value().begin(), t.value().end());
+							  if (tokenvalue.find("Default zone scope in zone") != std::string::npos) {
+								  vector<string> strs;
+								  boost::split(strs, tokenvalue, boost::is_any_of(" "));
+								  relativeDomainSuffix = strs.back();
+							  }
+							  break;
+						  }*/
 		case ID_EOL:
 			++l;
 			if (parenCount == 0 && currentRecord.size() > 0)
@@ -300,7 +300,7 @@ int ParseZoneFile(string& file, LabelGraph& g, const VertexDescriptor& root, Zon
 	// mutable state that will be updated by the parser.
 	size_t l = 0;
 	int parenCount = 0;
-	string relative_domain="";
+	string relative_domain = "";
 	//if (boost::algorithm::ends_with(file, ".dns")) {
 	//	//For the hotmail.com zone files
 	//	vector<string> strs;
@@ -328,7 +328,7 @@ int ParseZoneFile(string& file, LabelGraph& g, const VertexDescriptor& root, Zon
 	auto r = lex::tokenize(first, last, zone_functor, parserCallback);
 
 	// check if parsing was successful.
-	if (!r)
+	if (!r || parenCount != 0)
 	{
 		Logger->error(fmt::format("Failed to completely parse zone file - {}", gFileName));
 	}

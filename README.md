@@ -51,7 +51,7 @@ The `/host/dir` on the host system would then be accessible within the container
 2. Install the C++ libraries (64 bit versions) using:
     - vcpkg install boost:x64-windows docopt:x64-windows nlohmann-json:x64-windows spdlog:x64-windows
     - vcpkg integrate install 
-3. Clone the repository and open the solution (groot.sln) using Visual studio. Set the platform to x64 and mode to Release.
+3. Clone the repository (with  `--recurse-submodules`) and open the solution (groot.sln) using Visual studio. Set the platform to x64 and mode to Release.
 4. Configure the project properties to use ISO C++17 Standard (std:c++17) for C++ language standard.
 5. Build the project using visual studio to generate the executable. The executable would be located at `~\groot\x64\Release\`.
 
