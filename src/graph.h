@@ -14,6 +14,7 @@
 #include <boost/serialization/vector.hpp>
 
 #include "resource_record.h"
+#include "utils.h"
 
 using namespace std;
 

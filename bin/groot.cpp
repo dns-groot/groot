@@ -97,8 +97,8 @@ std::bitset<RRType::N> ProcessProperties(json properties, json& output) {
 		std::bitset<RRType::N> propertyTypes;
 		if (property.find("Types") != property.end()) {
 			for (auto typ : property["Types"]) {
-				typesReq.set(ConvertToRRType(typ));
-				propertyTypes.set(ConvertToRRType(typ));
+				typesReq.set(TypeUtils::StringToType(typ));
+				propertyTypes.set(TypeUtils::StringToType(typ));
 			}
 		}
 		else {
@@ -138,11 +138,11 @@ std::bitset<RRType::N> ProcessProperties(json properties, json& output) {
 			gPathFunctions.push_back(l);
 		}
 		else if (name == "QueryRewrite") {
-			auto l = [d = property["Value"], &output](const InterpreterGraph& graph, const Path& p) {QueryRewrite(graph, p, GetLabels(d)); };
+			auto l = [d = property["Value"], &output](const InterpreterGraph& graph, const Path& p) {QueryRewrite(graph, p, LabelUtils::StringToLabels(d)); };
 			gPathFunctions.push_back(l);
 		}
 		else if (name == "NameServerContact") {
-			auto l = [d = property["Value"], &output](const InterpreterGraph& graph, const Path& p) {NameServerContact(graph, p, GetLabels(d)); };
+			auto l = [d = property["Value"], &output](const InterpreterGraph& graph, const Path& p) {NameServerContact(graph, p, LabelUtils::StringToLabels(d)); };
 			gPathFunctions.push_back(l);
 		}
 	}
@@ -304,9 +304,9 @@ void ZoneFileNSMap(string file, std::map<string, string>& zoneFileNameToNS) {
 
 void CensusProperties(string domain, vector<std::function<void(const InterpreterGraph&, const vector<IntpVD>&)>>& gNodeFunctions, vector<std::function<void(const InterpreterGraph&, const Path&)>>& gPathFunctions, json& output) {
 
-	auto l = [d = domain, &output](const InterpreterGraph& graph, const Path& p) {QueryRewrite(graph, p, GetLabels(d)); };
+	auto l = [d = domain, &output](const InterpreterGraph& graph, const Path& p) {QueryRewrite(graph, p, LabelUtils::StringToLabels(d)); };
 	gPathFunctions.push_back(l);
-	auto name = [d = domain, &output](const InterpreterGraph& graph, const Path& p) {NameServerContact(graph, p, GetLabels(d)); };
+	auto name = [d = domain, &output](const InterpreterGraph& graph, const Path& p) {NameServerContact(graph, p, LabelUtils::StringToLabels(d)); };
 	gPathFunctions.push_back(name);
 	auto re = [num_rewrites = 3, &output](const InterpreterGraph& graph, const Path& p) {NumberOfRewrites(graph, p, num_rewrites); };
 	gPathFunctions.push_back(re);
@@ -641,6 +641,7 @@ int main(int argc, const char** argv)
 		//checkUCLADomains(zone_directory, properties_file, output);
 		demo(zone_directory, properties_file, output);
 		Logger->debug("groot.cpp (main) - Finished checking properties");
+		Logger->debug(fmt::format("groot.cpp (main) - Unfiltered property violations {}",output.size()));
 		json filteredOutput = json::array();
 		for (json j : output) {
 			bool found = false;
@@ -652,7 +653,7 @@ int main(int argc, const char** argv)
 			}
 			if (!found) filteredOutput.push_back(j);
 		}
-
+		Logger->debug(fmt::format("groot.cpp (main) - Violations after removing duplicates {}", filteredOutput.size()));
 		p = args.find("--output");
 		string outputFile = "output.json";
 		if (p->second)

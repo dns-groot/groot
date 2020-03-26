@@ -79,7 +79,7 @@ void LabelGraphBuilder(ResourceRecord& record, LabelGraph& g, const VertexDescri
 		VertexDescriptor closetEncloser = GetClosestEncloser(g, root, record.get_name(), index);
 		VertexDescriptor mainNode = AddNodes(g, closetEncloser, record.get_name(), index);
 		if (record.get_type() == RRType::DNAME) {
-			vector<Label> labels = GetLabels(record.get_rdata());
+			vector<Label> labels = LabelUtils::StringToLabels(record.get_rdata());
 			index = 0;
 			closetEncloser = GetClosestEncloser(g, root, labels, index);
 			VertexDescriptor secondNode = AddNodes(g, closetEncloser, labels, index);

@@ -28,7 +28,7 @@ void CheckResponseReturned(const InterpreterGraph& graph, const vector<IntpVD>& 
 							json tmp;
 							tmp["Property"] = "ResponseReturned";
 							tmp["Equivalence Class"] = QueryFormat(graph[vd].query);
-							tmp["Violation"] = "There was no response for T:" + RRTypesToString(std::get<1>(a) & typesReq) + " at name server:" + graph[vd].ns;
+							tmp["Violation"] = "There was no response for T:" + TypeUtils::TypesToString(std::get<1>(a) & typesReq) + " at name server:" + graph[vd].ns;
 							gJsonQueue.enqueue(tmp);
 						}
 					}
@@ -229,7 +229,7 @@ string QueryFormat(const EC& query) {
 	else {
 		q += "";
 	}
-	q += LabelsToString(query.name);
+	q += LabelUtils::LabelsToString(query.name);
 	return q;
 }
 
@@ -359,7 +359,7 @@ void QueryRewrite(const InterpreterGraph& graph, const Path& p, vector<Label> do
 					json tmp;
 					tmp["Property"] = "Query Rewrite";
 					tmp["Equivalence Class"] = QueryFormat(graph[p[i]].query);
-					tmp["Violation"] = "Query is rewritten to " + QueryFormat(graph[p[static_cast<long long>(i) + 1]].query) + " at NS:" + graph[p[i]].ns + " which is not under " + LabelsToString(domain);
+					tmp["Violation"] = "Query is rewritten to " + QueryFormat(graph[p[static_cast<long long>(i) + 1]].query) + " at NS:" + graph[p[i]].ns + " which is not under " + LabelUtils::LabelsToString(domain);
 					gJsonQueue.enqueue(tmp);
 				}
 			}
@@ -377,11 +377,11 @@ void NameServerContact(const InterpreterGraph& graph, const Path& p, vector<Labe
 	*/
 	for (int i = 0; i < p.size(); i++) {
 		if (graph[p[i]].ns != "") {
-			if (!CheckSubDomain(domain, GetLabels(graph[p[i]].ns))) {
+			if (!CheckSubDomain(domain, LabelUtils::StringToLabels(graph[p[i]].ns))) {
 				json tmp;
 				tmp["Property"] = "Name Server Contact";
 				tmp["Equivalence Class"] = QueryFormat(graph[p[i]].query);
-				tmp["Violation"] = "Query is sent to NS:" + graph[p[i]].ns + " which is not under " + LabelsToString(domain);
+				tmp["Violation"] = "Query is sent to NS:" + graph[p[i]].ns + " which is not under " + LabelUtils::LabelsToString(domain);
 				gJsonQueue.enqueue(tmp);
 			}
 		}
@@ -512,7 +512,7 @@ void CheckStructuralDelegationConsistency(LabelGraph& graph, VertexDescriptor ro
 {
 	VertexDescriptor node;
 	if (!labelNode) {
-		vector<Label> labels = GetLabels(userInput);
+		vector<Label> labels = LabelUtils::StringToLabels(userInput);
 		vector<closestNode> closestEnclosers = SearchNode(graph, root, labels, 0);
 		if (closestEnclosers.size() && closestEnclosers[0].second == labels.size()) {
 			node = closestEnclosers[0].first;
@@ -855,7 +855,7 @@ void GenerateECAndCheckProperties(LabelGraph& g, VertexDescriptor root, string u
 		Logger->warn(fmt::format("properties.cpp (GenerateECAndCheckProperties) - Userinput, {}, exceedes the valid domain length", userInput));
 		return;
 	}
-	vector<Label> labels = GetLabels(userInput);
+	vector<Label> labels = LabelUtils::StringToLabels(userInput);
 	for (Label& l : labels) {
 		if (l.get().length() > kMaxLabelLength) {
 			Logger->warn(fmt::format("properties.cpp (GenerateECAndCheckProperties) - Userinput, {}, has a label, {}, exceedeing the valid label length", userInput, l.get()));

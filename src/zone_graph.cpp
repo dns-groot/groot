@@ -217,7 +217,7 @@ void BuildZoneLabelGraphs(string filePath, string nameServer, LabelGraph& g, con
 vector<ResourceRecord> GlueRecordsLookUp(ZoneGraph& g, ZoneVertexDescriptor root, vector<ResourceRecord>& NSRecords, std::unordered_map<VertexDescriptor, LabelMap>& domainChildLabelMap) {
 	vector<ResourceRecord> IPrecords;
 	for (auto& record : NSRecords) {
-		vector<Label> nsName = GetLabels(record.get_rdata());
+		vector<Label> nsName = LabelUtils::StringToLabels(record.get_rdata());
 		int index = 0;
 		ZoneVertexDescriptor closetEncloser = GetAncestor(g, root, nsName, domainChildLabelMap, index);
 		if (nsName.size() == index) {
@@ -235,7 +235,7 @@ vector<ResourceRecord> GlueRecordsLookUp(ZoneGraph& g, ZoneVertexDescriptor root
 void AddGlueRecords(ZoneGraph& g, ZoneVertexDescriptor root, vector<ResourceRecord>& NSRecords, std::unordered_map<VertexDescriptor, LabelMap>& domainChildLabelMap) {
 	vector<ResourceRecord> mergedRecords;
 	for (auto& record : NSRecords) {
-		vector<Label> nsName = GetLabels(record.get_rdata());
+		vector<Label> nsName = LabelUtils::StringToLabels(record.get_rdata());
 		int index = 0;
 		mergedRecords.push_back(std::move(record));
 		ZoneVertexDescriptor closetEncloser = GetAncestor(g, root, nsName, domainChildLabelMap, index);
@@ -254,7 +254,7 @@ void AddGlueRecords(ZoneGraph& g, ZoneVertexDescriptor root, vector<ResourceReco
 bool RequireGlueRecords(Zone z, vector<ResourceRecord>& NSRecords) {
 
 	for (auto& record : NSRecords) {
-		vector<Label> nsName = GetLabels(record.get_rdata());
+		vector<Label> nsName = LabelUtils::StringToLabels(record.get_rdata());
 		if (nsName.size() < z.origin.size()) continue;
 		int i = 0;
 		for (; i < z.origin.size(); i++) {

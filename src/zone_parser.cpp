@@ -191,7 +191,7 @@ struct Parser
 				}
 				rdata = rdata.substr(0, rdata.size() - 1);
 				if (name.length() == 0) {
-					name = LabelsToString(defaultValues.get_name());
+					name = LabelUtils::LabelsToString(defaultValues.get_name());
 				}
 				else if (type == "SOA" and relativeDomainSuffix.size() == 0) {
 					relativeDomainSuffix = name;

@@ -157,6 +157,7 @@
     <ClCompile Include="label_graph.cpp" />
     <ClCompile Include="properties.cpp" />
     <ClCompile Include="resource_record.cpp" />
+    <ClCompile Include="utils.cpp" />
     <ClCompile Include="zone_graph.cpp" />
     <ClCompile Include="zone_parser.cpp" />
   </ItemGroup>
@@ -165,9 +166,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="graph.h" />
-    <ClInclude Include="myLogger.h" />
+    <ClInclude Include="my_logger.h" />
     <ClInclude Include="interpreter.h" />
     <ClInclude Include="properties.h" />
+    <ClInclude Include="utils.h" />
     <ClInclude Include="zone.h" />
     <ClInclude Include="resource_record.h" />
   </ItemGroup>

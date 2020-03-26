@@ -12,7 +12,8 @@
 #include <boost/flyweight/serialize.hpp>
 #include <boost/serialization/access.hpp>
 
-#include "myLogger.h"
+#include "my_logger.h"
+
 
 using namespace std;
 
@@ -49,7 +50,7 @@ struct Label {
 	Label() : n{ "" } {};
 	std::string get() const;
 	void set(const std::string s);
-	friend bool operator== (const Label& l1, const Label& l2);
+	bool operator== (const Label& l1) const;
 private:
 	friend class boost::serialization::access;
 	template <typename Archive>
@@ -59,15 +60,11 @@ private:
 	}
 };
 
-std::size_t hash_value(Label const& l);
-string LabelsToString(vector<Label> name);
-RRType	ConvertToRRType(string type);
-string RRTypesToString(std::bitset<RRType::N> rrTypes);
-vector<Label> GetLabels(string name);
+std::size_t hash_value(const Label& l1);
 
 class ResourceRecord
 {
-public:	
+public:
 	ResourceRecord(string name, string type, uint16_t class_, uint32_t ttl, string rdata);
 	bool operator== (const ResourceRecord& l1);
 	vector<Label> get_name() const;

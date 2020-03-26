@@ -14,7 +14,7 @@ public:
 		if (query.excluded) {
 			queryName += "~{}.";
 		}
-		string label = "[label=\"NS: " + nameServer + queryName + LabelsToString(query.name) + " T:" + RRTypesToString(query.rrTypes) + "  \\n A:";
+		string label = "[label=\"NS: " + nameServer + queryName + LabelUtils::LabelsToString(query.name) + " T:" + TypeUtils::TypesToString(query.rrTypes) + "  \\n A:";
 		std::bitset<RRType::N> answerTypes;
 		if (answer) {
 			for (auto r : answer.get()) {
@@ -80,7 +80,7 @@ EC ProcessDNAME(ResourceRecord& record, EC& query) {
 		}
 		i++;
 	}
-	vector<Label> rdataLabels = GetLabels(record.get_rdata());
+	vector<Label> rdataLabels = LabelUtils::StringToLabels(record.get_rdata());
 	vector<Label> namelabels = query.name;
 	for (; i < namelabels.size(); i++) {
 		rdataLabels.push_back(namelabels[i]);
@@ -96,7 +96,7 @@ EC ProcessCNAME(ResourceRecord& record, EC& query) {
 	EC newQuery;
 	newQuery.rrTypes = query.rrTypes;
 	newQuery.rrTypes.reset(RRType::CNAME);
-	newQuery.name = GetLabels(record.get_rdata());
+	newQuery.name = LabelUtils::StringToLabels(record.get_rdata());
 	return newQuery;
 }
 
@@ -324,7 +324,7 @@ void QueryResolver(Zone& z, InterpreterGraph& g, IntpVD& v, NameServerIntpre& na
 						else {
 							// Have to query for the IP address of NS
 							EC nsQuery;
-							nsQuery.name = GetLabels(newNS);
+							nsQuery.name = LabelUtils::StringToLabels(newNS);
 							nsQuery.rrTypes[RRType::A] = 1;
 							nsQuery.rrTypes[RRType::AAAA] = 1;
 							IntpVD nsStart = SideQuery(nameServerZoneMap, g, nsQuery);
