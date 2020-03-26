@@ -642,8 +642,8 @@ int main(int argc, const char** argv)
 		demo(zone_directory, properties_file, output);
 		Logger->debug("groot.cpp (main) - Finished checking properties");
 		Logger->debug(fmt::format("groot.cpp (main) - Unfiltered property violations {}",output.size()));
-		json filteredOutput = json::array();
-		for (json j : output) {
+		json filteredOutput = output;
+		/*for (json j : output) {
 			bool found = false;
 			for (json l : filteredOutput) {
 				if (l == j) {
@@ -652,8 +652,8 @@ int main(int argc, const char** argv)
 				}
 			}
 			if (!found) filteredOutput.push_back(j);
-		}
-		Logger->debug(fmt::format("groot.cpp (main) - Violations after removing duplicates {}", filteredOutput.size()));
+		}*/
+		//Logger->debug(fmt::format("groot.cpp (main) - Violations after removing duplicates {}", filteredOutput.size()));
 		p = args.find("--output");
 		string outputFile = "output.json";
 		if (p->second)

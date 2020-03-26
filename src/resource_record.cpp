@@ -10,7 +10,7 @@ ResourceRecord::ResourceRecord(string name, string type, uint16_t class_, uint32
 
 bool ResourceRecord::operator==(const ResourceRecord& l1)
 {
-	if (name_ == l1.get_name() && rdata_ == l1.get_rdata() &&  type_ == l1.get_type()) {
+	if (name_ == l1.get_name() && rdata_ == l1.get_rdata() && type_ == l1.get_type()) {
 		// ignoring ttl_ == l1.get_ttl() 
 		return true;
 	}
@@ -92,7 +92,7 @@ void ResourceRecord::set_ttl(uint32_t ttl)
 	ttl_ = ttl;
 }
 
-bool  Label::operator==(const Label& l) const
+bool Label::operator==(const Label& l) const
 {
 	return l.n == n;
 }
