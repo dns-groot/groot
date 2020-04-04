@@ -1,6 +1,6 @@
 #include "utils.h"
 
-string LabelUtils::LabelsToString(vector<Label> domain_name)
+string LabelUtils::LabelsToString(vector<NodeLabel> domain_name)
 {
 	string domain = "";
 	if (domain_name.size() == 0) {
@@ -14,9 +14,9 @@ string LabelUtils::LabelsToString(vector<Label> domain_name)
 	return domain;
 }
 
-vector<Label> LabelUtils::StringToLabels(string domain_name)
+vector<NodeLabel> LabelUtils::StringToLabels(string domain_name)
 {
-	vector<Label> tokens;
+	vector<NodeLabel> tokens;
 	if (domain_name.length() == 0) {
 		return tokens;
 	}
@@ -43,45 +43,58 @@ vector<Label> LabelUtils::StringToLabels(string domain_name)
 	return tokens;
 }
 
-RRType TypeUtils::StringToType(string type)
+bool LabelUtils::SubDomainCheck(const vector<NodeLabel>& domain, const vector<NodeLabel>& subdomain)
+{
+	if (domain.size() > subdomain.size()) {
+		return false;
+	}
+	for (int i = 0; i < domain.size(); i++) {
+		if (!(domain[i] == subdomain[i])) {
+			return false;
+		}
+	}
+	return true;
+}
+
+RRType TypeUtils::StringToType(const string& type)
 {
 	if (type == "A") {
 		return A;
 	}
-	if (type == "NS") {
+	else if (type == "NS") {
 		return NS;
 	}
-	if (type == "CNAME") {
+	else if (type == "CNAME") {
 		return CNAME;
 	}
-	if (type == "DNAME") {
+	else if (type == "DNAME") {
 		return DNAME;
 	}
-	if (type == "SOA") {
+	else if (type == "SOA") {
 		return SOA;
 	}
-	if (type == "PTR") {
+	else if (type == "PTR") {
 		return PTR;
 	}
-	if (type == "MX") {
+	else if (type == "MX") {
 		return MX;
 	}
-	if (type == "TXT") {
+	else if (type == "TXT") {
 		return TXT;
 	}
-	if (type == "AAAA") {
+	else if (type == "AAAA") {
 		return AAAA;
 	}
-	if (type == "SRV") {
+	else if (type == "SRV") {
 		return SRV;
 	}
-	if (type == "RRSIG") {
+	else if (type == "RRSIG") {
 		return RRSIG;
 	}
-	if (type == "NSEC") {
+	else if (type == "NSEC") {
 		return NSEC;
 	}
-	if (type == "SPF") {
+	else if (type == "SPF") {
 		return SPF;
 	}
 	return N;
@@ -132,4 +145,30 @@ string TypeUtils::TypesToString(std::bitset<RRType::N> rrTypes)
 		stypes += r + " ";
 	}
 	return stypes;
+}
+
+CommonSymDiff RRUtils::CompareRRs(vector<ResourceRecord> res_a, vector<ResourceRecord> res_b)
+{
+	//For the given pair of collection of resource records, return the common RR's, RR's present only in A and RR's present only in B.
+	// Assumption: resA and resB has unique records (no two records in either vector are exactly the same)
+	vector<ResourceRecord> common;
+	auto it = res_a.begin();
+	while (it != res_a.end()) {
+		auto itb = res_b.begin();
+		bool erased = false;
+		while (itb != res_b.end()) {
+			if (*it == *itb) {
+				common.push_back(*it);
+				it = res_a.erase(it);
+				res_b.erase(itb);
+				erased = true;
+				break;
+			}
+			else {
+				itb++;
+			}
+		}
+		if (!erased)it++;
+	}
+	return std::make_tuple(common, res_a, res_b);
 }

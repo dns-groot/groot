@@ -153,25 +153,32 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="interpreter.cpp" />
-    <ClCompile Include="label_graph.cpp" />
+    <ClCompile Include="driver.cpp" />
+    <ClCompile Include="equivalence-class.cpp" />
+    <ClCompile Include="interpretation-graph.cpp" />
+    <ClCompile Include="label-graph.cpp" />
+    <ClCompile Include="node-label.cpp" />
     <ClCompile Include="properties.cpp" />
-    <ClCompile Include="resource_record.cpp" />
+    <ClCompile Include="resource-record.cpp" />
     <ClCompile Include="utils.cpp" />
-    <ClCompile Include="zone_graph.cpp" />
-    <ClCompile Include="zone_parser.cpp" />
+    <ClCompile Include="zone-file-parser.cpp" />
+    <ClCompile Include="zone-graph.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="tests\test1.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="graph.h" />
+    <ClInclude Include="context.h" />
+    <ClInclude Include="driver.h" />
+    <ClInclude Include="equivalence-class.h" />
+    <ClInclude Include="interpretation-properties.h" />
+    <ClInclude Include="label-graph.h" />
     <ClInclude Include="my_logger.h" />
-    <ClInclude Include="interpreter.h" />
-    <ClInclude Include="properties.h" />
+    <ClInclude Include="node-label.h" />
+    <ClInclude Include="resource-record.h" />
+    <ClInclude Include="job.h" />
     <ClInclude Include="utils.h" />
-    <ClInclude Include="zone.h" />
-    <ClInclude Include="resource_record.h" />
+    <ClInclude Include="zone-graph.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -1,9 +1,3 @@
-// For reference https://www.boost.org/doc/libs/1_70_0/libs/spirit/doc/html/spirit/lex/tutorials/lexer_quickstart1.html
-
-#include <fstream>
-#include <iostream>
-#include <string>
-
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/bind.hpp>
@@ -11,16 +5,13 @@
 #include <boost/ref.hpp>
 #include <boost/spirit/include/lex_lexertl.hpp>
 
-#include "graph.h"
-#include "zone.h"
-
-
+#include "driver.h"
+#include "utils.h"
 
 using namespace std;
 namespace lex = boost::spirit::lex;
 
 string gFileName = "";
-int gRRsParsed = 0;
 
 enum TokenIds
 {
@@ -50,115 +41,101 @@ struct zone_file_tokens : lex::lexer<Lexer>
 	}
 };
 
-bool CheckForSubDomain(vector<Label>& domain, vector<Label>  queryLabels) {
-
-	if (domain.size() > queryLabels.size()) {
-		return false;
-	}
-	for (int i = 0; i < domain.size(); i++) {
-		if (!(domain[i] == queryLabels[i])) {
-			return false;
-		}
-	}
-	return true;
-}
-
-
 struct Parser
 {
 	typedef bool result_type;
 	//Can only take at max ten parameters
 	template <typename Token>
-	bool operator()(Token const& t, size_t& l, int& parenCount, string& relativeDomainSuffix, ResourceRecord& defaultValues, vector<string>& currentRecord, const VertexDescriptor& root, LabelGraph& g, Zone& z) const
+	bool operator()(Token const& t, size_t& l, int& paren_count, string& relative_domain_suffix, ResourceRecord& default_values, vector<string>& current_record, label::Graph& label_graph, zone::Graph& z, int& rrs_parsed)
 	{
 		switch (t.id()) {
 		case ID_LPAREN:
-			++parenCount;
+			++paren_count;
 			break;
 		case ID_RPAREN:
-			--parenCount;
-			if (parenCount < 0)
+			--paren_count;
+			if (paren_count < 0)
 			{
-				Logger->error(fmt::format("Unmatched right parenthesis at line - {} in file - {}", l, gFileName));
+				Logger->error(fmt::format("zone-file-parser.cpp (Parser()) - Unmatched right parenthesis at line - {} in file - {}", l, gFileName));
 				return false;
 			}
 			break;
 		case ID_WORD:
 		{
 			std::string tokenvalue(t.value().begin(), t.value().end());
-			currentRecord.push_back(std::move(tokenvalue));
+			current_record.push_back(std::move(tokenvalue));
 			break;
 		}
 		case ID_WHITESPACE: {
-			if (currentRecord.size() == 0)currentRecord.push_back("");
+			if (current_record.size() == 0)current_record.push_back("");
 			break;
 		}
-						  /*case ID_COMMENT:
-						  {
-							  std::string tokenvalue(t.value().begin(), t.value().end());
-							  if (tokenvalue.find("Default zone scope in zone") != std::string::npos) {
-								  vector<string> strs;
-								  boost::split(strs, tokenvalue, boost::is_any_of(" "));
-								  relativeDomainSuffix = strs.back();
-							  }
-							  break;
-						  }*/
+		/*case ID_COMMENT:
+		{
+			std::string tokenvalue(t.value().begin(), t.value().end());
+			if (tokenvalue.find("Default zone scope in zone") != std::string::npos) {
+				vector<string> strs;
+				boost::split(strs, tokenvalue, boost::is_any_of(" "));
+				relativeDomainSuffix = strs.back();
+			}
+			break;
+		}*/
 		case ID_EOL:
 			++l;
-			if (parenCount == 0 && currentRecord.size() > 0)
+			if (paren_count == 0 && current_record.size() > 0)
 			{
 				// Control entry $ORIGIN - Sets the origin for relative domain names
-				if (currentRecord[0].compare("$ORIGIN") == 0) {
-					relativeDomainSuffix = currentRecord[1];
-					boost::to_lower(relativeDomainSuffix);
-					currentRecord.clear();
+				if (current_record[0].compare("$ORIGIN") == 0) {
+					relative_domain_suffix = current_record[1];
+					boost::to_lower(relative_domain_suffix);
+					current_record.clear();
 					return true;
 				}
 				// Control entry $INCLUDE - Inserts the named file( currently unhandled)
-				if (currentRecord[0].compare("$INCLUDE") == 0) {
-					Logger->error(fmt::format("Found $INCLUDE entry at line - {} in file - {}", l, gFileName));
+				if (current_record[0].compare("$INCLUDE") == 0) {
+					Logger->error(fmt::format("zone-file-parser.cpp (Parser()) - Found $INCLUDE entry at line - {} in file - {}", l, gFileName));
 					return false;
 				}
 				// Control entry $TTL - The TTL for records without explicit TTL value
-				if (currentRecord[0].compare("$TTL") == 0) {
-					defaultValues.set_ttl(std::stoi(currentRecord[1]));
-					currentRecord.clear();
+				if (current_record[0].compare("$TTL") == 0) {
+					default_values.set_ttl(std::stoi(current_record[1]));
+					current_record.clear();
 					return true;
 				}
 
 				std::string name;
 				// First symbol is "@" implies the owner name is the relative domain name.
-				if (currentRecord[0].compare("@") == 0) {
-					if (relativeDomainSuffix.length() > 0) {
-						name = relativeDomainSuffix;
-						currentRecord.erase(currentRecord.begin());
-						defaultValues.set_name(relativeDomainSuffix);
+				if (current_record[0].compare("@") == 0) {
+					if (relative_domain_suffix.length() > 0) {
+						name = relative_domain_suffix;
+						current_record.erase(current_record.begin());
+						default_values.set_name(relative_domain_suffix);
 					}
 					else {
-						Logger->error(fmt::format("Encountered @ symbol but relative domain is empty at line - {} in file - {}", l, gFileName));
+						Logger->error(fmt::format("zone-file-parser.cpp (Parser()) - Encountered @ symbol but relative domain is empty at line - {} in file - {}", l, gFileName));
 						return false;
 					}
 				}
 
 				// Search for the index where the RR type is found
-				int typeIndex = GetTypeIndex(currentRecord);
+				int typeIndex = GetTypeIndex(current_record);
 				if (typeIndex == -1) {
 					//Logger->warn(fmt::format("RR type not handled for the RR at line- {} in file- {}", l, gFileName));
-					currentRecord.clear();
+					current_record.clear();
 					return true;
 				}
-				string type = currentRecord[typeIndex];
+				string type = current_record[typeIndex];
 				boost::to_upper(type);
 				string rdata = "";
 				uint16_t class_ = 1;
-				uint32_t ttl = defaultValues.get_ttl();
+				uint32_t ttl = default_values.get_ttl();
 				int i = 0;
 				if (typeIndex > 3) {
-					Logger->warn(fmt::format("RR at line - {} in file - {} is not following the DNS grammar (typeIndex > 3)", l, gFileName));
-					currentRecord.clear();
+					Logger->warn(fmt::format("zone-file-parser.cpp (Parser()) - RR at line {} in file {} is not following the DNS grammar (typeIndex > 3)", l, gFileName));
+					current_record.clear();
 					return true;
 				}
-				for (auto& field : currentRecord)
+				for (auto& field : current_record)
 				{
 					if (i > typeIndex) {
 						rdata += field + " ";
@@ -167,11 +144,11 @@ struct Parser
 						if (i == 0) {
 							if (field.size() > 0) {
 								name = field;
-								defaultValues.set_name(field);
+								default_values.set_name(field);
 							}
 						}
 						else if (boost::iequals(field, "CH")) {
-							Logger->warn(fmt::format("Found CH class for the RR at line - {} in file - {}", l, gFileName));
+							Logger->warn(fmt::format("zone-file-parser.cpp (Parser()) - Found CH class for the RR at line {} in file {}", l, gFileName));
 							class_ = 3;
 						}
 						else if (boost::iequals(field, "IN")) {
@@ -179,11 +156,11 @@ struct Parser
 						}
 						else if (isInteger(field)) {
 							ttl = std::stoi(field);
-							if (defaultValues.get_ttl() == 0) defaultValues.set_ttl(ttl);
+							if (default_values.get_ttl() == 0) default_values.set_ttl(ttl);
 						}
 						else {
-							Logger->warn(fmt::format("RR at line - {} in file - {} is not following the DNS grammar", l, gFileName));
-							currentRecord.clear();
+							Logger->warn(fmt::format("zone-file-parser.cpp (Parser()) - RR at line {} in file {} is not following the DNS grammar", l, gFileName));
+							current_record.clear();
 							return true;
 						}
 					}
@@ -191,14 +168,14 @@ struct Parser
 				}
 				rdata = rdata.substr(0, rdata.size() - 1);
 				if (name.length() == 0) {
-					name = LabelUtils::LabelsToString(defaultValues.get_name());
+					name = LabelUtils::LabelsToString(default_values.get_name());
 				}
-				else if (type == "SOA" and relativeDomainSuffix.size() == 0) {
-					relativeDomainSuffix = name;
+				else if (type == "SOA" and relative_domain_suffix.size() == 0) {
+					relative_domain_suffix = name;
 				}
 				if (!boost::algorithm::ends_with(name, ".")) {
-					name = name + "." + relativeDomainSuffix;
-					defaultValues.set_name(name);
+					name = name + "." + relative_domain_suffix;
+					default_values.set_name(name);
 				}
 				//compare returns zero when equal
 				if (!type.compare("NS") || !type.compare("CNAME") || !type.compare("DNAME") || !type.compare("MX")) {
@@ -216,26 +193,25 @@ struct Parser
 						//	currentRecord.clear();
 						//	return false;
 						//}
-						rdata = rdata + "." + relativeDomainSuffix;
+						rdata = rdata + "." + relative_domain_suffix;
 					}
 				}
 				boost::to_lower(rdata);
 				boost::to_lower(name);
-				gRRsParsed++;
+				rrs_parsed++;
 				ResourceRecord RR(name, type, class_, ttl, rdata);
 				bool add = true;
 				/*	if (!type.compare("SOA") && !CheckForSubDomain(z.origin, RR.get_name())) {
 						add = false;
 					}*/
 				if (add) {
-					boost::optional<ZoneVertexDescriptor> vertexid = ZoneGraphBuilder(RR, z);
+					boost::optional<zone::Graph::VertexDescriptor> vertexid = z.AddResourceRecord(RR);
 					if (vertexid) {
-						LabelGraphBuilder(RR, g, root, z.zoneId, vertexid.get());
+						label_graph.AddResourceRecord(RR, z.get_id(), vertexid.get());
 					}
-
 				}
-				currentRecord.clear();
-				Logger->trace(fmt::format("zone_parser.cpp (Parser) Parsed line {} in file {}", l, gFileName));
+				current_record.clear();
+				Logger->trace(fmt::format("zone-file-parser.cpp (Parser()) - Parsed line {} in file {}", l, gFileName));
 			}
 			break;
 		case ID_OTHER:
@@ -274,13 +250,12 @@ struct Parser
 
 };
 
-
 inline string ReadFromFile(char const* infile)
 {
 	ifstream instream(infile);
 	if (!instream.is_open()) {
 		//cerr << "Couldn't open file: " << infile << endl;
-		Logger->critical(fmt::format("zone_parser.cpp - couldn't open file - {}", infile));
+		Logger->critical(fmt::format("zone-file-parser.cpp (Parser()) - couldn't open file {}", infile));
 		exit(-1);
 	}
 	instream.unsetf(ios::skipws);
@@ -288,31 +263,27 @@ inline string ReadFromFile(char const* infile)
 		istreambuf_iterator<char>());
 }
 
-int ParseZoneFile(string& file, LabelGraph& g, const VertexDescriptor& root, Zone& z)
-{
+int Driver::ParseZoneFileAndExtendGraphs(string file, string nameserver) {
+
+	context_.zoneId_counter_++;
+	int& zoneId = context_.zoneId_counter_;
+	zone::Graph zone_graph(zoneId);
+
 	// get the zone file input as a string.
 	string str(ReadFromFile(file.c_str()));
 	char const* first = str.c_str();
 	char const* last = &first[str.size()];
 
-	gFileName = file;
-	gRRsParsed = 0;
+	string file_name = file;
+
 	// mutable state that will be updated by the parser.
 	size_t l = 0;
 	int parenCount = 0;
+	int rrs_parsed = 0;
 	string relative_domain = "";
-	//if (boost::algorithm::ends_with(file, ".dns")) {
-	//	//For the hotmail.com zone files
-	//	vector<string> strs;
-	//	boost::split(strs, file, boost::is_any_of("\\"));
-	//	relative_domain = strs.back();
-	//	relative_domain = relative_domain.substr(0, relative_domain.length() - 3);
-	//	boost::to_lower(relative_domain);
-	//}
 	ResourceRecord defaultValues("", "", 0, 0, "");
 	vector<string> currentRecord;
 
-	// parse the zone file from the given string.
 	zone_file_tokens<lex::lexertl::lexer<> > zone_functor;
 	auto parserCallback =
 		boost::bind(Parser(), _1,
@@ -321,19 +292,35 @@ int ParseZoneFile(string& file, LabelGraph& g, const VertexDescriptor& root, Zon
 			boost::ref(relative_domain),
 			boost::ref(defaultValues),
 			boost::ref(currentRecord),
-			boost::ref(root),
-			boost::ref(g),
-			boost::ref(z));
+			boost::ref(label_graph_),
+			boost::ref(zone_graph),
+			boost::ref(rrs_parsed)
+		);
 
 	auto r = lex::tokenize(first, last, zone_functor, parserCallback);
 
 	// check if parsing was successful.
 	if (!r || parenCount != 0)
 	{
-		Logger->error(fmt::format("Failed to completely parse zone file - {}", gFileName));
+		Logger->error(fmt::format("zone-file-parser.cpp (ParseZoneFileAndExtendGraphs) - Failed to completely parse zone file {}", file));
 	}
 	else {
-		Logger->debug(fmt::format("Successfully parsed zone file - {}", gFileName));
+		Logger->debug(fmt::format("zone-file-parser.cpp (ParseZoneFileAndExtendGraphs) - Successfully parsed zone file {}", file));
 	}
-	return gRRsParsed;
+
+	//Add the new zone graph to the context
+	context_.zoneId_to_zone_.insert({ zoneId, std::move(zone_graph) });
+	auto it = context_.nameserver_zoneIds_map_.find(nameserver);
+	if (it == context_.nameserver_zoneIds_map_.end()) {
+		context_.nameserver_zoneIds_map_.insert({ nameserver, std::vector<int>{} });
+	}
+	it = context_.nameserver_zoneIds_map_.find(nameserver);
+	if (it == context_.nameserver_zoneIds_map_.end()) {
+		Logger->critical(fmt::format("zone-file-parser.cpp (ParseZoneFileAndExtendGraphs) - Unable to insert into nameserver_zoneIds_map_"));
+		std::exit(EXIT_FAILURE);
+	}
+	else {
+		it->second.push_back(zoneId);
+	}
+	return rrs_parsed;
 }

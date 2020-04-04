@@ -2,19 +2,26 @@
 
 #include <set>
 
-#include "resource_record.h"
+#include "resource-record.h"
 
 class LabelUtils
 {
 public:
-	static string LabelsToString(vector<Label> domain_name);
-	static vector<Label> StringToLabels(string domain_name);
+	static string LabelsToString(vector<NodeLabel>);
+	static vector<NodeLabel> StringToLabels(string);
+	static bool SubDomainCheck(const vector<NodeLabel>&, const vector<NodeLabel>&);
 };
 
 class TypeUtils
 {
 public:
-	static RRType StringToType(string type);
-	static string TypesToString(std::bitset<RRType::N> rrTypes);
+	static RRType StringToType(const string&);
+	static string TypesToString(std::bitset<RRType::N>);
 };
 
+using CommonSymDiff = tuple<vector<ResourceRecord>, vector<ResourceRecord>, vector<ResourceRecord>>;
+
+class RRUtils {
+public:
+	static CommonSymDiff CompareRRs(vector<ResourceRecord>, vector<ResourceRecord>);
+};
