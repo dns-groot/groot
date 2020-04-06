@@ -225,18 +225,18 @@ void interpretation::Graph::Properties::CheckLameDelegation(const interpretation
 	}
 }
 
-void interpretation::Graph::Properties::NameServerContact(const interpretation::Graph& graph, const Path& p, moodycamel::ConcurrentQueue<json>& json_queue, vector<NodeLabel> domain)
+void interpretation::Graph::Properties::NameServerContact(const interpretation::Graph& graph, const Path& p, moodycamel::ConcurrentQueue<json>& json_queue, vector<vector<NodeLabel>> allowed_domains)
 {
 	/*
 	 At any point in the resolution process, the query should not be sent to a name server outside the domain.
 	*/
 	for (int i = 0; i < p.size(); i++) {
 		if (graph[p[i]].ns != "") {
-			if (!LabelUtils::SubDomainCheck(domain, LabelUtils::StringToLabels(graph[p[i]].ns))) {
+			if (!LabelUtils::SubDomainCheck(allowed_domains, LabelUtils::StringToLabels(graph[p[i]].ns))) {
 				json tmp;
 				tmp["Property"] = "Name Server Contact";
 				tmp["Equivalence Class"] = graph[p[i]].query.ToString();
-				tmp["Violation"] = "Query is sent to NS:" + graph[p[i]].ns + " which is not under " + LabelUtils::LabelsToString(domain);
+				tmp["Violation"] = "Query is sent to NS:" + graph[p[i]].ns + " which is not under " + LabelUtils::LabelsToString(allowed_domains);
 				json_queue.enqueue(tmp);
 			}
 		}
@@ -300,7 +300,7 @@ void interpretation::Graph::Properties::NumberOfRewrites(const interpretation::G
 	}
 }
 
-void interpretation::Graph::Properties::QueryRewrite(const interpretation::Graph& graph, const Path& p, moodycamel::ConcurrentQueue<json>& json_queue, vector<NodeLabel> domain)
+void interpretation::Graph::Properties::QueryRewrite(const interpretation::Graph& graph, const Path& p, moodycamel::ConcurrentQueue<json>& json_queue, vector<vector<NodeLabel>> domain)
 {
 	/*
 	  If there is a node with answer tag as AnsQ then the new query should be under the subdomain of domain.
@@ -314,7 +314,7 @@ void interpretation::Graph::Properties::QueryRewrite(const interpretation::Graph
 					json tmp;
 					tmp["Property"] = "Query Rewrite";
 					tmp["Equivalence Class"] = graph[p[i]].query.ToString();
-					tmp["Violation"] = "Query is rewritten to " + graph[p[static_cast<long long>(i) + 1]].query.ToString() + " at NS:" + graph[p[i]].ns + " which is not under " + LabelUtils::LabelsToString(domain);
+					tmp["Violation"] = "Query is rewritten to " + graph[p[static_cast<long long>(i) + 1]].query.ToString() + " at NS:" + graph[p[i]].ns + " which is not under any of " + LabelUtils::LabelsToString(domain);
 					json_queue.enqueue(tmp);
 				}
 			}

@@ -116,10 +116,10 @@ namespace interpretation {
 			//Path properties
 			static void CheckDelegationConsistency(const interpretation::Graph&, const Path&, moodycamel::ConcurrentQueue<json>&);
 			static void CheckLameDelegation(const interpretation::Graph&, const Path&, moodycamel::ConcurrentQueue<json>&);
-			static void NameServerContact(const interpretation::Graph&, const Path&, moodycamel::ConcurrentQueue<json>&, vector<NodeLabel>);
+			static void NameServerContact(const interpretation::Graph&, const Path&, moodycamel::ConcurrentQueue<json>&, vector<vector<NodeLabel>>);
 			static void NumberOfHops(const interpretation::Graph&, const Path&, moodycamel::ConcurrentQueue<json>&, int);
 			static void NumberOfRewrites(const interpretation::Graph&, const Path&, moodycamel::ConcurrentQueue<json>&, int);
-			static void QueryRewrite(const interpretation::Graph&, const Path&, moodycamel::ConcurrentQueue<json>&, vector<NodeLabel>);
+			static void QueryRewrite(const interpretation::Graph&, const Path&, moodycamel::ConcurrentQueue<json>&, vector<vector<NodeLabel>>);
 		};
 
 		void CheckForLoops(moodycamel::ConcurrentQueue<json>&) const;

@@ -49,7 +49,7 @@
 		"Properties":[
 			{
 				"PropertyName": "QueryRewrite",
-				"Value": "mtn.net.sy."
+				"Value": ["foo.mtn.net.sy."]
 			},
 			{
 				"PropertyName": "Rewrites",

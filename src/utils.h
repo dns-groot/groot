@@ -8,8 +8,10 @@ class LabelUtils
 {
 public:
 	static string LabelsToString(vector<NodeLabel>);
+	static string LabelsToString(vector<vector<NodeLabel>>);
 	static vector<NodeLabel> StringToLabels(string);
 	static bool SubDomainCheck(const vector<NodeLabel>&, const vector<NodeLabel>&);
+	static bool SubDomainCheck(const vector<vector<NodeLabel>>&, const vector<NodeLabel>&);
 };
 
 class TypeUtils

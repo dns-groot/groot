@@ -14,6 +14,17 @@ string LabelUtils::LabelsToString(vector<NodeLabel> domain_name)
 	return domain;
 }
 
+string LabelUtils::LabelsToString(vector<vector<NodeLabel>> domains)
+{
+	string result = "[";
+	for (auto& d : domains) {
+		result += LabelsToString(d) + ", ";
+	}
+	result.pop_back();
+	result.pop_back();
+	return result + "]";
+}
+
 vector<NodeLabel> LabelUtils::StringToLabels(string domain_name)
 {
 	vector<NodeLabel> tokens;
@@ -54,6 +65,15 @@ bool LabelUtils::SubDomainCheck(const vector<NodeLabel>& domain, const vector<No
 		}
 	}
 	return true;
+}
+
+bool LabelUtils::SubDomainCheck(const vector<vector<NodeLabel>>& allowed_domains, const vector<NodeLabel>& subdomain)
+{
+	bool any_subdomain = false;
+	for (auto& d : allowed_domains) {
+		any_subdomain |= SubDomainCheck(d, subdomain);
+	}
+	return any_subdomain;
 }
 
 RRType TypeUtils::StringToType(const string& type)

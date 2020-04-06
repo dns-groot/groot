@@ -94,10 +94,6 @@ void Driver::SetContext(const json& metadata, string directory)
 		auto zone_file_path = (filesystem::path{ directory } / filesystem::path{ file_name }).string();
 		ParseZoneFileAndExtendGraphs(zone_file_path, zone_json["NameServer"]);
 	}
-	cout << "Label graph" << num_vertices(label_graph_) << endl;
-	cout << "ZoneId counter " << context_.zoneId_counter_ << endl;
-	cout << "Nameserver map" << context_.nameserver_zoneIds_map_.size() << endl;
-	cout << "ZoneId map" << context_.zoneId_to_zone_.size() << endl;
 }
 
 void Driver::SetJob(const json& user_job)
@@ -134,8 +130,13 @@ void Driver::SetJob(const json& user_job)
 			for (string v : property["Value"]) {
 				values.insert(v);
 			}
-			auto la = [types = std::move(propertyTypes), v = std::move(values)](const interpretation::Graph& graph, const vector<interpretation::Graph::VertexDescriptor>& end, moodycamel::ConcurrentQueue<json>& json_queue){ interpretation::Graph::Properties::CheckResponseValue(graph, end, json_queue, types, v); };
-			current_job_.node_functions.push_back(la);
+			if (values.size()) {
+				auto la = [types = std::move(propertyTypes), v = std::move(values)](const interpretation::Graph& graph, const vector<interpretation::Graph::VertexDescriptor>& end, moodycamel::ConcurrentQueue<json>& json_queue){ interpretation::Graph::Properties::CheckResponseValue(graph, end, json_queue, types, v); };
+				current_job_.node_functions.push_back(la);
+			}
+			else {
+				Logger->error(fmt::format("driver.cpp (SetJob) - Skipping ResponseValue property check for {} as the Values is an empty list.", string(user_job["Domain"])));
+			}
 		}
 		else if (name == "Hops") {
 			auto l = [num_hops = property["Value"]](const interpretation::Graph& graph, const interpretation::Graph::Path& p, moodycamel::ConcurrentQueue<json>& json_queue) {interpretation::Graph::Properties::NumberOfHops(graph, p, json_queue, num_hops); };
@@ -154,12 +155,30 @@ void Driver::SetJob(const json& user_job)
 			current_job_.path_functions.push_back(l);
 		}
 		else if (name == "QueryRewrite") {
-			auto l = [d = property["Value"]](const interpretation::Graph& graph, const interpretation::Graph::Path& p, moodycamel::ConcurrentQueue<json>& json_queue) {interpretation::Graph::Properties::QueryRewrite(graph, p, json_queue, LabelUtils::StringToLabels(d)); };
-			current_job_.path_functions.push_back(l);
+			vector<vector<NodeLabel>> allowed_domains;
+			for (string v : property["Value"]) {
+				allowed_domains.push_back(LabelUtils::StringToLabels(v));
+			}
+			if (allowed_domains.size() > 0) {
+				auto l = [d = std::move(allowed_domains)](const interpretation::Graph& graph, const interpretation::Graph::Path& p, moodycamel::ConcurrentQueue<json>& json_queue) {interpretation::Graph::Properties::QueryRewrite(graph, p, json_queue, d); };
+				current_job_.path_functions.push_back(l);
+			}
+			else {
+				Logger->error(fmt::format("driver.cpp (SetJob) - Skipping QueryRewrite property check for {} as the Values is an empty list.", string(user_job["Domain"])));
+			}
 		}
 		else if (name == "NameServerContact") {
-			auto l = [d = property["Value"]](const interpretation::Graph& graph, const interpretation::Graph::Path& p, moodycamel::ConcurrentQueue<json>& json_queue) {interpretation::Graph::Properties::NameServerContact(graph, p, json_queue, LabelUtils::StringToLabels(d)); };
-			current_job_.path_functions.push_back(l);
+			vector<vector<NodeLabel>> allowed_domains;
+			for (string v : property["Value"]) {
+				allowed_domains.push_back(LabelUtils::StringToLabels(v));
+			}
+			if (allowed_domains.size() > 0) {
+				auto l = [d = std::move(allowed_domains)](const interpretation::Graph& graph, const interpretation::Graph::Path& p, moodycamel::ConcurrentQueue<json>& json_queue) {interpretation::Graph::Properties::NameServerContact(graph, p, json_queue, d); };
+				current_job_.path_functions.push_back(l);
+			}
+			else {
+				Logger->error(fmt::format("driver.cpp (SetJob) - Skipping NameServerContact property check for {} as the Values is an empty list.", string(user_job["Domain"])));
+			}
 		}
 	}
 }
