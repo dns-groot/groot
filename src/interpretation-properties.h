@@ -120,6 +120,7 @@ namespace interpretation {
 			static void NumberOfHops(const interpretation::Graph&, const Path&, moodycamel::ConcurrentQueue<json>&, int);
 			static void NumberOfRewrites(const interpretation::Graph&, const Path&, moodycamel::ConcurrentQueue<json>&, int);
 			static void QueryRewrite(const interpretation::Graph&, const Path&, moodycamel::ConcurrentQueue<json>&, vector<vector<NodeLabel>>);
+			static void RewriteBlackholing(const interpretation::Graph&, const Path&, moodycamel::ConcurrentQueue<json>&);
 		};
 
 		void CheckForLoops(moodycamel::ConcurrentQueue<json>&) const;

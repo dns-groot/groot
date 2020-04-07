@@ -180,6 +180,9 @@ void Driver::SetJob(const json& user_job)
 				Logger->error(fmt::format("driver.cpp (SetJob) - Skipping NameServerContact property check for {} as the Values is an empty list.", string(user_job["Domain"])));
 			}
 		}
+		else if (name == "RewriteBlackholing") {
+			current_job_.path_functions.push_back(interpretation::Graph::Properties::RewriteBlackholing);
+		}
 	}
 }
 

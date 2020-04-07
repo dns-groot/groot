@@ -30,6 +30,9 @@
 			{
 				"PropertyName": "ResponseConsistency",
 				"Types": ["A","MX"]
+			},
+			{
+				"PropertyName": "RewriteBlackholing"
 			}
 		]
 	},
@@ -49,7 +52,7 @@
 		"Properties":[
 			{
 				"PropertyName": "QueryRewrite",
-				"Value": ["foo.mtn.net.sy."]
+				"Value": ["foo.mtn.net.sy.", "bar.mtn.net.sy"]
 			},
 			{
 				"PropertyName": "Rewrites",

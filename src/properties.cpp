@@ -324,3 +324,38 @@ void interpretation::Graph::Properties::QueryRewrite(const interpretation::Graph
 		}
 	}
 }
+
+void interpretation::Graph::Properties::RewriteBlackholing(const interpretation::Graph& graph, const Path& p, moodycamel::ConcurrentQueue<json>& json_queue)
+{
+	/*
+	  If there is a node with answer tag as REWRITE then the last node in the path should not be an NXDOMAIN. (REFUSED/NSNOTFOUND)
+	  If the last node is NXDOMAIN then it means the initial query is rewritten and the new query doesn't have resource record of any type.
+	  We may flag things which end up with REFUSED/NSNOTFOUND to be conservative.
+	*/
+	for (int i = 0; i < p.size(); i++) {
+		if (graph[p[i]].answer && std::get<0>(graph[p[i]].answer.get()[0]) == ReturnTag::REWRITE) {
+			// Rewrite happened at this node
+			if (i < p.size() - 1) {
+				auto& end_tag = std::get<0>(graph[p[p.size() - 1]].answer.get()[0]);
+				if (end_tag == ReturnTag::NX) {
+					json tmp;
+					tmp["Property"] = "Rewrite Blackholing";
+					tmp["Equivalence Class"] = graph[p[i]].query.ToString();
+					tmp["Violation"] = "Query is eventually rewritten to " + graph[p[p.size() - 1]].query.ToString()  + " for which there doesn't exist any resource record of any type" ;
+					json_queue.enqueue(tmp);
+				}
+				else if (end_tag == ReturnTag::REFUSED || end_tag == ReturnTag::NSNOTFOUND) {
+					json tmp;
+					tmp["Property"] = "Rewrite Blackholing";
+					tmp["Equivalence Class"] = graph[p[i]].query.ToString();
+					tmp["Violation"] = "Query is eventually rewritten to " + graph[p[p.size() - 1]].query.ToString() + " for which there is no sufficient information at NS: " + graph[p[p.size() - 1]].ns + " to decide whether it is blackholed";
+					json_queue.enqueue(tmp);
+				}
+			}
+			else {
+				Logger->error(fmt::format("properties.cpp (QueryRewrite) - An implementation error - REWRITE is the last node in the path: {}", graph[p[0]].query.ToString()));
+			}
+			break;
+		}
+	}
+}
