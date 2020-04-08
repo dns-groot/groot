@@ -61,20 +61,48 @@ The `/host/dir` on the host system would then be accessible within the container
 
 </details>
 
-## Running
-1. Usage: groot [-hdv] [--properties=<properties_file>] <zone_directory> [--output=<output_directory>]
-    - -h --help Show the help screen
-    - -v --verbose Logs trace information. 
-    - --version Show the groot version
-2. Example usage in docker (Ubuntu):
+## Property Verification
+Check for any violations of the input properties by invoking Groot as:
+
+For docker (Ubuntu):
 ```bash
-$ .~/groot/build/bin/groot ~/groot/demo/zone_files --properties=~/groot/demo/properties.json 
+$ .~/groot/build/bin/groot ~/groot/demo/zone_files --properties=~/groot/demo/properties.json --output=output.json
 ```
-3. Example usage in Windows:
+For Windows:
 ```bash
-$ .~\groot\x64\Release\groot.exe ~\groot\demo\zone_files --properties=~\groot\demo\properties.json 
+$ .~\groot\x64\Release\groot.exe ~\groot\demo\zone_files --properties=~\groot\demo\properties.json --output=output.json
 ```
-4.  Groot generates a `output.json` file containing the inputs that violates the properties.
+Groot outputs any violations to the `output.json` file. 
+
+#### Logging
+Groot by default logs debugging messages to `log.txt` file and you may use `-v` flag to log more detailed information.
+
+#### Packaging zone files data
+Groot expects all the required zone files to be available in the input directory along with a special file `metadata.json`. The `metadata.json` file has to be created by the user and has to list the file name and the name server from which that zone file was obtained. If the zone files for a domain are obtained from multiple name servers, make sure to give the files a distinct name and fill the metadata accordingly. The user also has to provide the root (top) name servers for his domain in the `metadata.json`. 
+
+<details>
+
+<summary><kbd>:arrow_down: CLICK</kbd> to reveal <code>metadata.json</code> structure</summary>
+
+```json5
+{  
+  "TopNameServers" : ["...", "...", ..],  //List of top name servers as strings
+  "ZoneFiles" : [
+      {
+         "FileName": "...",
+         "NameServer": "..."
+      },
+      {
+         "FileName": "...",
+         "NameServer": "..."
+      },
+      .
+      .
+  ]
+}
+```
+</details>
+
 
 [docker-hub]:         https://hub.docker.com/r/sivakesava/groot
 [bind mount]:         https://docs.docker.com/storage/bind-mounts
