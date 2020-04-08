@@ -44,7 +44,7 @@ The `/host/dir` on the host system would then be accessible within the container
 
 <details>
 
-<summary><kbd>:arrow_down: CLICK</kbd> to reveal instructions</summary>
+<summary><kbd>CLICK</kbd> to reveal instructions</summary>
 
 #### Installation for Windows
 1. Install [`vcpkg`](https://docs.microsoft.com/en-us/cpp/build/vcpkg?view=vs-2019) package manager to install dependecies. 
@@ -66,43 +66,204 @@ Check for any violations of the input properties by invoking Groot as:
 
 For docker (Ubuntu):
 ```bash
-$ .~/groot/build/bin/groot ~/groot/demo/zone_files --properties=~/groot/demo/properties.json --output=output.json
+$ .~/groot/build/bin/groot ~/groot/demo/zone_files --jobs=~/groot/demo/jobs.json --output=output.json
 ```
 For Windows:
 ```bash
-$ .~\groot\x64\Release\groot.exe ~\groot\demo\zone_files --properties=~\groot\demo\properties.json --output=output.json
+$ .~\groot\x64\Release\groot.exe ~\groot\demo\zone_files --jobs=~\groot\demo\jobs.json --output=output.json
 ```
 Groot outputs any violations to the `output.json` file. 
 
-#### Logging
+### Logging
 Groot by default logs debugging messages to `log.txt` file and you may use `-v` flag to log more detailed information.
 
-#### Packaging zone files data
+### Packaging zone files data
 Groot expects all the required zone files to be available in the input directory along with a special file `metadata.json`. The `metadata.json` file has to be created by the user and has to list the file name and the name server from which that zone file was obtained. If the zone files for a domain are obtained from multiple name servers, make sure to give the files a distinct name and fill the metadata accordingly. The user also has to provide the root (top) name servers for his domain in the `metadata.json`. 
 
 <details>
 
-<summary><kbd>:arrow_down: CLICK</kbd> to reveal <code>metadata.json</code> structure</summary>
+<summary><kbd>CLICK</kbd> to reveal an <a href="https://github.com/dns-groot/groot/blob/master/demo/zone_files/metadata.json">example<code>metadata.json</code></a></summary>
 
 ```json5
 {  
-  "TopNameServers" : ["...", "...", ..],  //List of top name servers as strings
+  "TopNameServers" : ["ns1.tld.sy."],  //List of top name servers as strings
   "ZoneFiles" : [
       {
-         "FileName": "...",
-         "NameServer": "..."
+         "FileName": "net.sy.txt", //net.sy. zone file from ns1.tld.sy. name server
+         "NameServer": "ns1.tld.sy."
       },
       {
-         "FileName": "...",
-         "NameServer": "..."
+         "FileName": "mtn.net.sy.txt", //mtn.net.sy. zone file from ns1.mtn.net.sy. name server
+         "NameServer": "ns1.mtn.net.sy."
       },
-      .
-      .
+      {
+         "FileName": "child.mtn.net.sy.txt", //child.mtn.net.sy. zone file from ns1.child.mtn.net.sy. name server
+         "NameServer": "ns1.child.mtn.net.sy."
+      },
+      {
+         "FileName": "child.mtn.net.sy-2.txt", //child.mtn.net.sy. zone file from ns2.child.mtn.net.sy. name server 
+         "NameServer": "ns2.child.mtn.net.sy." //for same domain (child.mtn.net.sy.) as the last one but from different name server
+      }
   ]
 }
 ```
 </details>
 
+### Inputting Jobs
+Groot can currently check properties shown below on the zone files and expects the input list as a `json` file. We call the process of checking properites on a domain and optionally on all its subdomains a **job**. The input `json` file can have a list of jobs.
+An example job is:
+```json5
+{
+   "Domain": "mtn.net.sy." // Name of the domain to check
+   "SubDomain": true, //Whether to check the properties on all the subdomains also
+   "Properties":[ 
+      {
+         "PropertyName": "QueryRewrite",
+         "Value": ["foo.mtn.net.sy.", "bar.mtn.net.sy"]
+      },
+      {
+         "PropertyName": "Rewrites",
+         "Value": 0
+      },
+      {
+         "PropertyName": "RewriteBlackholing"
+      }
+   ]
+}
+```
+
+#### Available Properties
+<details>
+<summary>Response Consistency</summary>
+Different executions in DNS that might happen due to multiple name servers should result in the same answers.
+   
+Input `json` format:
+```json5
+      {
+         "PropertyName": "ResponseConsistency"
+         "Types": ["A", "MX"] //Checks the consistency for only these types
+      }
+```
+</details>
+
+<details>
+<summary>Response Returned</summary>
+Different executions in DNS that might happen due to multiple name servers should result in some non-empty response.
+   
+Input `json` format:
+```json5
+      {
+         "PropertyName": "ResponseReturned"
+         "Types": ["CNAME", "A"] //Checks that some non-empty response is returned for these types
+      }
+```
+</details>
+
+<details>
+<summary>Response Value</summary>
+Every execution in DNS should return an answer that matches the user input answer.
+
+Input `json` format:
+```json5
+      {
+         "PropertyName": "ResponseValue"
+         "Types": ["A"],
+         "Value": ["2.2.2.1"] //The expected response
+         
+      }
+```
+</details>
+
+<details>
+<summary>Delegation Consistency</summary>
+   
+The parent and child zone files should have the same set of _NS_ and glue _A_ records for delegation.
+Input `json` format:
+```json5
+      {
+         "PropertyName": "DelegationConsistency"
+      }
+```
+</details>
+
+<details>
+<summary>Lame Delegation</summary>
+   
+A name server that is authoritative for a zone should provide authoritative answers, otherwise it is a lame delegation.
+Input `json` format:
+```json5
+      {
+         "PropertyName": "LameDelegation"
+      }
+```
+</details>
+
+<details>
+<summary>Number of Hops</summary>
+   
+The query should not go through more than _X_ number of hops for any execution in the DNS.
+Input `json` format:
+```json5
+      {
+         "PropertyName": "Hops",
+         "Value": 2
+      }
+```
+</details>
+
+<details>
+<summary>Number of Rewrites</summary>
+   
+The query should not be rewritten more than _X_ number of time for any execution in the DNS.
+Input `json` format:
+```json5
+      {
+         "PropertyName": "Rewrites",
+         "Value": 3
+      }
+```
+</details>
+
+<details>
+<summary>Query Rewritting</summary>
+   
+The query should not be rewritten to any domain that is not a subdomain of the allowed set of domains for any execution in the DNS.
+Input `json` format:
+```json5
+      {
+         "PropertyName": "QueryRewrite",
+         "Value": ["foo.mtn.net.sy.", "bar.mtn.net.sy"] //List of allowed domains
+      }
+```
+</details>
+
+<details>
+<summary>Nameserver Contact</summary>
+   
+The query should not contact any name server that is not a subdomain of the allowed set of domains for any execution in the DNS.
+Input `json` format:
+```json5
+      {
+         "PropertyName": "NameserverContact",
+         "Value": ["tld.sy."] //List of allowed domains
+      }
+```
+</details>
+
+<details>
+<summary>Rewrite Blackholing</summary>
+   
+If the query is rewritten for any execution in the DNS, then the new query's domain name should have at least one resource record.
+
+Input `json` format:
+```json5
+      {
+         "PropertyName": "RewriteBlackholing"
+      }
+```
+</details>
+
+Groot, by default, checks for cyclic zone dependency and other loops while verifying any of the above properties. 
 
 [docker-hub]:         https://hub.docker.com/r/sivakesava/groot
 [bind mount]:         https://docs.docker.com/storage/bind-mounts
