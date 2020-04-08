@@ -110,8 +110,11 @@ Groot expects all the required zone files to be available in the input directory
 </details>
 
 ### Inputting Jobs
-Groot can currently check properties shown below on the zone files and expects the input list as a `json` file. We call the process of checking properites on a domain and optionally on all its subdomains a **job**. The input `json` file can have a list of jobs.
-An example job is:
+Groot can currently verify properties shown below on the zone files and expects the input list in a `json` file format. A **job** verifies properties on a domain and optionally on all its subdomains. The input `json` file can have a list of jobs.
+
+<details>
+<summary><kbd>CLICK</kbd> to reveal an <a href="https://github.com/dns-groot/groot/blob/master/demo/jobs.json">example job</a></summary>
+
 ```json5
 {
    "Domain": "mtn.net.sy." // Name of the domain to check
@@ -131,6 +134,7 @@ An example job is:
    ]
 }
 ```
+</details>
 
 #### Available Properties
 <details>
