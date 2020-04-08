@@ -153,7 +153,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="tests.cpp" />
+    <ClCompile Include="driver_test.cpp" />
+    <ClCompile Include="zone-graph-test.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\src\libgroot.vcxproj">

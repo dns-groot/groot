@@ -1,4 +1,5 @@
-#pragma once
+#ifndef NODE_LABEL_H_
+#define NODE_LABEL_H_
 
 #include <iostream>
 #include <string>
@@ -46,3 +47,5 @@ private:
 };
 
 std::size_t hash_value(const NodeLabel&);
+
+#endif

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef LABEL_GRAPH_H_
+#define LABEL_GRAPH_H_
 
 //#define BOOST_GRAPH_NO_BUNDLED_PROPERTIES 1
 
@@ -121,3 +122,4 @@ namespace label {
 	};
 }
 
+#endif

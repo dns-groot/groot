@@ -1,4 +1,5 @@
-#pragma once
+#ifndef JOB_H_
+#define JOB_H_
 
 #include "interpretation-properties.h"
 
@@ -13,3 +14,5 @@ struct Job {
 	string user_input_domain;
 	std::bitset<RRType::N> types_req;
 };
+
+#endif

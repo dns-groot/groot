@@ -1,4 +1,5 @@
-#pragma once
+#ifndef EQUIVALENCE_CLASS_H
+#define EQUIVALENCE_CLASS_H
 
 #include "resource-record.h"
 
@@ -19,3 +20,5 @@ public:
 	string ToString() const;
 	bool operator== (const EC&) const;
 };
+
+#endif

@@ -1,4 +1,6 @@
-#pragma once
+#ifndef DRIVER_H_
+#define DRIVER_H_
+
 
 #include <nlohmann/json.hpp>
 
@@ -25,6 +27,7 @@ private:
 	int ParseZoneFileAndExtendGraphs(string file, string nameserver);
 
 public:
+	friend class DriverTest;
 	void CheckAllStructuralDelegations(string);
 	void GenerateECsAndCheckProperties();
 	long GetECCountForCurrentJob() const;
@@ -33,3 +36,5 @@ public:
 	void SetJob(const json&);
 	void WriteViolationsToFile(string) const;
 };
+
+#endif

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CONTEXT_H
+#define CONTEXT_H
 
 #include "zone-graph.h"
 
@@ -8,3 +9,5 @@ struct Context {
 	boost::unordered_map<int, zone::Graph> zoneId_to_zone_;
 	int zoneId_counter_ = 0;
 };
+
+#endif

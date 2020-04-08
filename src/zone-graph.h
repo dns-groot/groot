@@ -1,4 +1,5 @@
-#pragma once
+#ifndef ZONE_GRAPH_H_
+#define ZONE_GRAPH_H_
 
 #include <nlohmann/json.hpp>
 
@@ -68,3 +69,5 @@ namespace zone {
 		bool RequireGlueRecords(const vector<ResourceRecord>& NSRecords) const;
 	};
 }
+
+#endif

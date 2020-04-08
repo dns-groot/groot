@@ -1,4 +1,5 @@
-#pragma once
+#ifndef INTERPRETATION_PROPERTIES_H
+#define INTERPRETATION_PROPERTIES_H
 
 
 #include <nlohmann/json.hpp>
@@ -129,3 +130,5 @@ namespace interpretation {
 		Graph(const EC, const Context&);
 	};
 }
+
+#endif

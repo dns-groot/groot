@@ -1,4 +1,6 @@
-#pragma once
+#ifndef MY_LOGGER_H_
+#define MY_LOGGER_H_
+
 #include <iostream>
 
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
@@ -59,3 +61,5 @@ public:
 inline class MyLogger* Logger = MyLogger::getInstance();
 
 //#define Logger MyLogger::getInstance()
+
+#endif

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef RESOURCE_RECORD_H_
+#define RESOURCE_RECORD_H_
 
 #include "node-label.h"
 
@@ -61,3 +62,5 @@ private:
 		ar& rdata_;
 	}
 };
+
+#endif
