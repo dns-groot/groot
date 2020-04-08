@@ -21,21 +21,21 @@ since they have negligible performance overhead.
 (See [this report](http://domino.research.ibm.com/library/cyberdig.nsf/papers/0929052195DD819C85257D2300681E7B/$File/rc25482.pdf))
 
 0. [Get `docker` for your OS](https://docs.docker.com/install).
-1. Pull our docker image<sup>[#](#note_1)</sup>: `docker pull sivakesava/groot`.
-2. Run a container over the image: `docker run -it sivakesava/groot`.<br>
-   This would give you a `bash` shell within LoopInvGen directory.
+1. Pull our docker image<sup>[#](#note_1)</sup>: `docker pull dnsgt/groot`.
+2. Run a container over the image: `docker run -it dnsgt/groot`.<br>
+   This would give you a `bash` shell within groot directory.
 
 <a name="note_1"><sup>#</sup></a> Alternatively, you could also build the Docker image locally:
 
 ```bash
-docker build -t sivakesava/groot github.com/dns-groot/groot
+docker build -t dnsgt/groot github.com/dns-groot/groot
 ```
 Docker containers are isolated from the host system.
 Therefore, to run Groot on zones files residing on the host system,
 you must first [bind mount] them while running the container:
 
 ```bash
-docker run -v /host/dir:/home/groot/groot/shared -it sivakesava/groot
+docker run -v /host/dir:/home/groot/groot/shared -it dnsgt/groot
 ```
 
 The `/host/dir` on the host system would then be accessible within the container at `~/groot/shared` (with read+write permissions). The executable would be located at `~/groot/build/bin/`.
@@ -49,7 +49,7 @@ The `/host/dir` on the host system would then be accessible within the container
 #### Installation for Windows
 1. Install [`vcpkg`](https://docs.microsoft.com/en-us/cpp/build/vcpkg?view=vs-2019) package manager to install dependecies. 
 2. Install the C++ libraries (64 bit versions) using:
-    - vcpkg install boost:x64-windows docopt:x64-windows nlohmann-json:x64-windows spdlog:x64-windows
+    - vcpkg install boost-serialization:x64-windows boost-flyweight:x64-windows boost-dynamic-bitset:x64-windows boost-graph:x64-windows  docopt:x64-windows nlohmann-json:x64-windows spdlog:x64-windows
     - vcpkg integrate install 
 3. Clone the repository (with  `--recurse-submodules`) and open the solution (groot.sln) using Visual studio. Set the platform to x64 and mode to Release.
 4. Configure the project properties to use ISO C++17 Standard (std:c++17) for C++ language standard.
