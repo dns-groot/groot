@@ -55,7 +55,7 @@ a collection of zone files along with a collection of user-
 defined properties and systematically checks if any input to
 DNS can lead to a property violation for the properties.
 
-Usage: groot [-hv] [--properties=<properties_file>] <zone_directory> [--output=<output_file>]
+Usage: groot [-hv] [--jobs=<jobs_file_as_json>] <zone_directory> [--output=<output_file>]
 
 Options:
   -h --help     Show this help screen.
@@ -99,7 +99,7 @@ int main(int argc, const char** argv)
 		Logger->bind(spdlog::get("my_custom_logger"));
 
 		string zone_directory;
-		string properties_file;
+		string jobs_file;
 		auto z = args.find("<zone_directory>");
 		if (!z->second)
 		{
@@ -112,10 +112,10 @@ int main(int argc, const char** argv)
 			zone_directory = z->second.asString();
 		}
 
-		auto p = args.find("--properties");
+		auto p = args.find("--jobs");
 		if (p->second)
 		{
-			properties_file = p->second.asString();
+			jobs_file = p->second.asString();
 		}
 
 		p = args.find("--output");
@@ -130,7 +130,7 @@ int main(int argc, const char** argv)
 		//bench(zone_directory, properties_file);
 		//checkHotmailDomains(zone_directory, properties_file, output);
 		//checkUCLADomains(zone_directory, properties_file, output);
-		demo(zone_directory, properties_file, output_file);
+		demo(zone_directory, jobs_file, output_file);
 		Logger->debug("groot.cpp (main) - Finished checking all jobs");
 		spdlog::shutdown();
 		return 0;
