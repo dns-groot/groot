@@ -46,4 +46,8 @@ RUN mkdir build && \
     cmake .. && \
     make
 
+RUN ./test/tester
+
+WORKDIR $HOME/groot
+
 CMD [ "bash" ]
