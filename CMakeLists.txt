@@ -11,3 +11,4 @@ project(groot CXX)
 
 add_subdirectory(src)
 add_subdirectory(bin)
+add_subdirectory(test)

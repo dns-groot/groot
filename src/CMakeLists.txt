@@ -14,9 +14,10 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 file(GLOB SOURCES "*.cpp")
+include_directories(${Boost_INCLUDE_DIRS})
 
 add_library(libgroot STATIC ${SOURCES})
 
-target_link_libraries(libgroot PRIVATE nlohmann_json spdlog::spdlog)
+target_link_libraries(libgroot PRIVATE ${Boost_LIBRARIES} nlohmann_json spdlog::spdlog)
 
 set_target_properties(libgroot PROPERTIES PREFIX "")

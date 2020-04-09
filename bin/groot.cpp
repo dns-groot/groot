@@ -2,7 +2,7 @@
 #include <chrono>
 #include <ctime>
 #include <docopt/docopt.h>
-#include <filesystem>
+#include <boost/filesystem.hpp>
 #include <ratio>
 
 #include "../src/driver.h"
@@ -17,7 +17,7 @@ void demo(string directory, string properties, string output_file) {
 	
 	high_resolution_clock::time_point t1 = high_resolution_clock::now();
 	
-	std::ifstream metadataFile((filesystem::path{ directory } / filesystem::path{ "metadata.json" }).string());
+	std::ifstream metadataFile((boost::filesystem::path{ directory } / boost::filesystem::path{ "metadata.json" }).string());
 	json metadata;
 	metadataFile >> metadata;
 	Logger->debug("groot.cpp (demo) - Successfully read metadata.json file");

@@ -5,7 +5,7 @@ VisualStudioVersion = 16.0.29102.190
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libgroot", "src\libgroot.vcxproj", "{D2A89E18-94E6-474F-B0EB-F0881A5478B1}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tests", "tests\tests.vcxproj", "{BD35F99A-458A-4D58-8F11-3A0222979FFF}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test", "test\test.vcxproj", "{BD35F99A-458A-4D58-8F11-3A0222979FFF}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "groot", "bin\groot.vcxproj", "{87121386-9CBC-4701-9985-C3353B67FFA9}"
 EndProject

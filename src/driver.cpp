@@ -1,5 +1,5 @@
 #include "driver.h"
-#include <filesystem>
+#include <boost/filesystem.hpp>
 
 void Driver::CheckAllStructuralDelegations(string user_input)
 {
@@ -91,7 +91,7 @@ void Driver::SetContext(const json& metadata, string directory)
 	for (auto& zone_json : metadata["ZoneFiles"]) {
 		string file_name;
 		zone_json["FileName"].get_to(file_name);
-		auto zone_file_path = (filesystem::path{ directory } / filesystem::path{ file_name }).string();
+		auto zone_file_path = (boost::filesystem::path{ directory } / boost::filesystem::path{ file_name }).string();
 		ParseZoneFileAndExtendGraphs(zone_file_path, zone_json["NameServer"]);
 	}
 }

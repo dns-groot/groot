@@ -6,9 +6,9 @@ endif()
 
 set(CMAKE_TOOLCHAIN_FILE "$ENV{HOME}/vcpkg/scripts/buildsystems/vcpkg.cmake")
 
-project(groot_bin CXX)
+project(groot_test CXX)
 
-find_package(Boost COMPONENTS regex filesystem REQUIRED)
+find_package(Boost COMPONENTS regex filesystem unit_test_framework REQUIRED)
 find_package(docopt CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
@@ -21,8 +21,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 #link_directories("${CMAKE_CURRENT_SOURCE_DIR}/../build/")
 
 include_directories(${Boost_INCLUDE_DIRS})
-add_executable(groot groot.cpp)
+add_executable(driver-test driver_test.cpp)
 
-target_link_libraries(groot PRIVATE ${Boost_LIBRARIES}
-	                            docopt_s nlohmann_json spdlog::spdlog
-                                    libgroot)
+target_link_libraries(driver-test PRIVATE libgroot ${Boost_LIBRARIES} 
+	                            docopt_s nlohmann_json spdlog::spdlog)
+
+add_test(NAME test1 COMMAND driver-test)                     

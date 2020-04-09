@@ -24,7 +24,7 @@ BOOST_AUTO_TEST_SUITE(ParsingTestSuite)
 
 BOOST_AUTO_TEST_CASE(my_boost_test)
 {
-	std::string test_file = "..//tests//ExampleZones//test_parser.txt";
+	std::string test_file = "..//test//ExampleZones//test_parser.txt";
 	Driver d;
 	DriverTest dt;
 
