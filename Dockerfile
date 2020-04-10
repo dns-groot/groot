@@ -46,7 +46,7 @@ RUN mkdir build && \
     cmake .. && \
     make
 
-RUN ./test/tester
+RUN ./build/test/tester --log_level=test_suite
 
 WORKDIR $HOME/groot
 
