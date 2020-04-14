@@ -434,6 +434,7 @@ void label::Graph::SubDomainECGeneration(VertexDescriptor start, vector<NodeLabe
 		nonExistent.name = name;
 		nonExistent.rrTypes.flip();
 		nonExistent.excluded = boost::make_optional(std::move(children_labels));
+		nonExistent.nonExistent = true;
 		//EC generated
 		//Push it to the queue
 		current_job.ec_queue.enqueue(nonExistent);

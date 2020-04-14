@@ -7,6 +7,7 @@ struct EC {
 	boost::optional<std::vector<NodeLabel>> excluded;
 	vector<NodeLabel> name;
 	std::bitset<RRType::N> rrTypes;
+	bool nonExistent = false;
 
 private:
 	friend class boost::serialization::access;

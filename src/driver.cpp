@@ -35,7 +35,7 @@ void Driver::GenerateECsAndCheckProperties()
 					current_job_.ec_count++;
 					interpretation::Graph interpretation_graph_for_ec(item, context_);
 					//interpretation_graph_for_ec.CheckForLoops(json_queue_);
-					interpretation_graph_for_ec.GenerateDotFile("Intp.dot");
+					//interpretation_graph_for_ec.GenerateDotFile("Intp.dot");
 					interpretation_graph_for_ec.CheckPropertiesOnEC(current_job_.path_functions, current_job_.node_functions, current_job_.json_queue);
 				}
 			} while (itemsLeft || done_consumers.fetch_add(1, std::memory_order_acq_rel) + 1 == kECConsumerCount);
@@ -118,11 +118,11 @@ void Driver::SetJob(const json& user_job)
 			current_job_.types_req.set(RRType::NS);
 		}
 		if (name == "ResponseConsistency") {
-			auto la = [types = std::move(propertyTypes)](const interpretation::Graph& graph, const vector<interpretation::Graph::VertexDescriptor>& end, moodycamel::ConcurrentQueue<json>& json_queue){ interpretation::Graph::Properties::CheckSameResponseReturned(graph, end, json_queue,types); };
+			auto la = [propertyTypes](const interpretation::Graph& graph, const vector<interpretation::Graph::VertexDescriptor>& end, moodycamel::ConcurrentQueue<json>& json_queue){ interpretation::Graph::Properties::CheckSameResponseReturned(graph, end, json_queue, propertyTypes); };
 			current_job_.node_functions.push_back(la);
 		}
 		else if (name == "ResponseReturned") {
-			auto la = [types = std::move(propertyTypes)](const interpretation::Graph& graph, const vector<interpretation::Graph::VertexDescriptor>& end, moodycamel::ConcurrentQueue<json>& json_queue){ interpretation::Graph::Properties::CheckResponseReturned(graph, end, json_queue, types); };
+			auto la = [propertyTypes](const interpretation::Graph& graph, const vector<interpretation::Graph::VertexDescriptor>& end, moodycamel::ConcurrentQueue<json>& json_queue){ interpretation::Graph::Properties::CheckResponseReturned(graph, end, json_queue, propertyTypes); };
 			current_job_.node_functions.push_back(la);
 		}
 		else if (name == "ResponseValue") {

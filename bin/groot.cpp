@@ -31,19 +31,23 @@ void demo(string directory, string properties, string output_file) {
 
 	high_resolution_clock::time_point t2 = high_resolution_clock::now();
 	duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
-	cout << "Time to build label graph and zone graphs: " << time_span.count() << endl;
-	
+	//cout << "Time to build label graph and zone graphs: " << time_span.count() << endl;
+	Logger->critical(fmt::format("Time to build label graph and zone graphs: {}",time_span.count()));
+	long total_ecs = 0;
+
 	for (auto& user_job : j) {
 		driver.SetJob(user_job);
 		Logger->debug(fmt::format("groot.cpp (demo) - Started property checking for {}", string(user_job["Domain"])));
 		driver.GenerateECsAndCheckProperties();
+		total_ecs += driver.GetECCountForCurrentJob();
 		Logger->debug(fmt::format("groot.cpp (demo) - Finished property checking for {} with {} ECs", string(user_job["Domain"]),driver.GetECCountForCurrentJob()));
 	}
 	t2 = high_resolution_clock::now();
 	time_span = duration_cast<duration<double>>(t2 - t1);
-	cout << "Time to check all user jobs: " << time_span.count() << endl;	
-	
-	driver.RemoveDuplicateViolations();
+	//cout << "Time to check all user jobs: " << time_span.count() << endl;	
+	Logger->critical(fmt::format("Time to check all user jobs: {}", time_span.count()));
+	Logger->critical(fmt::format("Total number of ECs across all jobs: {}", total_ecs));
+	//driver.RemoveDuplicateViolations();
 	driver.WriteViolationsToFile(output_file);
 }
 

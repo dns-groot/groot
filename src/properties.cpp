@@ -33,6 +33,10 @@ void interpretation::Graph::Properties::CheckResponseReturned(const interpretati
 	*/
 	bool incomplete = false;
 	for (auto vd : end_nodes) {
+		// If the EC is for a non-existent node then by default it will not return an answer
+		if (graph[vd].query.nonExistent) {
+			return;
+		}
 		if ((graph[vd].query.rrTypes & types_req).count() > 0 && graph[vd].ns != "") {
 			boost::optional<vector<zone::LookUpAnswer>> answer = graph[vd].answer;
 			if (answer) {
@@ -41,7 +45,7 @@ void interpretation::Graph::Properties::CheckResponseReturned(const interpretati
 				}
 				else {
 					for (auto a : answer.get()) {
-						if (!std::get<2>(a).size()) {
+						if (!std::get<2>(a).size() && (std::get<1>(a) & types_req).count()) {
 							json tmp;
 							tmp["Property"] = "ResponseReturned";
 							tmp["Equivalence Class"] = graph[vd].query.ToString();
@@ -69,7 +73,7 @@ void interpretation::Graph::Properties::CheckResponseValue(const interpretation:
 	json tmp;
 	for (auto vd : end_nodes) {
 		if ((graph[vd].query.rrTypes & types_requested).count() > 0) {
-			if (std::get<0>(graph[vd].answer.get()[0]) == ReturnTag::ANS) {
+			if (std::get<0>(graph[vd].answer.get()[0]) == ReturnTag::ANS || std::get<0>(graph[vd].answer.get()[0]) == ReturnTag::REWRITE) {
 				set<string> rdatas;
 				for (auto rr : std::get<2>(graph[vd].answer.get()[0])) {
 					if (types_requested[rr.get_type()] == 1) {
@@ -97,21 +101,26 @@ void interpretation::Graph::Properties::CheckResponseValue(const interpretation:
 	}
 }
 
-void interpretation::Graph::Properties::CheckSameResponseReturned(const interpretation::Graph& graph, const vector<VertexDescriptor>& endNodes, moodycamel::ConcurrentQueue<json>& json_queue, std::bitset<RRType::N> typesReq)
+void interpretation::Graph::Properties::CheckSameResponseReturned(const interpretation::Graph& graph, const vector<VertexDescriptor>& end_nodes, moodycamel::ConcurrentQueue<json>& json_queue, std::bitset<RRType::N> typesReq)
 {
 	/*
 	  The set of end nodes is given and checks if same response is received from all the end nodes.
 	  We may encounter nodes with Refused/NSnotfound in which case we have incomplete information.
+	  The end nodes might be a mix of CNAME node and others.
 	*/
 	boost::optional<vector<zone::LookUpAnswer>> response;
 	bool incomplete = false;
 	bool foundDiff = false;
-	for (auto vd : endNodes) {
+	vector<VertexDescriptor> cname_endnodes{}; //TODO: Check for CNAME End nodes separately.
+	for (auto vd : end_nodes) {
 		if ((graph[vd].query.rrTypes & typesReq).count() > 0 && graph[vd].ns != "") {
 			boost::optional<vector<zone::LookUpAnswer>> answer = graph[vd].answer;
 			if (answer) {
 				if (std::get<0>(answer.get()[0]) == ReturnTag::REFUSED || std::get<0>(answer.get()[0]) == ReturnTag::NSNOTFOUND) {
 					incomplete = true;
+				}
+				else if (std::get<0>(answer.get()[0]) == ReturnTag::REWRITE) {
+					cname_endnodes.push_back(vd);
 				}
 				else if (!response) {
 					response = answer;
@@ -131,7 +140,7 @@ void interpretation::Graph::Properties::CheckSameResponseReturned(const interpre
 	if (foundDiff) {
 		json tmp;
 		tmp["Property"] = "ResponseConsistency";
-		tmp["Equivalence Class"] = graph[endNodes[0]].query.ToString();
+		tmp["Equivalence Class"] = graph[end_nodes[0]].query.ToString();
 		tmp["Violation"] = "Difference in responses found";
 		json_queue.enqueue(tmp);
 	}
@@ -319,7 +328,8 @@ void interpretation::Graph::Properties::QueryRewrite(const interpretation::Graph
 				}
 			}
 			else {
-				Logger->error(fmt::format("properties.cpp (QueryRewrite) - An implementation error - REWRITE is the last node in the path: {}", graph[p[0]].query.ToString()));
+				// Rewrite can be the last node in the path if the user requested CNAME type.
+				// Logger->error(fmt::format("properties.cpp (QueryRewrite) - An implementation error - REWRITE is the last node in the path: {}", graph[p[0]].query.ToString()));
 			}
 		}
 	}
@@ -341,7 +351,7 @@ void interpretation::Graph::Properties::RewriteBlackholing(const interpretation:
 					json tmp;
 					tmp["Property"] = "Rewrite Blackholing";
 					tmp["Equivalence Class"] = graph[p[i]].query.ToString();
-					tmp["Violation"] = "Query is eventually rewritten to " + graph[p[p.size() - 1]].query.ToString()  + " for which there doesn't exist any resource record of any type" ;
+					tmp["Violation"] = "Query is eventually rewritten to " + graph[p[p.size() - 1]].query.ToString() + " for which there doesn't exist any resource record of any type";
 					json_queue.enqueue(tmp);
 				}
 				else if (end_tag == ReturnTag::REFUSED || end_tag == ReturnTag::NSNOTFOUND) {
@@ -353,7 +363,8 @@ void interpretation::Graph::Properties::RewriteBlackholing(const interpretation:
 				}
 			}
 			else {
-				Logger->error(fmt::format("properties.cpp (QueryRewrite) - An implementation error - REWRITE is the last node in the path: {}", graph[p[0]].query.ToString()));
+				// Rewrite can be the last node in the path if the user requested CNAME type.
+				//Logger->error(fmt::format("properties.cpp (RewriteBlackholing) - An implementation error - REWRITE is the last node in the path: {}", graph[p[0]].query.ToString()));
 			}
 			break;
 		}
