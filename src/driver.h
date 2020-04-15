@@ -23,7 +23,7 @@ private:
 	label::Graph label_graph_;
 	Context context_;
 	Job current_job_;
-	json property_violations_;
+	std::set<json> property_violations_;
 	int ParseZoneFileAndExtendGraphs(string file, string nameserver);
 
 public:
@@ -31,7 +31,6 @@ public:
 	void CheckAllStructuralDelegations(string);
 	void GenerateECsAndCheckProperties();
 	long GetECCountForCurrentJob() const;
-	void RemoveDuplicateViolations();
 	void SetContext(const json&, string);
 	void SetJob(const json&);
 	void WriteViolationsToFile(string) const;

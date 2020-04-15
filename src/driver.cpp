@@ -42,14 +42,14 @@ void Driver::GenerateECsAndCheckProperties()
 			});
 	}
 	//JSON consumer thread
-	std::thread json_consumer = thread([this,&done_consumers]() {
+	std::thread json_consumer = thread([this, &done_consumers]() {
 		json item;
 		bool itemsLeft;
 		do {
 			itemsLeft = done_consumers.load(std::memory_order_acquire) <= kECConsumerCount;
 			while (current_job_.json_queue.try_dequeue(item)) {
 				itemsLeft = true;
-				property_violations_.push_back(item);
+				property_violations_.insert(item);
 			}
 		} while (itemsLeft);
 		});
@@ -64,23 +64,6 @@ void Driver::GenerateECsAndCheckProperties()
 long Driver::GetECCountForCurrentJob() const
 {
 	return current_job_.ec_count;
-}
-
-void Driver::RemoveDuplicateViolations()
-{
-	Logger->debug(fmt::format("groot.cpp (main) - Unfiltered property violations {}", property_violations_.size()));
-	json filtered = json::array();
-	for (json& j : property_violations_) {
-		bool found = false;
-		for (json& l : filtered) {
-			if (l == j) {
-				found = true;
-				break;
-			}
-		}
-		if (!found) filtered.push_back(j);
-	}
-	property_violations_ = std::move(filtered);
 }
 
 void Driver::SetContext(const json& metadata, string directory)
@@ -118,11 +101,11 @@ void Driver::SetJob(const json& user_job)
 			current_job_.types_req.set(RRType::NS);
 		}
 		if (name == "ResponseConsistency") {
-			auto la = [propertyTypes](const interpretation::Graph& graph, const vector<interpretation::Graph::VertexDescriptor>& end, moodycamel::ConcurrentQueue<json>& json_queue){ interpretation::Graph::Properties::CheckSameResponseReturned(graph, end, json_queue, propertyTypes); };
+			auto la = [propertyTypes](const interpretation::Graph& graph, const vector<interpretation::Graph::VertexDescriptor>& end, moodycamel::ConcurrentQueue<json>& json_queue) { interpretation::Graph::Properties::CheckSameResponseReturned(graph, end, json_queue, propertyTypes); };
 			current_job_.node_functions.push_back(la);
 		}
 		else if (name == "ResponseReturned") {
-			auto la = [propertyTypes](const interpretation::Graph& graph, const vector<interpretation::Graph::VertexDescriptor>& end, moodycamel::ConcurrentQueue<json>& json_queue){ interpretation::Graph::Properties::CheckResponseReturned(graph, end, json_queue, propertyTypes); };
+			auto la = [propertyTypes](const interpretation::Graph& graph, const vector<interpretation::Graph::VertexDescriptor>& end, moodycamel::ConcurrentQueue<json>& json_queue) { interpretation::Graph::Properties::CheckResponseReturned(graph, end, json_queue, propertyTypes); };
 			current_job_.node_functions.push_back(la);
 		}
 		else if (name == "ResponseValue") {
@@ -188,11 +171,17 @@ void Driver::SetJob(const json& user_job)
 
 void Driver::WriteViolationsToFile(string output_file) const
 {
-	Logger->debug(fmt::format("driver.cpp (WriteViolationsToFile) - Violations after removing duplicates {}", property_violations_.size()));
+	Logger->critical(fmt::format("driver.cpp (WriteViolationsToFile) - Total number of violations {}", property_violations_.size()));
 	std::ofstream ofs;
 	ofs.open(output_file, std::ofstream::out);
-	ofs << property_violations_.dump(4);
-	ofs << "\n";
+	ofs << "[\n";
+	int c = 0;
+	for (const json& j : property_violations_) {
+		if (c != 0) ofs << ",\n";
+		ofs << j.dump(4);
+		c++;
+	}
+	ofs << "\n]";
 	ofs.close();
 	Logger->debug(fmt::format("driver.cpp (WriteViolationsToFile) - Output written to {}", output_file));
 }
