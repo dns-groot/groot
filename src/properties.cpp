@@ -354,13 +354,13 @@ void interpretation::Graph::Properties::RewriteBlackholing(const interpretation:
 					tmp["Violation"] = "Query is eventually rewritten to " + graph[p[p.size() - 1]].query.ToString() + " for which there doesn't exist any resource record of any type";
 					json_queue.enqueue(tmp);
 				}
-				else if (end_tag == ReturnTag::REFUSED || end_tag == ReturnTag::NSNOTFOUND) {
+				/*else if (end_tag == ReturnTag::REFUSED || end_tag == ReturnTag::NSNOTFOUND) {
 					json tmp;
 					tmp["Property"] = "Rewrite Blackholing";
 					tmp["Equivalence Class"] = graph[p[i]].query.ToString();
 					tmp["Violation"] = "Query is eventually rewritten to " + graph[p[p.size() - 1]].query.ToString() + " for which there is no sufficient information at NS: " + graph[p[p.size() - 1]].ns + " to decide whether it is blackholed";
 					json_queue.enqueue(tmp);
-				}
+				}*/
 			}
 			else {
 				// Rewrite can be the last node in the path if the user requested CNAME type.
