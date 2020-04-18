@@ -470,7 +470,7 @@ void interpretation::Graph::EnumeratePathsAndReturnEndNodes(VertexDescriptor cur
 	}
 }
 
-void interpretation::Graph::GenerateDotFile(const string output_file)
+void interpretation::Graph::GenerateDotFile(const string output_file) const
 {
 	std::ofstream dotfile(output_file);
 	write_graphviz(dotfile, *this, MakeVertexWriter(boost::get(&interpretation::Vertex::ns, *this), boost::get(&interpretation::Vertex::query, *this), boost::get(&interpretation::Vertex::answer, *this)), MakeEdgeWriter(boost::get(&interpretation::Edge::intermediate_query, *this)));

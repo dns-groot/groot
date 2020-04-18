@@ -25,6 +25,7 @@ private:
 	Job current_job_;
 	std::set<json> property_violations_;
 	int ParseZoneFileAndExtendGraphs(string file, string nameserver);
+	void DumpNameServerZoneMap() const;
 
 public:
 	friend class DriverTest;
@@ -33,6 +34,7 @@ public:
 	long GetECCountForCurrentJob() const;
 	void SetContext(const json&, string);
 	void SetJob(const json&);
+	void SetJob(const string&);
 	void WriteViolationsToFile(string) const;
 };
 

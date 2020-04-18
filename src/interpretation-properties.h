@@ -62,7 +62,7 @@ namespace interpretation {
 
 		template <class NSMap, class QueryMap, class AnswerMap>
 		inline VertexWriter<NSMap, QueryMap, AnswerMap>
-			MakeVertexWriter(NSMap ns, QueryMap q, AnswerMap a) {
+			MakeVertexWriter(NSMap ns, QueryMap q, AnswerMap a) const{
 			return VertexWriter<NSMap, QueryMap, AnswerMap>(ns, q, a);
 		}
 
@@ -78,7 +78,7 @@ namespace interpretation {
 
 		template <class EdgeMap>
 		inline EdgeWriter<EdgeMap>
-			MakeEdgeWriter(EdgeMap w) {
+			MakeEdgeWriter(EdgeMap w) const {
 			return EdgeWriter<EdgeMap>(w);
 		}
 
@@ -126,7 +126,7 @@ namespace interpretation {
 
 		void CheckForLoops(moodycamel::ConcurrentQueue<json>&) const;
 		void CheckPropertiesOnEC(const vector<interpretation::Graph::PathFunction>&, const vector<interpretation::Graph::NodeFunction>&, moodycamel::ConcurrentQueue<json>&) const;
-		void GenerateDotFile(const string);
+		void GenerateDotFile(const string) const;
 		Graph(const EC, const Context&);
 	};
 }

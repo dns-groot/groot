@@ -71,12 +71,14 @@ void Driver::SetContext(const json& metadata, string directory)
 	for (auto& server : metadata["TopNameServers"]) {
 		context_.top_nameservers_.push_back(server);
 	}
+	long rr_count = 0;
 	for (auto& zone_json : metadata["ZoneFiles"]) {
 		string file_name;
 		zone_json["FileName"].get_to(file_name);
 		auto zone_file_path = (boost::filesystem::path{ directory } / boost::filesystem::path{ file_name }).string();
-		ParseZoneFileAndExtendGraphs(zone_file_path, zone_json["NameServer"]);
+		rr_count += ParseZoneFileAndExtendGraphs(zone_file_path, zone_json["NameServer"]);
 	}
+	Logger->critical(fmt::format("Total number of RRs parsed across all zone files: {}", rr_count));
 }
 
 void Driver::SetJob(const json& user_job)
@@ -169,9 +171,40 @@ void Driver::SetJob(const json& user_job)
 	}
 }
 
+void Driver::SetJob(const string& second_level_tld) {
+	current_job_.ec_count = 0;
+	current_job_.user_input_domain = second_level_tld;
+	current_job_.check_subdomains = true;
+	current_job_.path_functions.clear();
+	current_job_.node_functions.clear();
+	current_job_.types_req = {};
+
+	current_job_.types_req.set(RRType::NS);
+
+	auto hops = [num_hops = 2](const interpretation::Graph& graph, const interpretation::Graph::Path& p, moodycamel::ConcurrentQueue<json>& json_queue) {interpretation::Graph::Properties::NumberOfHops(graph, p, json_queue, num_hops); };
+	current_job_.path_functions.push_back(hops);
+
+	auto rewrites = [num_rewrites = 1](const interpretation::Graph& graph, const interpretation::Graph::Path& p, moodycamel::ConcurrentQueue<json>& json_queue) {interpretation::Graph::Properties::NumberOfRewrites(graph, p, json_queue, num_rewrites); };
+	current_job_.path_functions.push_back(rewrites);
+
+	auto delegation_consistency = [&](const interpretation::Graph& graph, const interpretation::Graph::Path& p, moodycamel::ConcurrentQueue<json>& json_queue) {interpretation::Graph::Properties::CheckDelegationConsistency(graph, p, json_queue); };
+	current_job_.path_functions.push_back(delegation_consistency);
+
+	auto lame_delegation = [&](const interpretation::Graph& graph, const interpretation::Graph::Path& p, moodycamel::ConcurrentQueue<json>& json_queue) {interpretation::Graph::Properties::CheckLameDelegation(graph, p, json_queue); };
+	current_job_.path_functions.push_back(lame_delegation);
+
+	vector<vector<NodeLabel>> allowed_domains;
+	allowed_domains.push_back(LabelUtils::StringToLabels(second_level_tld));
+	auto query_rewrite = [d = std::move(allowed_domains)](const interpretation::Graph& graph, const interpretation::Graph::Path& p, moodycamel::ConcurrentQueue<json>& json_queue) {interpretation::Graph::Properties::QueryRewrite(graph, p, json_queue, d); };
+	current_job_.path_functions.push_back(query_rewrite);
+
+	current_job_.path_functions.push_back(interpretation::Graph::Properties::RewriteBlackholing);
+}
+
 void Driver::WriteViolationsToFile(string output_file) const
 {
-	Logger->critical(fmt::format("driver.cpp (WriteViolationsToFile) - Total number of violations {}", property_violations_.size()));
+	DumpNameServerZoneMap();
+	Logger->critical(fmt::format("Total number of violations: {}", property_violations_.size()));
 	std::ofstream ofs;
 	ofs.open(output_file, std::ofstream::out);
 	ofs << "[\n";
@@ -184,4 +217,24 @@ void Driver::WriteViolationsToFile(string output_file) const
 	ofs << "\n]";
 	ofs.close();
 	Logger->debug(fmt::format("driver.cpp (WriteViolationsToFile) - Output written to {}", output_file));
+}
+
+
+void Driver::DumpNameServerZoneMap() const {
+	boost::unordered_map<int, string> zoneId_to_zone_name;
+
+	for (auto const& [key, val] : context_.zoneId_to_zone_) {
+		zoneId_to_zone_name.insert({ key, LabelUtils::LabelsToString(val.get_origin()) });
+	}
+	json j = {};
+	for (auto const& [ns, zoneIds] : context_.nameserver_zoneIds_map_) {
+		j[ns] = {};
+		for (auto const& i : zoneIds) {
+			j[ns].push_back(zoneId_to_zone_name.at(i));
+		}
+	}
+	std::ofstream ofs;
+	ofs.open("Graphs/nameserver_map.json", std::ofstream::out);
+	ofs << j.dump(4);
+	ofs.close();
 }

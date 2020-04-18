@@ -3,6 +3,7 @@
 #include <ctime>
 #include <docopt/docopt.h>
 #include <boost/filesystem.hpp>
+#include <boost/regex.hpp>
 #include <ratio>
 
 #include "../src/driver.h"
@@ -12,11 +13,15 @@ using namespace std::chrono;
 
 void demo(string directory, string properties, string output_file) {
 
+	if (!boost::filesystem::exists("Graphs")) {
+		boost::filesystem::create_directory("Graphs");
+	}
+	
 	Logger->debug("groot.cpp - demo function called");
 	Driver driver;
-	
+
 	high_resolution_clock::time_point t1 = high_resolution_clock::now();
-	
+
 	std::ifstream metadataFile((boost::filesystem::path{ directory } / boost::filesystem::path{ "metadata.json" }).string());
 	json metadata;
 	metadataFile >> metadata;
@@ -24,14 +29,14 @@ void demo(string directory, string properties, string output_file) {
 	std::ifstream i(properties);
 	json j;
 	i >> j;
-	
+
 	Logger->debug("groot.cpp (demo) - Successfully read properties.json file");
 	driver.SetContext(metadata, directory);
 	Logger->debug("groot.cpp (demo) - Label graph and Zone graphs built");
 
 	high_resolution_clock::time_point t2 = high_resolution_clock::now();
 	duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
-	Logger->critical(fmt::format("Time to build label graph and zone graphs: {}",time_span.count()));
+	Logger->critical(fmt::format("Time to build label graph and zone graphs: {}s", time_span.count()));
 	long total_ecs = 0;
 
 	for (auto& user_job : j) {
@@ -39,13 +44,97 @@ void demo(string directory, string properties, string output_file) {
 		Logger->debug(fmt::format("groot.cpp (demo) - Started property checking for {}", string(user_job["Domain"])));
 		driver.GenerateECsAndCheckProperties();
 		total_ecs += driver.GetECCountForCurrentJob();
-		Logger->debug(fmt::format("groot.cpp (demo) - Finished property checking for {} with {} ECs", string(user_job["Domain"]),driver.GetECCountForCurrentJob()));
+		Logger->debug(fmt::format("groot.cpp (demo) - Finished property checking for {} with {} ECs", string(user_job["Domain"]), driver.GetECCountForCurrentJob()));
 	}
 	t2 = high_resolution_clock::now();
 	time_span = duration_cast<duration<double>>(t2 - t1);
-	Logger->critical(fmt::format("Time to check all user jobs: {}", time_span.count()));
+	Logger->critical(fmt::format("Time to check all user jobs: {}s", time_span.count()));
 	Logger->critical(fmt::format("Total number of ECs across all jobs: {}", total_ecs));
 	driver.WriteViolationsToFile(output_file);
+}
+
+string ZoneFileNSMap(string file, json& metadata, set<string>& required_domains, string& second_level_tld) {
+	std::ifstream infile(file);
+	std::string line;
+	const boost::regex fieldsregx(";(?=(?:[^\"]*\"[^\"]*\")*(?![^\"]*\"))");
+	const boost::regex linesregx("\\r\\n|\\n\\r|\\n|\\r");
+	string top_server = "";
+	while (std::getline(infile, line))
+	{
+		boost::sregex_token_iterator ti(line.begin(), line.end(), fieldsregx, -1);
+		boost::sregex_token_iterator end2;
+
+		std::vector<std::string> row;
+		while (ti != end2) {
+			std::string token = ti->str();
+			++ti;
+			row.push_back(token);
+		}
+		if (line.back() == ',') {
+			// last character was a separator
+			row.push_back("");
+		}
+		if (row.size() == 3) {
+			string domain = row[1].substr(0, row[1].size() - 5);
+			if (required_domains.find(domain) != required_domains.end()) {
+				json tmp = {};
+				tmp["FileName"] = row[1];
+				tmp["NameServer"] = row[2] + ".";
+				metadata["ZoneFiles"].push_back(tmp);
+				if (domain == second_level_tld)top_server = row[2] + ".";
+			}
+		}
+	}
+	return top_server;
+}
+
+void CensusData() {
+	string data_path = "C:/Users/sivak/Desktop/Data/";
+	string second_level_tld = "com.ua";
+
+	json subdomains;
+	std::ifstream subdomainsFile((boost::filesystem::path{ data_path } / boost::filesystem::path{ "2ndLevelTLD-SubZones.json" }).string());
+	subdomainsFile >> subdomains;
+	Logger->debug(fmt::format("groot.cpp (CensusData) - Successfully read subdomain json"));
+
+	json metadata = {};
+	metadata["TopNameServers"] = {};
+	metadata["ZoneFiles"] = {};
+	std::set<string> required_domains;
+	for (auto& s : subdomains[second_level_tld]) {
+		required_domains.insert(string(s));
+	}
+	required_domains.insert(second_level_tld);
+	string top_server = ZoneFileNSMap(data_path + "Sigcomm_Counts.csv", metadata, required_domains, second_level_tld);
+
+	if (top_server.length() > 0) {
+		metadata["TopNameServers"].push_back(top_server);
+		Logger->debug(fmt::format("groot.cpp (CensusData) - Successfully constructed metadata"));
+
+		Driver driver;
+
+		high_resolution_clock::time_point t1 = high_resolution_clock::now();
+		driver.SetContext(metadata, data_path + "Sigcomm_Zones");
+		Logger->debug("groot.cpp (CensusData) - Label graph and Zone graphs built");
+
+		high_resolution_clock::time_point t2 = high_resolution_clock::now();
+		duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
+		Logger->critical(fmt::format("Time to build label graph and zone graphs: {}s", time_span.count()));
+		
+
+		driver.SetJob(second_level_tld + ".");
+		Logger->debug(fmt::format("groot.cpp (CensusData) - Started property checking for {}", second_level_tld));
+		driver.GenerateECsAndCheckProperties();
+		Logger->debug(fmt::format("groot.cpp (CensusData) - Finished property checking for {} with {} ECs", second_level_tld, driver.GetECCountForCurrentJob()));
+		
+		t2 = high_resolution_clock::now();
+		time_span = duration_cast<duration<double>>(t2 - t1);
+		Logger->critical(fmt::format("Total number of ECs: {}", driver.GetECCountForCurrentJob()));
+		Logger->critical(fmt::format("Time to check all user jobs: {}s", time_span.count()));
+	}
+	else {
+		Logger->error(fmt::format("groot.cpp (CensusData) - top name server is empty"));
+	}
 }
 
 static const char USAGE[] =
@@ -127,16 +216,13 @@ int main(int argc, const char** argv)
 		}
 
 		// TODO: validate that the directory and property files exist
-		//profiling_net();
-		//bench(zone_directory, properties_file);
-		//checkHotmailDomains(zone_directory, properties_file, output);
-		//checkUCLADomains(zone_directory, properties_file, output);
+		//CensusData();
 		demo(zone_directory, jobs_file, output_file);
 		Logger->debug("groot.cpp (main) - Finished checking all jobs");
 		spdlog::shutdown();
 		return 0;
 	}
-	catch (exception & e) {
+	catch (exception& e) {
 		cout << "Exception:- " << e.what() << endl;
 		spdlog::shutdown();
 	}
