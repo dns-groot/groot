@@ -354,11 +354,11 @@ void interpretation::Graph::Properties::RewriteBlackholing(const interpretation:
 					tmp["Equivalence Class"] = graph[p[i]].query.ToString();
 					tmp["Violation"] = "Query is eventually rewritten to " + graph[p[p.size() - 1]].query.ToString() + " for which there doesn't exist any resource record of any type";
 					json_queue.enqueue(tmp);
-					stringstream ss;
+					/*stringstream ss;
 					ss << std::this_thread::get_id();
 					if (!boost::filesystem::exists("Graphs/" + ss.str() + ".dot")) {
 						graph.GenerateDotFile("Graphs/" + ss.str() + ".dot");
-					}
+					}*/
 				}
 				/*else if (end_tag == ReturnTag::REFUSED || end_tag == ReturnTag::NSNOTFOUND) {
 					json tmp;

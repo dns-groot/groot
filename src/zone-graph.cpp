@@ -217,13 +217,13 @@ boost::optional<vector<zone::LookUpAnswer>> zone::Graph::QueryLookUpAtZone(const
 		}
 		index++;
 	}*/
-	Logger->debug(fmt::format("zone-graph (QueryLookUpAtZone) Query: {} look up at zone with origin: {}", query.ToString(), LabelUtils::LabelsToString(origin_)));
+	//Logger->debug(fmt::format("zone-graph (QueryLookUpAtZone) Query: {} look up at zone with origin: {}", query.ToString(), LabelUtils::LabelsToString(origin_)));
 	int index = 0;
 	VertexDescriptor closest_encloser = GetClosestEncloser(root_, query.name, index);
 	vector<zone::LookUpAnswer> answers;
 
 	if (query.name.size() != index) {
-		Logger->debug(fmt::format("zone-graph (QueryLookUpAtZone) Incomplete match case"));
+		//Logger->debug(fmt::format("zone-graph (QueryLookUpAtZone) Incomplete match case"));
 
 		std::bitset<RRType::N> node_rr_types = GetNodeRRTypes((*this)[closest_encloser].rrs);
 		//WildCard Child case - dq ∈∗ dr
@@ -265,7 +265,7 @@ boost::optional<vector<zone::LookUpAnswer>> zone::Graph::QueryLookUpAtZone(const
 		for (auto& record : (*this)[closest_encloser].rrs) {
 			if (record.get_type() == RRType::DNAME) {
 				// dr < dq ∧ DNAME ∈ T,  DNAME is a singleton type, there can be no other records of DNAME type at this node.
-				Logger->debug(fmt::format("zone-graph (QueryLookUpAtZone) Incomplete match case returning a DNAME {}", LabelUtils::LabelsToString(record.get_name())));
+				//Logger->debug(fmt::format("zone-graph (QueryLookUpAtZone) Incomplete match case returning a DNAME {}", LabelUtils::LabelsToString(record.get_name())));
 				vector<ResourceRecord> dname;
 				dname.push_back(record);
 				answers.push_back(std::make_tuple(ReturnTag::REWRITE, node_rr_types, dname));
@@ -281,7 +281,7 @@ boost::optional<vector<zone::LookUpAnswer>> zone::Graph::QueryLookUpAtZone(const
 			answers.push_back(std::make_tuple(ReturnTag::REF, node_rr_types, ns_records));
 		}
 		else {
-			Logger->debug(fmt::format("zone-graph (QueryLookUpAtZone) Incomplete match case returning a NX"));
+			//Logger->debug(fmt::format("zone-graph (QueryLookUpAtZone) Incomplete match case returning a NX"));
 			answers.push_back(std::make_tuple(ReturnTag::NX, query.rrTypes, vector<ResourceRecord> {}));
 		}
 		return boost::make_optional(answers);
@@ -341,7 +341,7 @@ boost::optional<vector<zone::LookUpAnswer>> zone::Graph::QueryLookUpAtZone(const
 					return boost::make_optional(answers);
 				}
 			}
-			Logger->debug(fmt::format("zone-graph (QueryLookUpAtZone) Complete match case with excluded returning a NX"));
+			//Logger->debug(fmt::format("zone-graph (QueryLookUpAtZone) Complete match case with excluded returning a NX"));
 			answers.push_back(std::make_tuple(ReturnTag::NX, query.rrTypes, vector<ResourceRecord> {}));
 			return boost::make_optional(answers);
 		}

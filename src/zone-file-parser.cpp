@@ -12,6 +12,7 @@ using namespace std;
 namespace lex = boost::spirit::lex;
 
 string gFileName = "";
+bool gFoundSOA = false;
 
 enum TokenIds
 {
@@ -170,8 +171,11 @@ struct Parser
 				if (name.length() == 0) {
 					name = LabelUtils::LabelsToString(default_values.get_name());
 				}
-				else if (type == "SOA" and relative_domain_suffix.size() == 0) {
-					relative_domain_suffix = name;
+				else if (type == "SOA") {
+					gFoundSOA = true;
+					if (relative_domain_suffix.size() == 0) {
+						relative_domain_suffix = name;
+					}
 				}
 				if (!boost::algorithm::ends_with(name, ".")) {
 					name = name + "." + relative_domain_suffix;
@@ -270,6 +274,7 @@ int Driver::ParseZoneFileAndExtendGraphs(string file, string nameserver) {
 	zone::Graph zone_graph(zoneId);
 
 	gFileName = file;
+	gFoundSOA = false;
 	// get the zone file input as a string.
 	string str(ReadFromFile(file.c_str()));
 	char const* first = str.c_str();
@@ -300,28 +305,34 @@ int Driver::ParseZoneFileAndExtendGraphs(string file, string nameserver) {
 
 	auto r = lex::tokenize(first, last, zone_functor, parserCallback);
 
-	// check if parsing was successful.
-	if (!r || parenCount != 0)
-	{
-		Logger->error(fmt::format("zone-file-parser.cpp (ParseZoneFileAndExtendGraphs) - Failed to completely parse zone file {}", file));
-	}
-	else {
-		Logger->debug(fmt::format("zone-file-parser.cpp (ParseZoneFileAndExtendGraphs) - Successfully parsed zone file {}", file));
-	}
+	if (gFoundSOA) {
+		// check if parsing was successful.
+		if (!r || parenCount != 0)
+		{
+			Logger->error(fmt::format("zone-file-parser.cpp (ParseZoneFileAndExtendGraphs) - Failed to completely parse zone file {}", file));
+		}
+		else {
+			Logger->debug(fmt::format("zone-file-parser.cpp (ParseZoneFileAndExtendGraphs) - Successfully parsed zone file {}", file));
+		}
 
-	//Add the new zone graph to the context
-	context_.zoneId_to_zone_.insert({ zoneId, std::move(zone_graph) });
-	auto it = context_.nameserver_zoneIds_map_.find(nameserver);
-	if (it == context_.nameserver_zoneIds_map_.end()) {
-		context_.nameserver_zoneIds_map_.insert({ nameserver, std::vector<int>{} });
+		//Add the new zone graph to the context
+		context_.zoneId_to_zone_.insert({ zoneId, std::move(zone_graph) });
+		auto it = context_.nameserver_zoneIds_map_.find(nameserver);
+		if (it == context_.nameserver_zoneIds_map_.end()) {
+			context_.nameserver_zoneIds_map_.insert({ nameserver, std::vector<int>{} });
+		}
+		it = context_.nameserver_zoneIds_map_.find(nameserver);
+		if (it == context_.nameserver_zoneIds_map_.end()) {
+			Logger->critical(fmt::format("zone-file-parser.cpp (ParseZoneFileAndExtendGraphs) - Unable to insert into nameserver_zoneIds_map_"));
+			std::exit(EXIT_FAILURE);
+		}
+		else {
+			it->second.push_back(zoneId);
+		}
 	}
-	it = context_.nameserver_zoneIds_map_.find(nameserver);
-	if (it == context_.nameserver_zoneIds_map_.end()) {
-		Logger->critical(fmt::format("zone-file-parser.cpp (ParseZoneFileAndExtendGraphs) - Unable to insert into nameserver_zoneIds_map_"));
-		std::exit(EXIT_FAILURE);
-	}
-	else {
-		it->second.push_back(zoneId);
+	else
+	{
+		Logger->error(fmt::format("zone-file-parser.cpp (ParseZoneFileAndExtendGraphs) - {} file doesn't have a SOA record and is ignored.", file));
 	}
 	return rrs_parsed;
 }
