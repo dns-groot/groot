@@ -90,7 +90,7 @@ string ZoneFileNSMap(string file, json& metadata, set<string>& required_domains,
 
 void CensusData() {
 	string data_path = "C:/Users/sivak/Desktop/Data/";
-	string second_level_tld = "com.ua";
+	string second_level_tld = "co.uk";
 
 	json subdomains;
 	std::ifstream subdomainsFile((boost::filesystem::path{ data_path } / boost::filesystem::path{ "2ndLevelTLD-SubZones.json" }).string());
@@ -114,7 +114,7 @@ void CensusData() {
 		Driver driver;
 
 		high_resolution_clock::time_point t1 = high_resolution_clock::now();
-		driver.SetContext(metadata, data_path + "Sigcomm_Zones");
+		driver.SetContext(metadata, data_path + "zone_files");
 		Logger->debug("groot.cpp (CensusData) - Label graph and Zone graphs built");
 
 		high_resolution_clock::time_point t2 = high_resolution_clock::now();

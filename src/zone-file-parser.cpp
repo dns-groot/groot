@@ -269,6 +269,7 @@ int Driver::ParseZoneFileAndExtendGraphs(string file, string nameserver) {
 	int& zoneId = context_.zoneId_counter_;
 	zone::Graph zone_graph(zoneId);
 
+	gFileName = file;
 	// get the zone file input as a string.
 	string str(ReadFromFile(file.c_str()));
 	char const* first = str.c_str();

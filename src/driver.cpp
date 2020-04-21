@@ -31,12 +31,14 @@ void Driver::GenerateECsAndCheckProperties()
 			do {
 				itemsLeft = !current_job_.finished_ec_generation;
 				while (current_job_.ec_queue.try_dequeue(item)) {
-					itemsLeft = true;
-					current_job_.ec_count++;
-					interpretation::Graph interpretation_graph_for_ec(item, context_);
+					itemsLeft = true;				
 					//interpretation_graph_for_ec.CheckForLoops(json_queue_);
-					//interpretation_graph_for_ec.GenerateDotFile("Intp.dot");
-					interpretation_graph_for_ec.CheckPropertiesOnEC(current_job_.path_functions, current_job_.node_functions, current_job_.json_queue);
+					if (item.ToString() == "a90.0504bewithyou.com.") {
+						current_job_.ec_count++;
+						interpretation::Graph interpretation_graph_for_ec(item, context_);
+						interpretation_graph_for_ec.GenerateDotFile("InterpretationGraph.dot");
+						interpretation_graph_for_ec.CheckPropertiesOnEC(current_job_.path_functions, current_job_.node_functions, current_job_.json_queue);						
+					}
 				}
 			} while (itemsLeft || done_consumers.fetch_add(1, std::memory_order_acq_rel) + 1 == kECConsumerCount);
 			});

@@ -6,6 +6,7 @@
 #include <fstream>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/topological_sort.hpp>
+#include <boost/algorithm/string/join.hpp>
 #include <boost/graph/graphviz.hpp>
 #include <nlohmann/json.hpp>
 #include "../src/zone.h"
@@ -475,6 +476,42 @@ void debug() {
 	exit(EXIT_SUCCESS);
 }
 
+void ProcessZones() {
+	string source_dir = "C:/Users/sivak/Desktop/Data";
+	for (const auto& entry : boost::filesystem::directory_iterator(source_dir + "/Sigcomm_Zones")) {
+		std::ifstream infile(entry.path().string());
+		std::string line;
+		const boost::regex fieldsregx("\\t(?=(?:[^\"]*\"[^\"]*\")*(?![^\"]*\"))");
+		const boost::regex linesregx("\\r\\n|\\n\\r|\\n|\\r");
+		std::ofstream outFile(source_dir + "/zone_files/" + entry.path().filename().string());
+		while (std::getline(infile, line))
+		{
+			boost::sregex_token_iterator ti(line.begin(), line.end(), fieldsregx, -1);
+			boost::sregex_token_iterator end2;
+
+			std::vector<std::string> row;
+			while (ti != end2) {
+				std::string token = ti->str();
+				++ti;
+				row.push_back(token);
+			}
+			if (line.back() == ',') {
+				// last character was a separator
+				row.push_back("");
+			}
+			if (row[0][row[0].size() - 1] != '.') {
+				row[0] += ".";
+			}
+			if (row[2] == "CNAME" || row[2] == "DNAME" || row[2] == "NS") {
+				if (row[3][row[3].size() - 1] != '.') {
+					row[3] += ".";
+				}
+			}
+			std::string joined_string = boost::algorithm::join(row, "\t");
+			outFile << joined_string << "\n";
+		}
+	}
+}
 
 //int main(int argc, const char* argv[])
 //{
