@@ -115,6 +115,7 @@ namespace interpretation {
 			static void CheckSameResponseReturned(const interpretation::Graph&, const vector<VertexDescriptor>&, moodycamel::ConcurrentQueue<json>&, std::bitset<RRType::N>);
 
 			//Path properties
+			static void AllAliases(const interpretation::Graph&, const Path&, moodycamel::ConcurrentQueue<json>&, vector<vector<NodeLabel>>);
 			static void CheckDelegationConsistency(const interpretation::Graph&, const Path&, moodycamel::ConcurrentQueue<json>&);
 			static void CheckLameDelegation(const interpretation::Graph&, const Path&, moodycamel::ConcurrentQueue<json>&);
 			static void NameServerContact(const interpretation::Graph&, const Path&, moodycamel::ConcurrentQueue<json>&, vector<vector<NodeLabel>>);

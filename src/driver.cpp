@@ -31,12 +31,12 @@ void Driver::GenerateECsAndCheckProperties()
 			do {
 				itemsLeft = !current_job_.finished_ec_generation;
 				while (current_job_.ec_queue.try_dequeue(item)) {
-					itemsLeft = true;				
+					itemsLeft = true;
 					current_job_.ec_count++;
 					interpretation::Graph interpretation_graph_for_ec(item, context_);
 					//interpretation_graph_for_ec.CheckForLoops(json_queue_);
 					//interpretation_graph_for_ec.GenerateDotFile("InterpretationGraph.dot");
-					interpretation_graph_for_ec.CheckPropertiesOnEC(current_job_.path_functions, current_job_.node_functions, current_job_.json_queue);						
+					interpretation_graph_for_ec.CheckPropertiesOnEC(current_job_.path_functions, current_job_.node_functions, current_job_.json_queue);
 				}
 			} while (itemsLeft || done_consumers.fetch_add(1, std::memory_order_acq_rel) + 1 == kECConsumerCount);
 			});
@@ -45,13 +45,32 @@ void Driver::GenerateECsAndCheckProperties()
 	std::thread json_consumer = thread([this, &done_consumers]() {
 		json item;
 		bool itemsLeft;
+		std::unordered_map<string, set<string>> aliases;
 		do {
 			itemsLeft = done_consumers.load(std::memory_order_acquire) <= kECConsumerCount;
 			while (current_job_.json_queue.try_dequeue(item)) {
 				itemsLeft = true;
-				property_violations_.insert(item);
+				if (string(item["Property"]) == "All Aliases") {
+					if (aliases.find(string(item["Canonical Name"])) == aliases.end()) {
+						aliases[string(item["Canonical Name"])] = {};
+					}
+					aliases[string(item["Canonical Name"])].insert(string(item["Equivalence Class"]));
+				}
+				else {
+					property_violations_.insert(item);
+				}
 			}
 		} while (itemsLeft);
+		json aliases_tmp;
+		aliases_tmp["Property"] = "All Aliases";
+		aliases_tmp["Canonical Name and their Aliases"] = {};
+		for (auto& [k, v] : aliases) {
+			json tmp;
+			tmp["Canonical Name"] = k;
+			tmp["Aliases"] = v;
+			aliases_tmp["Canonical Name and their Aliases"].push_back(tmp);
+		}
+		property_violations_.insert(aliases_tmp);
 		});
 	label_graph_ec_generator.join();
 	current_job_.finished_ec_generation = true;
@@ -167,6 +186,19 @@ void Driver::SetJob(const json& user_job)
 		}
 		else if (name == "RewriteBlackholing") {
 			current_job_.path_functions.push_back(interpretation::Graph::Properties::RewriteBlackholing);
+		}
+		else if (name == "AllAliases") {
+			vector<vector<NodeLabel>> canonical_names;
+			for (string v : property["Value"]) {
+				canonical_names.push_back(LabelUtils::StringToLabels(v));
+			}
+			if (canonical_names.size() > 0) {
+				auto l = [d = std::move(canonical_names)](const interpretation::Graph& graph, const interpretation::Graph::Path& p, moodycamel::ConcurrentQueue<json>& json_queue) {interpretation::Graph::Properties::AllAliases(graph, p, json_queue, d); };
+				current_job_.path_functions.push_back(l);
+			}
+			else {
+				Logger->error(fmt::format("driver.cpp (SetJob) - Skipping AlliAliases property check for {} as the Values is an empty list.", string(user_job["Domain"])));
+			}
 		}
 	}
 }

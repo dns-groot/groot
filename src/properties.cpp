@@ -147,6 +147,30 @@ void interpretation::Graph::Properties::CheckSameResponseReturned(const interpre
 	}
 }
 
+void interpretation::Graph::Properties::AllAliases(const interpretation::Graph& graph, const Path& p, moodycamel::ConcurrentQueue<json>& json_queue, vector<vector<NodeLabel>> canonical_names)
+{
+	/*
+	  If there is a node with answer tag as REWRITE then there should be a node with query name in the input
+	*/
+	for (int i = 0; i < p.size(); i++) {
+		if (graph[p[i]].answer && std::get<0>(graph[p[i]].answer.get()[0]) == ReturnTag::REWRITE) {
+			// Rewrite happened at this node and it can be CNAME or DNAME
+			for (int j = i + 1; j < p.size(); j++) {
+				auto it = std::find(canonical_names.begin(), canonical_names.end(), graph[p[j]].query.name);
+				// The query after rewrite should not be have an excluded set as it implies it is a DNAME rewrite and we don't check it in the using the find function.
+				if (it != canonical_names.end() && !graph[p[j]].query.excluded) {
+					json tmp;
+					tmp["Property"] = "All Aliases";
+					tmp["Equivalence Class"] = graph[p[i]].query.ToString();
+					tmp["Canonical Name"] = graph[p[j]].query.ToString();
+					json_queue.enqueue(tmp);
+				}
+			}			
+		}
+	}
+
+}
+
 void interpretation::Graph::Properties::CheckDelegationConsistency(const interpretation::Graph& graph, const Path& p, moodycamel::ConcurrentQueue<json>& json_queue)
 {
 	/*
