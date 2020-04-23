@@ -61,16 +61,18 @@ void Driver::GenerateECsAndCheckProperties()
 				}
 			}
 		} while (itemsLeft);
-		json aliases_tmp;
-		aliases_tmp["Property"] = "All Aliases";
-		aliases_tmp["Canonical Name and their Aliases"] = {};
-		for (auto& [k, v] : aliases) {
-			json tmp;
-			tmp["Canonical Name"] = k;
-			tmp["Aliases"] = v;
-			aliases_tmp["Canonical Name and their Aliases"].push_back(tmp);
-		}
-		property_violations_.insert(aliases_tmp);
+		if (aliases.size()) {
+			json aliases_tmp;
+			aliases_tmp["Property"] = "All Aliases";
+			aliases_tmp["Canonical Name and their Aliases"] = {};
+			for (auto& [k, v] : aliases) {
+				json tmp;
+				tmp["Canonical Name"] = k;
+				tmp["Aliases"] = v;
+				aliases_tmp["Canonical Name and their Aliases"].push_back(tmp);
+			}
+			property_violations_.insert(aliases_tmp);
+		}		
 		});
 	label_graph_ec_generator.join();
 	current_job_.finished_ec_generation = true;

@@ -138,47 +138,6 @@ Groot can currently verify properties shown below on the zone files and expects 
 
 #### Available Properties
 <details>
-<summary>Response Consistency</summary>
-Different executions in DNS that might happen due to multiple name servers should result in the same answers.
-   
-Input `json` format:
-```json5
-      {
-         "PropertyName": "ResponseConsistency"
-         "Types": ["A", "MX"] //Checks the consistency for only these types
-      }
-```
-</details>
-
-<details>
-<summary>Response Returned</summary>
-Different executions in DNS that might happen due to multiple name servers should result in some non-empty response.
-   
-Input `json` format:
-```json5
-      {
-         "PropertyName": "ResponseReturned"
-         "Types": ["CNAME", "A"] //Checks that some non-empty response is returned for these types
-      }
-```
-</details>
-
-<details>
-<summary>Response Value</summary>
-Every execution in DNS should return an answer that matches the user input answer.
-
-Input `json` format:
-```json5
-      {
-         "PropertyName": "ResponseValue"
-         "Types": ["A"],
-         "Value": ["2.2.2.1"] //The expected response
-         
-      }
-```
-</details>
-
-<details>
 <summary>Delegation Consistency</summary>
    
 The parent and child zone files should have the same set of _NS_ and glue _A_ records for delegation.
@@ -191,6 +150,19 @@ Input `json` format:
 </details>
 
 <details>
+<summary>Finding all aliases</summary>
+Lists all the input query names (aliases) that are eventually rewritten to one of the canonical names.   
+
+Input `json` format:
+```json5
+      {
+         "PropertyName": "AllAliases",
+         "Value": ["baz.mtn.net.sy"] //List of canonical names
+      }
+```
+</details>
+
+<details>
 <summary>Lame Delegation</summary>
    
 A name server that is authoritative for a zone should provide authoritative answers, otherwise it is a lame delegation.
@@ -198,6 +170,19 @@ Input `json` format:
 ```json5
       {
          "PropertyName": "LameDelegation"
+      }
+```
+</details>
+
+<details>
+<summary>Nameserver Contact</summary>
+   
+The query should not contact any name server that is not a subdomain of the allowed set of domains for any execution in the DNS.
+Input `json` format:
+```json5
+      {
+         "PropertyName": "NameserverContact",
+         "Value": ["tld.sy."] //List of allowed domains
       }
 ```
 </details>
@@ -242,14 +227,42 @@ Input `json` format:
 </details>
 
 <details>
-<summary>Nameserver Contact</summary>
+<summary>Response Consistency</summary>
+Different executions in DNS that might happen due to multiple name servers should result in the same answers.
    
-The query should not contact any name server that is not a subdomain of the allowed set of domains for any execution in the DNS.
 Input `json` format:
 ```json5
       {
-         "PropertyName": "NameserverContact",
-         "Value": ["tld.sy."] //List of allowed domains
+         "PropertyName": "ResponseConsistency"
+         "Types": ["A", "MX"] //Checks the consistency for only these types
+      }
+```
+</details>
+
+<details>
+<summary>Response Returned</summary>
+Different executions in DNS that might happen due to multiple name servers should result in some non-empty response.
+   
+Input `json` format:
+```json5
+      {
+         "PropertyName": "ResponseReturned"
+         "Types": ["CNAME", "A"] //Checks that some non-empty response is returned for these types
+      }
+```
+</details>
+
+<details>
+<summary>Response Value</summary>
+Every execution in DNS should return an answer that matches the user input answer.
+
+Input `json` format:
+```json5
+      {
+         "PropertyName": "ResponseValue"
+         "Types": ["A"],
+         "Value": ["2.2.2.1"] //The expected response
+         
       }
 ```
 </details>
@@ -267,7 +280,7 @@ Input `json` format:
 ```
 </details>
 
-Groot, by default, checks for cyclic zone dependency and other loops while verifying any of the above properties. 
+<!-- Groot, by default, checks for cyclic zone dependency and other loops while verifying any of the above properties.  -->
 
 [docker-hub]:         https://hub.docker.com/r/sivakesava/groot
 [bind mount]:         https://docs.docker.com/storage/bind-mounts

@@ -47,7 +47,7 @@
 		]
 	},
 	{
-		"Domain": "mtn.net.sy.",
+		"Domain": "net.sy.",
 		"SubDomain": true,
 		"Properties":[
 			{
@@ -57,6 +57,10 @@
 			{
 				"PropertyName": "Rewrites",
 				"Value": 0
+			},
+			{
+				"PropertyName": "AllAliases",
+				"Value":["baz.mtn.net.sy."]
 			}
 		]
 	}
