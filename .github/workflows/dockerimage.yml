@@ -20,10 +20,11 @@ jobs:
 
     - name: Build and test groot
       run: |-
+        pwd && ls
         mkdir build 
         cd build 
         cmake -DCODE_COVERAGE=ON -BUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug .. 
-        cmake --build . --config Debug && \
+        cmake --build . --config Debug
         ctest --output-on-failure
     
     - name: Codecov
