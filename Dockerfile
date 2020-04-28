@@ -3,6 +3,7 @@ FROM ubuntu:18.04
 LABEL maintainer="sivakesava@cs.ucla.edu"
 
 ENV HOME /home/groot
+ENV SYSTEM_UPGRADE="yes"
 
 RUN adduser --disabled-password --home $HOME --shell /bin/bash --gecos '' groot && \
     echo 'groot ALL=(ALL) NOPASSWD:ALL' >>/etc/sudoers && \

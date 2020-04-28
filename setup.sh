@@ -2,7 +2,7 @@
 export DEBIAN_FRONTEND=noninteractive
 
 sudo apt-get update 
-sudo apt-get upgrade -yq 
+[[ "$SYSTEM_UPGRADE" == "yes" ]] && sudo apt-get upgrade -yq 
 sudo apt-get install -yq apt-utils\
                         binutils \
                         cmake curl \
