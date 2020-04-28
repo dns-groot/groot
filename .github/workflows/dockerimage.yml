@@ -14,6 +14,8 @@ jobs:
     
     - name: Checks out the repo
       uses: actions/checkout@v2
+      with:
+        submodules: true
     
     - name: Setup the environment
       run: |-
