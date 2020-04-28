@@ -17,8 +17,9 @@ jobs:
     
     - name: Setup the environment
       run: |-
+        echo $HOME
         cd ..  
-        bash setup.sh
+        bash groot/setup.sh
         cd groot
 
     - name: Build and test groot
