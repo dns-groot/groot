@@ -26,4 +26,4 @@ add_executable(tester label-graph-test.cpp zone-graph-test.cpp)
 target_link_libraries(tester PRIVATE libgroot ${Boost_LIBRARIES} 
 	                            docopt_s nlohmann_json spdlog::spdlog)
 
-add_test(NAME test1 COMMAND tester)                     
+add_test(NAME tests COMMAND tester)                     

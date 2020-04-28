@@ -18,6 +18,6 @@ include_directories(${Boost_INCLUDE_DIRS})
 
 add_library(libgroot STATIC ${SOURCES})
 
-target_link_libraries(libgroot PRIVATE ${Boost_LIBRARIES} nlohmann_json spdlog::spdlog)
+target_link_libraries(libgroot PRIVATE ${Boost_LIBRARIES} nlohmann_json spdlog::spdlog coverage_config)
 
 set_target_properties(libgroot PROPERTIES PREFIX "")

@@ -20,7 +20,8 @@ RUN apt-get update && \
     apt-get autoremove -y --purge
 
 RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 10 && \
-    update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 10
+    update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 10 && \
+    update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-8 10
 
 RUN adduser --disabled-password --home $HOME --shell /bin/bash --gecos '' groot && \
     echo 'groot ALL=(ALL) NOPASSWD:ALL' >>/etc/sudoers && \
@@ -43,10 +44,17 @@ WORKDIR $HOME/groot
 
 RUN mkdir build && \ 
     cd build && \
+    cmake -DCODE_COVERAGE=ON -BUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug .. && \
+    cmake --build . --config Debug && \
+    ctest --output-on-failure && \
+    bash <(curl -s https://codecov.io/bash)
+    
+RUN cd build && \
+    rm -rf * && \
     cmake .. && \
-    make
+    cmake --build .
 
-RUN ./build/test/tester --log_level=test_suite
+# RUN ./build/test/tester --log_level=test_suite
 
 WORKDIR $HOME/groot
 
