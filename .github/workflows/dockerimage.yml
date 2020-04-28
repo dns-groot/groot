@@ -15,8 +15,8 @@ jobs:
     - name: Checks out the repo
       uses: actions/checkout@v2
     
-    - name: Setup the environment
-      run: bash setup.sh
+    # - name: Setup the environment
+    #   run: bash setup.sh
 
     - name: Build and test groot
       run: |-
