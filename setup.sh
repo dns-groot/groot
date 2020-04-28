@@ -18,8 +18,6 @@ sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 10
 sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 10 
 sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-8 10 
 
-echo $HOME
-
 git clone https://github.com/Microsoft/vcpkg.git
 
 cd vcpkg
