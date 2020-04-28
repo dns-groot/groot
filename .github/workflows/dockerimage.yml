@@ -15,6 +15,21 @@ jobs:
     - name: Checks out the repo
       uses: actions/checkout@v2
     
+    - name: Setup the environment
+      run: bash setup.sh
+
+    - name: Build and test groot
+      run: |-
+        mkdir build 
+        cd build 
+        cmake -DCODE_COVERAGE=ON -BUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug .. 
+        cmake --build . --config Debug && \
+        ctest --output-on-failure
+    
+    - name: Codecov
+      run:  |-
+        curl -s https://codecov.io/bash -t ${{ secrets.CODECOV_TOKEN }} | bash
+    
     - name: Docker build and push
       uses: docker/build-push-action@v1
       with:
@@ -23,7 +38,4 @@ jobs:
         repository: dnsgt/groot
         tags: latest  
 
-    - name: Codecov
-      run:  |-
-        cd /home/runner/work/groot/groot
-        curl -s https://codecov.io/bash -t ${{ secrets.CODECOV_TOKEN }} | bash
+    
