@@ -23,7 +23,6 @@ jobs:
 
     - name: Build and test groot
       run: |-
-        export HOME=`pwd`
         mkdir build 
         cd build 
         cmake -DCODE_COVERAGE=ON -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug .. 
