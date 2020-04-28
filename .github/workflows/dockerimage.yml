@@ -15,12 +15,11 @@ jobs:
     - name: Checks out the repo
       uses: actions/checkout@v2
     
-    # - name: Setup the environment
-    #   run: bash setup.sh
+    - name: Setup the environment
+      run: bash setup.sh
 
     - name: Build and test groot
       run: |-
-        pwd && ls
         mkdir build 
         cd build 
         cmake -DCODE_COVERAGE=ON -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug .. 
