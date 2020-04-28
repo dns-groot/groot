@@ -7,6 +7,7 @@ on:
     branches: [ master ]
 
 jobs:
+
   build:
     runs-on: ubuntu-latest
     steps:
@@ -21,3 +22,8 @@ jobs:
         password: ${{ secrets.DOCKERHUB_PASSWORD }}
         repository: dnsgt/groot
         tags: latest  
+
+    - name: Codecov
+      run:  |-
+        cd /home/runner/work/groot/groot
+        curl -s https://codecov.io/bash -t ${{ secrets.CODECOV_TOKEN }} | bash

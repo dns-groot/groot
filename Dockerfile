@@ -42,14 +42,15 @@ RUN ./vcpkg install boost-serialization boost-flyweight boost-dynamic-bitset boo
 
 WORKDIR $HOME/groot
 
-RUN mkdir build && \ 
+RUN cd /github/workspace && \
+    mkdir build && \
     cd build && \
     cmake -DCODE_COVERAGE=ON -BUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug .. && \
     cmake --build . --config Debug && \
-    ctest --output-on-failure && \
-    bash <(curl -s https://codecov.io/bash)
-    
-RUN cd build && \
+    ctest --output-on-failure
+
+RUN mkdir build &&\
+    cd build && \
     rm -rf * && \
     cmake .. && \
     cmake --build .
