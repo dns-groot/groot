@@ -2,6 +2,11 @@ FROM ubuntu:18.04
 
 LABEL maintainer="sivakesava@cs.ucla.edu"
 
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && \
+    apt-get install sudo
+
 ENV HOME /home/groot
 ENV INSIDE_DOCKER="yes"
 
@@ -19,7 +24,6 @@ WORKDIR $HOME/groot
 
 RUN mkdir build &&\
     cd build && \
-    rm -rf * && \
     cmake .. && \
     cmake --build .
 

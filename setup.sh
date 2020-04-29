@@ -1,10 +1,5 @@
 export DEBIAN_FRONTEND=noninteractive
 
-if [ "$INSIDE_DOCKER" == "yes" ]; then
-  su root
-  apt-get install sudo
-fi
-
 sudo apt-get update
 [[ "$INSIDE_DOCKER" == "yes" ]] && sudo apt-get upgrade -yq
 sudo apt-get install -yq apt-utils\
@@ -13,7 +8,7 @@ sudo apt-get install -yq apt-utils\
                         g++-8 git \
                         patch \
                         sudo \
-                        tar time tzdata \
+                        tar time \
                         unzip
 
 sudo apt-get purge -y gcc g++
@@ -49,6 +44,7 @@ vcpkg: `./vcpkg list`
 "
 
 if [ "$INSIDE_DOCKER" == "yes" ]; then
+  cd $HOME
   git clone --recurse-submodules https://github.com/dns-groot/groot.git
   cd groot
 else
