@@ -21,7 +21,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 #link_directories("${CMAKE_CURRENT_SOURCE_DIR}/../build/")
 
 include_directories(${Boost_INCLUDE_DIRS})
-add_executable(tester label-graph-test.cpp zone-graph-test.cpp)
+add_executable(tester label-graph-test.cpp zone-graph-test.cpp demo-test.cpp)
 
 target_link_libraries(tester PRIVATE libgroot ${Boost_LIBRARIES} 
 	                            docopt_s nlohmann_json spdlog::spdlog)

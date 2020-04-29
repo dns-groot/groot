@@ -19,8 +19,16 @@ public:
 		return d.ParseZoneFileAndExtendGraphs(file, nameserver);
 	}
 
+	int GetNumberofViolations(Driver& d) {
+		return d.property_violations_.size();
+	}
+
+	boost::unordered_map<string, long> GetTypeToCountMap(Driver& d) {
+		return d.context_.type_to_rr_count;
+	}
+
 	const zone::Graph& GetLatestZone(Driver& d) {
-		return d.context_.zoneId_to_zone_.at(d.context_.zoneId_counter_);
+		return d.context_.zoneId_to_zone.at(d.context_.zoneId_counter_);
 	}
 
 	boost::filesystem::path GetTestDirectoryPath() {
@@ -36,6 +44,21 @@ public:
 			}
 		}
 		throw std::runtime_error("Could not find the test directory");
+	}
+
+	boost::filesystem::path GetDemoDirectoryPath() {
+		boost::filesystem::path current_directory(boost::filesystem::current_path());
+		boost::filesystem::path accumulated_path{};
+		for (auto& part : current_directory) {
+			accumulated_path /= part;
+			if (part == "groot") {
+				boost::filesystem::path tmp = accumulated_path / "demo";
+				if (is_directory(tmp)) {
+					return tmp;
+				}
+			}
+		}
+		throw std::runtime_error("Could not find the demo directory");
 	}
 };
 

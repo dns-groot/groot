@@ -53,7 +53,7 @@ label::Graph::VertexDescriptor label::Graph::GetAncestor(label::Graph::VertexDes
 string label::Graph::GetHostingNameServer(int zoneId, const Context& context) const
 {
 	/* Given a zoneId return the name server which hosts that zone.*/
-	for (auto const& [ns, zoneIds] : context.nameserver_zoneIds_map_) {
+	for (auto const& [ns, zoneIds] : context.nameserver_zoneIds_map) {
 		if (std::find(zoneIds.begin(), zoneIds.end(), zoneId) != zoneIds.end()) {
 			return ns;
 		}
@@ -170,8 +170,8 @@ void label::Graph::CheckStructuralDelegationConsistency(string user_input, boost
 		std::vector<ZoneIdGlueNSRecords> parents;
 		std::vector<ZoneIdGlueNSRecords> children;
 		for (auto zoneId_vertexId_pair : zoneId_vertexIds) {
-			if (context.zoneId_to_zone_.find(std::get<0>(zoneId_vertexId_pair)) != context.zoneId_to_zone_.end()) {
-				const zone::Graph& z = context.zoneId_to_zone_.find(std::get<0>(zoneId_vertexId_pair))->second;
+			if (context.zoneId_to_zone.find(std::get<0>(zoneId_vertexId_pair)) != context.zoneId_to_zone.end()) {
+				const zone::Graph& z = context.zoneId_to_zone.find(std::get<0>(zoneId_vertexId_pair))->second;
 				vector<ResourceRecord> ns_records;
 				bool soa = false;
 				for (auto record : z[std::get<1>(zoneId_vertexId_pair)].rrs) {

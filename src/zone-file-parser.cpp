@@ -11,8 +11,12 @@
 using namespace std;
 namespace lex = boost::spirit::lex;
 
-string gFileName = "";
-bool gFoundSOA = false;
+struct MiniContext {
+	string file_name = "";
+	bool found_SOA = false;
+	int rrs_parsed = 0;
+	std::unordered_map<string, long> type_to_count;
+};
 
 enum TokenIds
 {
@@ -47,7 +51,7 @@ struct Parser
 	typedef bool result_type;
 	//Can only take at max ten parameters
 	template <typename Token>
-	bool operator()(Token const& t, size_t& l, int& paren_count, string& relative_domain_suffix, ResourceRecord& default_values, vector<string>& current_record, label::Graph& label_graph, zone::Graph& z, int& rrs_parsed)
+	bool operator()(Token const& t, size_t& l, int& paren_count, string& relative_domain_suffix, ResourceRecord& default_values, vector<string>& current_record, label::Graph& label_graph, zone::Graph& z, MiniContext& mc)
 	{
 		switch (t.id()) {
 		case ID_LPAREN:
@@ -57,7 +61,7 @@ struct Parser
 			--paren_count;
 			if (paren_count < 0)
 			{
-				Logger->error(fmt::format("zone-file-parser.cpp (Parser()) - Unmatched right parenthesis at line - {} in file - {}", l, gFileName));
+				Logger->error(fmt::format("zone-file-parser.cpp (Parser()) - Unmatched right parenthesis at line - {} in file - {}", l, mc.file_name));
 				return false;
 			}
 			break;
@@ -94,7 +98,7 @@ struct Parser
 				}
 				// Control entry $INCLUDE - Inserts the named file( currently unhandled)
 				if (current_record[0].compare("$INCLUDE") == 0) {
-					Logger->error(fmt::format("zone-file-parser.cpp (Parser()) - Found $INCLUDE entry at line - {} in file - {}", l, gFileName));
+					Logger->error(fmt::format("zone-file-parser.cpp (Parser()) - Found $INCLUDE entry at line - {} in file - {}", l, mc.file_name));
 					return false;
 				}
 				// Control entry $TTL - The TTL for records without explicit TTL value
@@ -113,7 +117,7 @@ struct Parser
 						default_values.set_name(relative_domain_suffix);
 					}
 					else {
-						Logger->error(fmt::format("zone-file-parser.cpp (Parser()) - Encountered @ symbol but relative domain is empty at line - {} in file - {}", l, gFileName));
+						Logger->error(fmt::format("zone-file-parser.cpp (Parser()) - Encountered @ symbol but relative domain is empty at line - {} in file - {}", l, mc.file_name));
 						return false;
 					}
 				}
@@ -121,7 +125,7 @@ struct Parser
 				// Search for the index where the RR type is found
 				int typeIndex = GetTypeIndex(current_record);
 				if (typeIndex == -1) {
-					//Logger->warn(fmt::format("RR type not handled for the RR at line- {} in file- {}", l, gFileName));
+					//Logger->warn(fmt::format("RR type not handled for the RR at line- {} in file- {}", l, mc.file_name));
 					current_record.clear();
 					return true;
 				}
@@ -132,7 +136,7 @@ struct Parser
 				uint32_t ttl = default_values.get_ttl();
 				int i = 0;
 				if (typeIndex > 3) {
-					Logger->warn(fmt::format("zone-file-parser.cpp (Parser()) - RR at line {} in file {} is not following the DNS grammar (typeIndex > 3)", l, gFileName));
+					Logger->warn(fmt::format("zone-file-parser.cpp (Parser()) - RR at line {} in file {} is not following the DNS grammar (typeIndex > 3)", l, mc.file_name));
 					current_record.clear();
 					return true;
 				}
@@ -149,7 +153,7 @@ struct Parser
 							}
 						}
 						else if (boost::iequals(field, "CH")) {
-							Logger->warn(fmt::format("zone-file-parser.cpp (Parser()) - Found CH class for the RR at line {} in file {}", l, gFileName));
+							Logger->warn(fmt::format("zone-file-parser.cpp (Parser()) - Found CH class for the RR at line {} in file {}", l, mc.file_name));
 							class_ = 3;
 						}
 						else if (boost::iequals(field, "IN")) {
@@ -160,7 +164,7 @@ struct Parser
 							if (default_values.get_ttl() == 0) default_values.set_ttl(ttl);
 						}
 						else {
-							Logger->warn(fmt::format("zone-file-parser.cpp (Parser()) - RR at line {} in file {} is not following the DNS grammar", l, gFileName));
+							Logger->warn(fmt::format("zone-file-parser.cpp (Parser()) - RR at line {} in file {} is not following the DNS grammar", l, mc.file_name));
 							current_record.clear();
 							return true;
 						}
@@ -172,7 +176,7 @@ struct Parser
 					name = LabelUtils::LabelsToString(default_values.get_name());
 				}
 				else if (type == "SOA") {
-					gFoundSOA = true;
+					mc.found_SOA = true;
 					if (relative_domain_suffix.size() == 0) {
 						relative_domain_suffix = name;
 					}
@@ -202,7 +206,7 @@ struct Parser
 				}
 				boost::to_lower(rdata);
 				boost::to_lower(name);
-				rrs_parsed++;
+				mc.rrs_parsed++;
 				ResourceRecord RR(name, type, class_, ttl, rdata);
 				bool add = true;
 				/*	if (!type.compare("SOA") && !CheckForSubDomain(z.origin, RR.get_name())) {
@@ -213,9 +217,19 @@ struct Parser
 					if (vertexid) {
 						label_graph.AddResourceRecord(RR, z.get_id(), vertexid.get());
 					}
+					if (mc.type_to_count.find(type) != mc.type_to_count.end()) {
+						mc.type_to_count.insert({ type, 0 });
+					}
+					mc.type_to_count[type]++;
+					if (boost::algorithm::starts_with(name, "*.")) {
+						if (mc.type_to_count.find("wildcard") != mc.type_to_count.end()) {
+							mc.type_to_count.insert({ "wildcard", 0 });
+						}
+						mc.type_to_count["wildcard"]++;
+					}
 				}
 				current_record.clear();
-				Logger->trace(fmt::format("zone-file-parser.cpp (Parser()) - Parsed line {} in file {}", l, gFileName));
+				Logger->trace(fmt::format("zone-file-parser.cpp (Parser()) - Parsed line {} in file {}", l, mc.file_name));
 			}
 			break;
 		case ID_OTHER:
@@ -273,8 +287,9 @@ int Driver::ParseZoneFileAndExtendGraphs(string file, string nameserver) {
 	int& zoneId = context_.zoneId_counter_;
 	zone::Graph zone_graph(zoneId);
 
-	gFileName = file;
-	gFoundSOA = false;
+	MiniContext mc;
+	mc.file_name = file;
+
 	// get the zone file input as a string.
 	string str(ReadFromFile(file.c_str()));
 	char const* first = str.c_str();
@@ -285,7 +300,6 @@ int Driver::ParseZoneFileAndExtendGraphs(string file, string nameserver) {
 	// mutable state that will be updated by the parser.
 	size_t l = 0;
 	int parenCount = 0;
-	int rrs_parsed = 0;
 	string relative_domain = "";
 	ResourceRecord defaultValues("", "", 0, 0, "");
 	vector<string> currentRecord;
@@ -300,12 +314,21 @@ int Driver::ParseZoneFileAndExtendGraphs(string file, string nameserver) {
 			boost::ref(currentRecord),
 			boost::ref(label_graph_),
 			boost::ref(zone_graph),
-			boost::ref(rrs_parsed)
+			boost::ref(mc)
 		);
 
 	auto r = lex::tokenize(first, last, zone_functor, parserCallback);
+	
+	for (auto& [k, v] : mc.type_to_count) {
+		if (context_.type_to_rr_count.find(k) == context_.type_to_rr_count.end()) {
+			context_.type_to_rr_count.insert({ k, v });
+		}
+		else {
+			context_.type_to_rr_count[k] += v;
+		}
+	}
 
-	if (gFoundSOA) {
+	if (mc.found_SOA) {
 		// check if parsing was successful.
 		if (!r || parenCount != 0)
 		{
@@ -316,14 +339,14 @@ int Driver::ParseZoneFileAndExtendGraphs(string file, string nameserver) {
 		}
 
 		//Add the new zone graph to the context
-		context_.zoneId_to_zone_.insert({ zoneId, std::move(zone_graph) });
-		auto it = context_.nameserver_zoneIds_map_.find(nameserver);
-		if (it == context_.nameserver_zoneIds_map_.end()) {
-			context_.nameserver_zoneIds_map_.insert({ nameserver, std::vector<int>{} });
+		context_.zoneId_to_zone.insert({ zoneId, std::move(zone_graph) });
+		auto it = context_.nameserver_zoneIds_map.find(nameserver);
+		if (it == context_.nameserver_zoneIds_map.end()) {
+			context_.nameserver_zoneIds_map.insert({ nameserver, std::vector<int>{} });
 		}
-		it = context_.nameserver_zoneIds_map_.find(nameserver);
-		if (it == context_.nameserver_zoneIds_map_.end()) {
-			Logger->critical(fmt::format("zone-file-parser.cpp (ParseZoneFileAndExtendGraphs) - Unable to insert into nameserver_zoneIds_map_"));
+		it = context_.nameserver_zoneIds_map.find(nameserver);
+		if (it == context_.nameserver_zoneIds_map.end()) {
+			Logger->critical(fmt::format("zone-file-parser.cpp (ParseZoneFileAndExtendGraphs) - Unable to insert into nameserver_zoneIds_map"));
 			std::exit(EXIT_FAILURE);
 		}
 		else {
@@ -334,5 +357,5 @@ int Driver::ParseZoneFileAndExtendGraphs(string file, string nameserver) {
 	{
 		Logger->error(fmt::format("zone-file-parser.cpp (ParseZoneFileAndExtendGraphs) - {} file doesn't have a SOA record and is ignored.", file));
 	}
-	return rrs_parsed;
+	return mc.rrs_parsed;
 }

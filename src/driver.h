@@ -32,7 +32,7 @@ public:
 	void CheckAllStructuralDelegations(string);
 	void GenerateECsAndCheckProperties();
 	long GetECCountForCurrentJob() const;
-	void SetContext(const json&, string);
+	long SetContext(const json&, string);
 	void SetJob(const json&);
 	void SetJob(const string&);
 	void WriteViolationsToFile(string) const;

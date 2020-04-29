@@ -87,10 +87,10 @@ long Driver::GetECCountForCurrentJob() const
 	return current_job_.ec_count;
 }
 
-void Driver::SetContext(const json& metadata, string directory)
+long Driver::SetContext(const json& metadata, string directory)
 {
 	for (auto& server : metadata["TopNameServers"]) {
-		context_.top_nameservers_.push_back(server);
+		context_.top_nameservers.push_back(server);
 	}
 	long rr_count = 0;
 	for (auto& zone_json : metadata["ZoneFiles"]) {
@@ -100,6 +100,12 @@ void Driver::SetContext(const json& metadata, string directory)
 		rr_count += ParseZoneFileAndExtendGraphs(zone_file_path, zone_json["NameServer"]);
 	}
 	Logger->critical(fmt::format("Total number of RRs parsed across all zone files: {}", rr_count));
+	string types_info = "";
+	for (auto& [k, v] : context_.type_to_rr_count) {
+		types_info += k + ":" +  to_string(v) + ", ";
+	}
+	Logger->critical(fmt::format("RR Stats: {}", types_info));
+	return rr_count;
 }
 
 void Driver::SetJob(const json& user_job)
@@ -257,11 +263,11 @@ void Driver::WriteViolationsToFile(string output_file) const
 void Driver::DumpNameServerZoneMap() const {
 	boost::unordered_map<int, string> zoneId_to_zone_name;
 
-	for (auto const& [key, val] : context_.zoneId_to_zone_) {
+	for (auto const& [key, val] : context_.zoneId_to_zone) {
 		zoneId_to_zone_name.insert({ key, LabelUtils::LabelsToString(val.get_origin()) });
 	}
 	json j = {};
-	for (auto const& [ns, zoneIds] : context_.nameserver_zoneIds_map_) {
+	for (auto const& [ns, zoneIds] : context_.nameserver_zoneIds_map) {
 		j[ns] = {};
 		for (auto const& i : zoneIds) {
 			j[ns].push_back(zoneId_to_zone_name.at(i));

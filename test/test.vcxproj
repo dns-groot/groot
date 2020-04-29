@@ -154,6 +154,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="demo-test.cpp" />
     <ClCompile Include="label-graph-test.cpp" />
     <ClCompile Include="zone-graph-test.cpp" />
   </ItemGroup>

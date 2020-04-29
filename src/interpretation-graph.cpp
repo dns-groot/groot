@@ -88,7 +88,7 @@ void interpretation::Graph::CheckCnameDnameAtSameNameserver(VertexDescriptor& cu
 		//If there was no same query earlier to this NS then continue the querying process.
 		if (node) {
 			//Logger->debug(fmt::format("interpretation-graph (CheckCnameDnameAtSameNameserver) Inserted new node with vd {}", node.get()));
-			QueryResolver(context.zoneId_to_zone_.find(start.get())->second, node.get(), context);
+			QueryResolver(context.zoneId_to_zone.find(start.get())->second, node.get(), context);
 		}
 	}
 	else {
@@ -153,18 +153,18 @@ boost::optional< interpretation::Graph::VertexDescriptor> interpretation::Graph:
 
 boost::optional<int> interpretation::Graph::GetRelevantZone(string ns, const EC query, const Context& context) const
 {
-	auto it = context.nameserver_zoneIds_map_.find(ns);
+	auto it = context.nameserver_zoneIds_map.find(ns);
 	auto queryLabels = query.name;
 	//Logger->debug(fmt::format("interpretation-graph (GetRelevantZone) TopNS {} queryLabels {}", ns, LabelUtils::LabelsToString(queryLabels)));
-	if (it != context.nameserver_zoneIds_map_.end()) {
+	if (it != context.nameserver_zoneIds_map.end()) {
 		bool found = false;
 		int max = -1;
 		int bestMatch = 0;
 		for (auto zid : it->second) {
 			int i = 0;
 			bool valid = true;
-			//Logger->debug(fmt::format("interpretation-graph (GetRelevantZone) Searching zone with id {} and origin {}", zid, LabelUtils::LabelsToString(context.zoneId_to_zone_.find(zid)->second.get_origin())));
-			for (const NodeLabel& l : context.zoneId_to_zone_.find(zid)->second.get_origin()) {
+			//Logger->debug(fmt::format("interpretation-graph (GetRelevantZone) Searching zone with id {} and origin {}", zid, LabelUtils::LabelsToString(context.zoneId_to_zone.find(zid)->second.get_origin())));
+			for (const NodeLabel& l : context.zoneId_to_zone.find(zid)->second.get_origin()) {
 				if (i >= queryLabels.size() || l.n != queryLabels[i].n) {
 					valid = false;
 					break;
@@ -217,11 +217,11 @@ void interpretation::Graph::NsSubRoutine(const VertexDescriptor& current_vertex,
 {
 	boost::optional<VertexDescriptor> node = InsertNode(new_ns, (*this)[current_vertex].query, current_vertex, edge_query);
 	if (node) {
-		auto it = context.nameserver_zoneIds_map_.find(new_ns);
-		if (it != context.nameserver_zoneIds_map_.end()) {
+		auto it = context.nameserver_zoneIds_map.find(new_ns);
+		if (it != context.nameserver_zoneIds_map.end()) {
 			boost::optional<int> start = GetRelevantZone(new_ns, (*this)[current_vertex].query, context);
 			if (start) {
-				QueryResolver(context.zoneId_to_zone_.find(start.get())->second, node.get(), context);
+				QueryResolver(context.zoneId_to_zone.find(start.get())->second, node.get(), context);
 			}
 			else {
 				//Path terminates - No relevant zone file available from the NS.
@@ -334,7 +334,7 @@ void interpretation::Graph::QueryResolver(const zone::Graph& z, VertexDescriptor
 						string new_ns = std::get<0>(pair).get_rdata();
 						vector<ResourceRecord> glueRecords = std::get<1>(pair);
 						//Either the Glue records have to exist or the referral to a topNameServer
-						if (glueRecords.size() || (std::find(context.top_nameservers_.begin(), context.top_nameservers_.end(), new_ns) != context.top_nameservers_.end())) {
+						if (glueRecords.size() || (std::find(context.top_nameservers.begin(), context.top_nameservers.end(), new_ns) != context.top_nameservers.end())) {
 							NsSubRoutine(current_vertex, new_ns, {}, context);
 						}
 						else {
@@ -394,14 +394,14 @@ interpretation::Graph::VertexDescriptor interpretation::Graph::SideQuery(const E
 
 void interpretation::Graph::StartFromTopNameservers(VertexDescriptor edge_start_node, const EC query, const Context& context)
 {
-	for (string ns : context.top_nameservers_) {
+	for (string ns : context.top_nameservers) {
 		// ns exists in the database.
 		//Logger->debug(fmt::format("interpretation-graph (StartFromTopNameservers) Starting with TopNS {} for {}", ns, query.ToString()));
 		boost::optional<int> start = GetRelevantZone(ns, query, context);
 		boost::optional<VertexDescriptor> node = InsertNode(ns, query, edge_start_node, {});
 		if (start && node) {
 			//Logger->debug(fmt::format("interpretation-graph (StartFromTopNameservers) Before calling QueryResolver"));
-			QueryResolver(context.zoneId_to_zone_.find(start.get())->second, node.get(), context);
+			QueryResolver(context.zoneId_to_zone.find(start.get())->second, node.get(), context);
 		}
 		else if (node && !start) {
 			vector<zone::LookUpAnswer> answer;
