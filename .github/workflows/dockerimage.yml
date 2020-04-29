@@ -29,7 +29,7 @@ jobs:
         cd build 
         cmake -DCODE_COVERAGE=ON -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug .. 
         cmake --build . --config Debug
-        ctest --output-on-failure
+        ctest --output-on-failure --extra-verbose
     
     - name: Codecov
       run:  |-

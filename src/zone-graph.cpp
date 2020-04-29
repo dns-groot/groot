@@ -221,14 +221,14 @@ boost::optional<vector<zone::LookUpAnswer>> zone::Graph::QueryLookUpAtZone(const
 	int index = 0;
 	VertexDescriptor closest_encloser = GetClosestEncloser(root_, query.name, index);
 	vector<zone::LookUpAnswer> answers;
-
+	NodeLabel wildcard{ "*" };
 	if (query.name.size() != index) {
 		//Logger->debug(fmt::format("zone-graph (QueryLookUpAtZone) Incomplete match case"));
 
 		std::bitset<RRType::N> node_rr_types = GetNodeRRTypes((*this)[closest_encloser].rrs);
 		//WildCard Child case - dq ∈∗ dr
 		for (VertexDescriptor v : boost::make_iterator_range(adjacent_vertices(closest_encloser, *this))) {
-			if ((*this)[v].name.get() == "*") {
+			if ((*this)[v].name == wildcard) {
 				complete_match = true;
 				vector<ResourceRecord> matchingRRs;
 				std::bitset<RRType::N> queryTypesFound;
@@ -309,9 +309,8 @@ boost::optional<vector<zone::LookUpAnswer>> zone::Graph::QueryLookUpAtZone(const
 			//If there is query excluded and the node has a wildcard then return records matching the query type
 			//If there is no wildcard child then its a NXDOMAIN Case
 			//If there is wildcard and non matching types then its a Ans with empty records
-
 			for (VertexDescriptor v : boost::make_iterator_range(adjacent_vertices(closest_encloser, *this))) {
-				if ((*this)[v].name.get() == "*") {
+				if ((*this)[v].name == wildcard) {
 					vector<ResourceRecord> matching_rrs;
 					std::bitset<RRType::N> query_types_found;
 					for (auto& record : (*this)[v].rrs) {
