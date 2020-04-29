@@ -105,7 +105,7 @@ Groot expects all the required zone files to be available in the input directory
       },
       {
          "FileName": "child.mtn.net.sy-2.txt", //child.mtn.net.sy. zone file from ns2.child.mtn.net.sy. name server 
-         "NameServer": "ns2.child.mtn.net.sy." //for same domain (child.mtn.net.sy.) as the last one but from different name server
+         "NameServer": "ns2.child.mtn.net.sy." //for same domain (child.mtn.net.sy.) as the last one but from a different name server
       }
   ]
 }
