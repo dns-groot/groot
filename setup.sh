@@ -37,6 +37,8 @@ cd vcpkg
 
 echo "Environment:
 
+cmake: `cmake --version`
+
 g++: `g++ --version`
 
 gcc: `gcc --version`
