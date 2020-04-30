@@ -36,8 +36,18 @@ jobs:
         lcov --capture --directory . --output-file coverage.info
         lcov --remove coverage.info '/usr/*' --output-file coverage.info
         lcov --list coverage.info
+        mv coverage.info ../
+        rm -rf *
+        mv ../coverage.info .
         curl -s https://codecov.io/bash  -f coverage.info -t ${{ secrets.CODECOV_TOKEN }} | bash
     
+    - name: Free up space to allow docker build
+      run:  |-
+        df -h
+        sudo apt-get purge -y gcc g++ build-essential
+        sudo apt-get autoremove -y --purge
+        df -h
+        
     - name: Docker build and push
       uses: docker/build-push-action@v1
       with:

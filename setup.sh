@@ -11,14 +11,13 @@ sudo apt-get install -yq apt-utils\
                         tar time \
                         unzip
 
-df -h
 sudo apt-get autoremove -y --purge
-df -h
 
 OLD_PWD="`pwd`"
 
 # install lcov and its dependecies if it is not for docker
 if [ "$INSIDE_DOCKER" != "yes" ]; then
+  df -h
   sudo apt-get install build-essential libz-dev
   sudo cpan PerlIO::gzip
   sudo cpan JSON
@@ -26,6 +25,7 @@ if [ "$INSIDE_DOCKER" != "yes" ]; then
   git clone https://github.com/linux-test-project/lcov.git
   cd lcov
   sudo make install
+  df -h
 fi
 
 cd $HOME
