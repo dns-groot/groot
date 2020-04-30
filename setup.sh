@@ -11,6 +11,10 @@ sudo apt-get install -yq apt-utils\
                         tar time \
                         unzip
 
+df -h
+sudo apt-get autoremove -y --purge
+df -h
+
 OLD_PWD="`pwd`"
 
 # install lcov and its dependecies if it is not for docker
