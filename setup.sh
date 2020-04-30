@@ -5,13 +5,11 @@ sudo apt-get update
 sudo apt-get install -yq apt-utils\
                         binutils \
                         cmake curl \
-                        git \
+                        g++ git \
                         patch \
                         sudo \
                         tar time \
                         unzip
-
-[[ "$INSIDE_DOCKER" == "yes" ]] && sudo apt-get autoremove -y --purge
 
 OLD_PWD="`pwd`"
 
