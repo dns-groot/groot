@@ -149,6 +149,7 @@ void label::Graph::CheckAllStructuralDelegations(string user_input, const Contex
 
 void label::Graph::CheckStructuralDelegationConsistency(string user_input, boost::optional<label::Graph::VertexDescriptor> current_node, const Context& context, moodycamel::ConcurrentQueue<json>& json_queue)
 {
+	//LCOV_EXCL_START
 	VertexDescriptor node;
 	if (!current_node) {
 		vector<NodeLabel> labels = LabelUtils::StringToLabels(user_input);
@@ -206,6 +207,7 @@ void label::Graph::CheckStructuralDelegationConsistency(string user_input, boost
 	else {
 
 	}
+	//LCOV_EXCL_STOP
 }
 
 void label::Graph::CompareParentChildDelegationRecords(const std::vector<ZoneIdGlueNSRecords>& parent, const std::vector<ZoneIdGlueNSRecords>& child, string user_input, const Context& context, moodycamel::ConcurrentQueue<json>& json_queue) const

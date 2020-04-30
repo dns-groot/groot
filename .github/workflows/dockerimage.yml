@@ -33,7 +33,10 @@ jobs:
     
     - name: Codecov
       run:  |-
-        curl -s https://codecov.io/bash -t ${{ secrets.CODECOV_TOKEN }} | bash
+        lcov --capture --directory . --output-file coverage.info
+        lcov --remove coverage.info '/usr/*' --output-file coverage.info
+        lcov --list coverage.info
+        curl -s https://codecov.io/bash  -f coverage.info -t ${{ secrets.CODECOV_TOKEN }} | bash
     
     - name: Docker build and push
       uses: docker/build-push-action@v1
