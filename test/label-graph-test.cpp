@@ -1,5 +1,3 @@
-#define BOOST_TEST_MODULE DRIVER_TEST_
-
 #include <boost/test/unit_test.hpp>
 #include "driver-test.h"
 

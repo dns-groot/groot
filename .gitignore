@@ -347,3 +347,4 @@ zone_files*
 Data
 build
 !/bin
+/bin/log.txt
