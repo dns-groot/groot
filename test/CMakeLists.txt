@@ -23,6 +23,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 include_directories(${Boost_INCLUDE_DIRS})
 
+# Required for native installation of boost libraries
+ADD_DEFINITIONS(-DBOOST_TEST_DYN_LINK) 
+
 file(GLOB SRCS "*.cpp")
 add_executable(tester ${SRCS})
 
