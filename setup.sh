@@ -6,6 +6,7 @@ sudo apt-get install -yq apt-utils\
                         binutils \
                         cmake curl \
                         g++ git \
+                        libboost-all-dev \
                         patch \
                         sudo \
                         tar time \
@@ -37,7 +38,7 @@ cd vcpkg
 ./bootstrap-vcpkg.sh
 ./vcpkg integrate install
 ./vcpkg install nlohmann-json docopt spdlog
-./vcpkg install boost-serialization boost-flyweight boost-dynamic-bitset boost-graph
+# ./vcpkg install boost-serialization boost-flyweight boost-dynamic-bitset boost-graph
 
 echo "Environment:
 
