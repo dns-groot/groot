@@ -17,7 +17,7 @@ Groot is a static verification tool for DNS. Groot consumes a collection of zone
 
 ### Using `docker` (recommended)
 
-_**Note:** The docker image may consume  ~&hairsp;5&hairsp;GB of disk space._
+_**Note:** The docker image may consume  ~&hairsp;1.2&hairsp;GB of disk space._
 
 We recommend running Groot within a docker container,
 since they have negligible performance overhead.
