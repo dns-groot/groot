@@ -52,15 +52,22 @@
 		"Properties":[
 			{
 				"PropertyName": "QueryRewrite",
-				"Value": ["foo.mtn.net.sy.", "bar.mtn.net.sy"]
+				"Value": ["foo.mtn.net.sy."]
 			},
 			{
 				"PropertyName": "Rewrites",
-				"Value": 0
+				"Value": 1
 			},
 			{
 				"PropertyName": "AllAliases",
 				"Value":["baz.mtn.net.sy."]
+			},
+			{
+				"PropertyName": "NameserverContact",
+				"Value": ["sy.", "org."]
+			},
+			{
+				"PropertyName": "LameDelegation"
 			}
 		]
 	}

@@ -179,7 +179,7 @@ void Driver::SetJob(const json& user_job)
 				Logger->error(fmt::format("driver.cpp (SetJob) - Skipping QueryRewrite property check for {} as the Values is an empty list.", string(user_job["Domain"])));
 			}
 		}
-		else if (name == "NameServerContact") {
+		else if (name == "NameserverContact") {
 			vector<vector<NodeLabel>> allowed_domains;
 			for (string v : property["Value"]) {
 				allowed_domains.push_back(LabelUtils::StringToLabels(v));

@@ -31,6 +31,10 @@ public:
 		return d.context_.zoneId_to_zone.at(d.context_.zoneId_counter_);
 	}
 
+	interpretation::Graph CreateAnInterpretationGraph(Driver& d,const EC ec) {
+		return interpretation::Graph(ec, d.context_);
+	}
+
 	boost::filesystem::path GetTestDirectoryPath() {
 		boost::filesystem::path current_directory(boost::filesystem::current_path());
 		boost::filesystem::path accumulated_path{};

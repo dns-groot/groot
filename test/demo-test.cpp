@@ -37,7 +37,13 @@ BOOST_AUTO_TEST_CASE(demo_test)
 		total_ecs += driver.GetECCountForCurrentJob();
 	}
 	BOOST_TEST(120 == total_ecs);
-	BOOST_TEST(56 == dt.GetNumberofViolations(driver));
+	BOOST_TEST(45 == dt.GetNumberofViolations(driver));
+
+	EC test_ec;
+	test_ec.name = LabelUtils::StringToLabels("bar.trial.net.sy.");
+	test_ec.rrTypes.set(RRType::A);
+	interpretation::Graph ig = dt.CreateAnInterpretationGraph(driver, test_ec);
+	ig.GenerateDotFile("test_ig.dot"); //TODO: Check if file is generated properly
 }
 
 BOOST_AUTO_TEST_SUITE_END()
