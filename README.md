@@ -38,10 +38,10 @@ Therefore, to run Groot on zones files residing on the host system,
 you must first [bind mount] them while running the container:
 
 ```bash
-docker run -v /host/dir:/home/groot/groot/shared -it dnsgt/groot
+docker run -v ~/data:/home/groot/groot/shared -it dnsgt/groot
 ```
 
-The `/host/dir` on the host system would then be accessible within the container at `~/groot/shared` (with read+write permissions). The executable would be located at `~/groot/build/bin/`.
+The `~/data` on the host system would then be accessible within the container at `~/groot/shared` (with read+write permissions). The executable would be located at `~/groot/build/bin/`.
 
 ### Manual Installation
 
@@ -52,8 +52,8 @@ The `/host/dir` on the host system would then be accessible within the container
 #### Installation for Windows
 1. Install [`vcpkg`](https://docs.microsoft.com/en-us/cpp/build/vcpkg?view=vs-2019) package manager to install dependecies. 
 2. Install the C++ libraries (64 bit versions) using:
-    - vcpkg install boost-serialization:x64-windows boost-flyweight:x64-windows boost-dynamic-bitset:x64-windows boost-graph:x64-windows  docopt:x64-windows nlohmann-json:x64-windows spdlog:x64-windows
-    - vcpkg integrate install 
+    - .\vcpkg.exe install boost-serialization:x64-windows boost-flyweight:x64-windows boost-dynamic-bitset:x64-windows boost-graph:x64-windows  docopt:x64-windows nlohmann-json:x64-windows spdlog:x64-windows
+    - .\vcpkg.exe integrate install 
 3. Clone the repository (with  `--recurse-submodules`) and open the solution (groot.sln) using Visual studio. Set the platform to x64 and mode to Release.
 4. Configure the project properties to use ISO C++17 Standard (std:c++17) for C++ language standard.
 5. Build the project using visual studio to generate the executable. The executable would be located at `~\groot\x64\Release\`.
@@ -78,7 +78,7 @@ $ .~\groot\x64\Release\groot.exe ~\groot\demo\zone_files --jobs=~\groot\demo\job
 Groot outputs any violations to the `output.json` file. 
 
 ### Logging
-Groot by default logs debugging messages to `log.txt` file and you may use `-v` flag to log more detailed information.
+Groot by default logs debugging messages to `log.txt` file and you may use `-v` flag to log more detailed information. Use `-s` flag to display the statistics of the zone files parsed and the execution time.
 
 ### Packaging zone files data
 Groot expects all the required zone files to be available in the input directory along with a special file `metadata.json`. The `metadata.json` file has to be created by the user and has to list the file name and the name server from which that zone file was obtained. If the zone files for a domain are obtained from multiple name servers, make sure to give the files a distinct name and fill the metadata accordingly. The user also has to provide the root (top) name servers for his domain in the `metadata.json`. 
@@ -97,7 +97,8 @@ Groot expects all the required zone files to be available in the input directory
       },
       {
          "FileName": "mtn.net.sy.txt", //mtn.net.sy. zone file from ns1.mtn.net.sy. name server
-         "NameServer": "ns1.mtn.net.sy."
+         "NameServer": "ns1.mtn.net.sy.",
+         "Origin": "mtn.net.sy." // optional field to indicate the origin of the input zone file.
       },
       {
          "FileName": "child.mtn.net.sy.txt", //child.mtn.net.sy. zone file from ns1.child.mtn.net.sy. name server
@@ -279,6 +280,19 @@ Input `json` format:
 ```json5
       {
          "PropertyName": "RewriteBlackholing"
+      }
+```
+</details>
+
+<details>
+<summary>Structural Delegation Consistency</summary>
+   
+The parent and child zone files should have the same set of _NS_ and glue _A_ records for delegation irrespective of whether the name server hosting the child zone is reachable from the top name servers. 
+
+Input `json` format:
+```json5
+      {
+         "PropertyName": "StructuralDelegationConsistency"
       }
 ```
 </details>
