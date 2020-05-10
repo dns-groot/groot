@@ -68,6 +68,9 @@
 			},
 			{
 				"PropertyName": "LameDelegation"
+			},
+			{
+				"PropertyName": "StructuralDelegation"
 			}
 		]
 	}

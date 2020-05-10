@@ -376,9 +376,9 @@ void interpretation::Graph::Properties::RewriteBlackholing(const interpretation:
 					json tmp;
 					tmp["Property"] = "Rewrite Blackholing";
 					tmp["Equivalence Class"] = graph[p[i]].query.ToString();
-					tmp["Violation"] = "Query is eventually rewritten to " + graph[p[p.size() - 1]].query.ToString() + " for which there doesn't exist any resource record of any type";
+					tmp["Violation"] = "Query is eventually rewritten to " + graph[p[p.size() - 1]].query.ToString() + " which returns a NXDOMAIN at NS: " + graph[p[p.size() - 1]].ns;
 					json_queue.enqueue(tmp);
-					/*stringstream ss;
+				/*	stringstream ss;
 					ss << std::this_thread::get_id();
 					if (!boost::filesystem::exists("Graphs/" + ss.str() + ".dot")) {
 						graph.GenerateDotFile("Graphs/" + ss.str() + ".dot");

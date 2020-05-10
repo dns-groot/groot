@@ -128,26 +128,7 @@ void label::Graph::AddResourceRecord(const ResourceRecord& record, const int& zo
 	}
 }
 
-void label::Graph::CheckAllStructuralDelegations(string user_input, label::Graph::VertexDescriptor current_node, const Context& context, moodycamel::ConcurrentQueue<json>& json_queue)
-{
-	string n = "";
-	if ((*this)[current_node].name.get() != "") {
-		n = (*this)[current_node].name.get() + "." + user_input;
-	}
-	CheckStructuralDelegationConsistency(user_input, current_node, context, json_queue);
-	for (EdgeDescriptor edge : boost::make_iterator_range(out_edges(current_node, *this))) {
-		if ((*this)[edge].type == normal) {
-			CheckAllStructuralDelegations(n, edge.m_target, context, json_queue);
-		}
-	}
-}
-
-void label::Graph::CheckAllStructuralDelegations(string user_input, const Context& context, moodycamel::ConcurrentQueue<json>& json_queue)
-{
-	CheckAllStructuralDelegations(user_input, root_, context, json_queue);
-}
-
-void label::Graph::CheckStructuralDelegationConsistency(string user_input, boost::optional<label::Graph::VertexDescriptor> current_node, const Context& context, moodycamel::ConcurrentQueue<json>& json_queue)
+void label::Graph::CheckStructuralDelegationConsistency(string user_input, boost::optional<label::Graph::VertexDescriptor> current_node, const Context& context, Job& current_job)
 {
 	//LCOV_EXCL_START
 	VertexDescriptor node;
@@ -202,7 +183,7 @@ void label::Graph::CheckStructuralDelegationConsistency(string user_input, boost
 			}
 		}
 		//Compare the children and parents records
-		CompareParentChildDelegationRecords(parents, children, user_input, context, json_queue);
+		CompareParentChildDelegationRecords(parents, children, user_input, context, current_job);
 	}
 	else {
 
@@ -210,7 +191,7 @@ void label::Graph::CheckStructuralDelegationConsistency(string user_input, boost
 	//LCOV_EXCL_STOP
 }
 
-void label::Graph::CompareParentChildDelegationRecords(const std::vector<ZoneIdGlueNSRecords>& parent, const std::vector<ZoneIdGlueNSRecords>& child, string user_input, const Context& context, moodycamel::ConcurrentQueue<json>& json_queue) const
+void label::Graph::CompareParentChildDelegationRecords(const std::vector<ZoneIdGlueNSRecords>& parent, const std::vector<ZoneIdGlueNSRecords>& child, string user_input, const Context& context, Job& current_job) const
 {
 	// ZoneId, GlueRecords, NSRecords
 	json j;
@@ -251,7 +232,7 @@ void label::Graph::CompareParentChildDelegationRecords(const std::vector<ZoneIdG
 			j["Child NS"] = {};
 			for (auto c : child) j["Child NS"].push_back(GetHostingNameServer(std::get<0>(c), context));
 		}
-		json_queue.enqueue(j);
+		current_job.json_queue.enqueue(j);
 	}
 }
 
@@ -378,7 +359,7 @@ vector<label::Graph::ClosestNode> label::Graph::SearchNode(VertexDescriptor clos
 	return actual_enclosers;
 }
 
-void label::Graph::SubDomainECGeneration(VertexDescriptor start, vector<NodeLabel> parent_domain_name, bool skipLabel, Job& current_job)
+void label::Graph::SubDomainECGeneration(VertexDescriptor start, vector<NodeLabel> parent_domain_name, bool skipLabel, Job& current_job, const Context& context, bool check_structural_delegations)
 {
 	int len = 0;
 	for (NodeLabel& l : parent_domain_name) {
@@ -410,15 +391,20 @@ void label::Graph::SubDomainECGeneration(VertexDescriptor start, vector<NodeLabe
 	std::vector<NodeLabel> children_labels;
 	std::optional<VertexDescriptor>  wildcard_node;
 
+	// Check structural delegation for this node
+	if (check_structural_delegations) {
+		CheckStructuralDelegationConsistency(LabelUtils::LabelsToString(name), start, context, current_job);
+	}
+
 	for (EdgeDescriptor edge : boost::make_iterator_range(out_edges(start, *this))) {
 		if ((*this)[edge].type == normal) {
 			if ((*this)[edge.m_target].name.get() == "*") {
 				wildcard_node = edge.m_target;
 			}
-			SubDomainECGeneration(edge.m_target, name, false, current_job);
+			SubDomainECGeneration(edge.m_target, name, false, current_job, context, check_structural_delegations);
 		}
 		if ((*this)[edge].type == dname) {
-			SubDomainECGeneration(edge.m_target, name, true, current_job);
+			SubDomainECGeneration(edge.m_target, name, true, current_job, context, false);
 		}
 	}
 	(*this)[start].len = beforeLen;
@@ -462,7 +448,7 @@ void label::Graph::GenerateDotFile(string output_file)
 	write_graphviz(dotfile, *this, MakeVertexWriter(boost::get(&label::Vertex::name, *this)), MakeEdgeWriter(boost::get(&label::Edge::type, *this)));
 }
 
-void label::Graph::GenerateECs(Job& current_job)
+void label::Graph::GenerateECs(Job& current_job, const Context& context)
 {
 	// Given an user input for domain and query types, the function searches for relevant node
 	// The search is relevant even for subdomain = False as we want to know the exact EC
@@ -498,7 +484,7 @@ void label::Graph::GenerateECs(Job& current_job)
 				//EC producer threads
 				for (auto& encloser : closest_enclosers) {
 					ECproducers.push_back(thread([&]() {
-						SubDomainECGeneration(encloser.first, parent_domain_name, false, current_job);
+						SubDomainECGeneration(encloser.first, parent_domain_name, false, current_job, context, current_job.check_structural_delegations);
 						}
 					));
 				}
@@ -514,6 +500,9 @@ void label::Graph::GenerateECs(Job& current_job)
 			//Sub-domain queries can not be peformed.
 			if (current_job.check_subdomains) {
 				Logger->warn(fmt::format("label-graph.cpp (GenerateECs) - The complete domain {} doesn't exist so sub-domain is not valid", current_job.user_input_domain));
+				if (current_job.check_structural_delegations) {
+					Logger->warn(fmt::format("label-graph.cpp (GenerateECs) - The complete domain {} doesn't exist so structural delegation check is not valid", current_job.user_input_domain));
+				}
 			}
 			// The query might match a "wildcard" or its part of non-existent child nodes. We just set excluded to know there is some negation set there.
 			EC non_existent;

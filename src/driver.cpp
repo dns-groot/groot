@@ -1,11 +1,6 @@
 #include "driver.h"
 #include <boost/filesystem.hpp>
 
-void Driver::CheckAllStructuralDelegations(string user_input)
-{
-	label_graph_.CheckAllStructuralDelegations(user_input, context_, current_job_.json_queue);
-}
-
 void Driver::GenerateECsAndCheckProperties()
 {
 	if (current_job_.ec_queue.size_approx() != 0) {
@@ -15,7 +10,7 @@ void Driver::GenerateECsAndCheckProperties()
 
 	//EC producer thread (internally calls other threads depending on the closest enclosers)
 	std::thread label_graph_ec_generator = thread([&]() {
-		label_graph_.GenerateECs(current_job_);
+		label_graph_.GenerateECs(current_job_, context_);
 		});
 
 	std::thread EC_consumers[kECConsumerCount];
@@ -89,6 +84,7 @@ long Driver::GetECCountForCurrentJob() const
 
 long Driver::SetContext(const json& metadata, string directory)
 {
+	//TODO: Teardown if the context is set multiple times
 	for (auto& server : metadata["TopNameServers"]) {
 		context_.top_nameservers.push_back(server);
 	}
@@ -97,14 +93,14 @@ long Driver::SetContext(const json& metadata, string directory)
 		string file_name;
 		zone_json["FileName"].get_to(file_name);
 		auto zone_file_path = (boost::filesystem::path{ directory } / boost::filesystem::path{ file_name }).string();
-		rr_count += ParseZoneFileAndExtendGraphs(zone_file_path, zone_json["NameServer"]);
+		rr_count += ParseZoneFileAndExtendGraphs(zone_file_path, zone_json["NameServer"], zone_json.count("Origin")?string(zone_json["Origin"]): "");
 	}
-	Logger->critical(fmt::format("Total number of RRs parsed across all zone files: {}", rr_count));
+	Logger->info(fmt::format("Total number of RRs parsed across all zone files: {}", rr_count));
 	string types_info = "";
 	for (auto& [k, v] : context_.type_to_rr_count) {
 		types_info += k + ":" +  to_string(v) + ", ";
 	}
-	Logger->critical(fmt::format("RR Stats: {}", types_info));
+	Logger->info(fmt::format("RR Stats: {}", types_info));
 	return rr_count;
 }
 
@@ -208,6 +204,9 @@ void Driver::SetJob(const json& user_job)
 				Logger->error(fmt::format("driver.cpp (SetJob) - Skipping AlliAliases property check for {} as the Values is an empty list.", string(user_job["Domain"])));
 			}
 		}
+		else if (name == "StructuralDelegation") {
+			current_job_.check_structural_delegations = true;
+		}
 	}
 }
 
@@ -244,7 +243,7 @@ void Driver::SetJob(const string& second_level_tld) {
 void Driver::WriteViolationsToFile(string output_file) const
 {
 	//DumpNameServerZoneMap();
-	Logger->critical(fmt::format("Total number of violations: {}", property_violations_.size()));
+	Logger->info(fmt::format("Total number of violations: {}", property_violations_.size()));
 	std::ofstream ofs;
 	ofs.open(output_file, std::ofstream::out);
 	ofs << "[\n";

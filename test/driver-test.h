@@ -16,7 +16,7 @@ public:
 	}
 
 	int GetNumberofResourceRecordsParsed(Driver& d, string file, string nameserver) {
-		return d.ParseZoneFileAndExtendGraphs(file, nameserver);
+		return d.ParseZoneFileAndExtendGraphs(file, nameserver, "");
 	}
 
 	int GetNumberofViolations(Driver& d) {

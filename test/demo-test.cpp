@@ -37,7 +37,7 @@ BOOST_AUTO_TEST_CASE(demo_test)
 		total_ecs += driver.GetECCountForCurrentJob();
 	}
 	BOOST_TEST(120 == total_ecs);
-	BOOST_TEST(45 == dt.GetNumberofViolations(driver));
+	BOOST_TEST(48 == dt.GetNumberofViolations(driver));
 
 	EC test_ec;
 	test_ec.name = LabelUtils::StringToLabels("bar.trial.net.sy.");

@@ -101,23 +101,21 @@ namespace label {
 		VertexDescriptor root_ = 0;
 
 		VertexDescriptor AddNodes(VertexDescriptor, const vector<NodeLabel>&, int&);
-		void CheckAllStructuralDelegations(string, VertexDescriptor, const Context&, moodycamel::ConcurrentQueue<json>&);
-		void CheckStructuralDelegationConsistency(string, boost::optional<label::Graph::VertexDescriptor>, const Context&, moodycamel::ConcurrentQueue<json>&);
-		void CompareParentChildDelegationRecords(const std::vector<ZoneIdGlueNSRecords>&, const std::vector<ZoneIdGlueNSRecords>&, string, const Context&, moodycamel::ConcurrentQueue<json>&) const;
+		void CheckStructuralDelegationConsistency(string, boost::optional<label::Graph::VertexDescriptor>, const Context&, Job&);
+		void CompareParentChildDelegationRecords(const std::vector<ZoneIdGlueNSRecords>&, const std::vector<ZoneIdGlueNSRecords>&, string, const Context&, Job&) const;
 		void ConstructChildLabelsToVertexDescriptorMap(VertexDescriptor);
 		void ConstructOutputNS(json&, const CommonSymDiff&, boost::optional<CommonSymDiff>, string, string, string, string) const;
 		VertexDescriptor GetAncestor(VertexDescriptor, const vector<NodeLabel>&, vector<VertexDescriptor>&, int& index) const;
 		string GetHostingNameServer(int, const Context&) const;
 		void NodeEC(const vector<NodeLabel>& name, Job&) const;
 		vector<ClosestNode> SearchNode(VertexDescriptor, const vector<NodeLabel>&, int);
-		void SubDomainECGeneration(VertexDescriptor, vector<NodeLabel>, bool, Job&);
+		void SubDomainECGeneration(VertexDescriptor, vector<NodeLabel>, bool, Job&, const Context&, bool);
 		void WildcardChildEC(std::vector<NodeLabel>&, const vector<NodeLabel>&, int, Job&) const;
 
 	public:
 		void AddResourceRecord(const ResourceRecord&, const int&, zone::Graph::VertexDescriptor);
-		void CheckAllStructuralDelegations(string, const Context&, moodycamel::ConcurrentQueue<json>&);
 		void GenerateDotFile(string);
-		void GenerateECs(Job&);
+		void GenerateECs(Job&, const Context&);
 		Graph();
 	};
 }

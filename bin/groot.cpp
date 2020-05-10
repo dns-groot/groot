@@ -36,7 +36,7 @@ void demo(string directory, string properties, string output_file) {
 
 	high_resolution_clock::time_point t2 = high_resolution_clock::now();
 	duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
-	Logger->critical(fmt::format("Time to build label graph and zone graphs: {}s", time_span.count()));
+	Logger->info(fmt::format("Time to build label graph and zone graphs: {}s", time_span.count()));
 	long total_ecs = 0;
 
 	for (auto& user_job : j) {
@@ -48,8 +48,8 @@ void demo(string directory, string properties, string output_file) {
 	}
 	t2 = high_resolution_clock::now();
 	time_span = duration_cast<duration<double>>(t2 - t1);
-	Logger->critical(fmt::format("Time to check all user jobs: {}s", time_span.count()));
-	Logger->critical(fmt::format("Total number of ECs across all jobs: {}", total_ecs));
+	Logger->info(fmt::format("Time to check all user jobs: {}s", time_span.count()));
+	Logger->info(fmt::format("Total number of ECs across all jobs: {}", total_ecs));
 	driver.WriteViolationsToFile(output_file);
 }
 
@@ -119,7 +119,7 @@ void CensusData() {
 
 		high_resolution_clock::time_point t2 = high_resolution_clock::now();
 		duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
-		Logger->critical(fmt::format("Time to build label graph and zone graphs: {}s", time_span.count()));
+		Logger->info(fmt::format("Time to build label graph and zone graphs: {}s", time_span.count()));
 		
 
 		driver.SetJob(second_level_tld + ".");
@@ -129,8 +129,8 @@ void CensusData() {
 		
 		t2 = high_resolution_clock::now();
 		time_span = duration_cast<duration<double>>(t2 - t1);
-		Logger->critical(fmt::format("Total number of ECs: {}", driver.GetECCountForCurrentJob()));
-		Logger->critical(fmt::format("Time to check all user jobs: {}s", time_span.count()));
+		Logger->info(fmt::format("Total number of ECs: {}", driver.GetECCountForCurrentJob()));
+		Logger->info(fmt::format("Time to check all user jobs: {}s", time_span.count()));
 	}
 	else {
 		Logger->error(fmt::format("groot.cpp (CensusData) - top name server is empty"));
@@ -145,11 +145,12 @@ a collection of zone files along with a collection of user-
 defined properties and systematically checks if any input to
 DNS can lead to a property violation for the properties.
 
-Usage: groot [-hv] [--jobs=<jobs_file_as_json>] <zone_directory> [--output=<output_file>]
+Usage: groot [-hvs] [--jobs=<jobs_file_as_json>] <zone_directory> [--output=<output_file>]
 
 Options:
   -h --help     Show this help screen.
-  -v --verbose  Print more information.  
+  -v --verbose  Print more information. 
+  -s --stats    Print statistics about the current run. 
   --version     Show groot version.
 )";
 
@@ -165,7 +166,12 @@ int main(int argc, const char** argv)
 		spdlog::init_thread_pool(8192, 1);
 
 		auto stdout_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-		stdout_sink->set_level(spdlog::level::err);
+		if (args.find("--stats")->second.asBool()) {
+			stdout_sink->set_level(spdlog::level::info);
+		}
+		else {
+			stdout_sink->set_level(spdlog::level::warn);
+		}
 		stdout_sink->set_pattern("[%x %H:%M:%S.%e] [thread %t] [%^%=7l%$] %v");
 
 		auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("log.txt", true);

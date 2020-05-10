@@ -112,8 +112,7 @@ struct Parser
 				// First symbol is "@" implies the owner name is the relative domain name.
 				if (current_record[0].compare("@") == 0) {
 					if (relative_domain_suffix.length() > 0) {
-						name = relative_domain_suffix;
-						current_record.erase(current_record.begin());
+						current_record[0] = relative_domain_suffix;
 						default_values.set_name(relative_domain_suffix);
 					}
 					else {
@@ -281,7 +280,7 @@ inline string ReadFromFile(char const* infile)
 		istreambuf_iterator<char>());
 }
 
-int Driver::ParseZoneFileAndExtendGraphs(string file, string nameserver) {
+int Driver::ParseZoneFileAndExtendGraphs(string file, string nameserver, string origin) {
 
 	context_.zoneId_counter_++;
 	int& zoneId = context_.zoneId_counter_;
@@ -300,7 +299,7 @@ int Driver::ParseZoneFileAndExtendGraphs(string file, string nameserver) {
 	// mutable state that will be updated by the parser.
 	size_t l = 0;
 	int parenCount = 0;
-	string relative_domain = "";
+	string relative_domain = origin;
 	ResourceRecord defaultValues("", "", 0, 0, "");
 	vector<string> currentRecord;
 

@@ -9,7 +9,8 @@
 		},
 		{
 			"FileName": "mtn.net.sy.txt",
-			"NameServer": "ns1.mtn.net.sy."
+			"NameServer": "ns1.mtn.net.sy.",
+			"Origin": "mtn.net.sy."
 		},
 		{
 			"FileName": "child.mtn.net.sy.txt",

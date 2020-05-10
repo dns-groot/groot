@@ -15,7 +15,7 @@
 
 using json = nlohmann::json;
 
-const int kECConsumerCount = 8;
+const int kECConsumerCount = 1;
 
 class Driver {
 
@@ -24,12 +24,11 @@ private:
 	Context context_;
 	Job current_job_;
 	std::set<json> property_violations_;
-	int ParseZoneFileAndExtendGraphs(string file, string nameserver);
+	int ParseZoneFileAndExtendGraphs(string file, string nameserver, string origin);
 	void DumpNameServerZoneMap() const;
 
 public:
 	friend class DriverTest;
-	void CheckAllStructuralDelegations(string);
 	void GenerateECsAndCheckProperties();
 	long GetECCountForCurrentJob() const;
 	long SetContext(const json&, string);
