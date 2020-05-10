@@ -204,7 +204,7 @@ void Driver::SetJob(const json& user_job)
 				Logger->error(fmt::format("driver.cpp (SetJob) - Skipping AlliAliases property check for {} as the Values is an empty list.", string(user_job["Domain"])));
 			}
 		}
-		else if (name == "StructuralDelegation") {
+		else if (name == "StructuralDelegationConsistency") {
 			current_job_.check_structural_delegations = true;
 		}
 	}
