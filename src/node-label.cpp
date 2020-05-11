@@ -17,6 +17,6 @@ bool NodeLabel::operator==(const NodeLabel& nl) const
 
 std::size_t hash_value(const NodeLabel& nl)
 {
-	boost::hash<boost::flyweight<std::string, boost::flyweights::no_tracking>> hasher;
+	boost::hash<boost::flyweight<std::string, boost::flyweights::tag<Empty>, boost::flyweights::no_tracking>> hasher;
 	return hasher(nl.n);
 }

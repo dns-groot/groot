@@ -22,7 +22,7 @@ string ResourceRecord::toString()
 {
 	std::bitset<RRType::N> rrTypes;
 	rrTypes.set(type_);
-	return LabelUtils::LabelsToString(name_) + "   " + TypeUtils::TypesToString(rrTypes) + "   " + rdata_;
+	return LabelUtils::LabelsToString(name_) + "   " + TypeUtils::TypesToString(rrTypes) + "   " + rdata_.get();
 }
 
 vector<NodeLabel> ResourceRecord::get_name() const

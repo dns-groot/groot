@@ -59,6 +59,17 @@ zone::Graph::VertexDescriptor zone::Graph::AddNodes(zone::Graph::VertexDescripto
 	return closest_encloser;
 }
 
+bool checkDuplicate(const vector<ResourceRecord>& rrs, const ResourceRecord& newr) {
+	for (auto& rr : rrs) {
+		if (rr.get_type() == newr.get_type()) {
+			if (rr.get_ttl() == newr.get_ttl() && rr.get_rdata() == newr.get_rdata()) {
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
 boost::optional<zone::Graph::VertexDescriptor> zone::Graph::AddResourceRecord(const ResourceRecord& record)
 {
 	vector<NodeLabel> labels = record.get_name();
@@ -69,22 +80,30 @@ boost::optional<zone::Graph::VertexDescriptor> zone::Graph::AddResourceRecord(co
 		ConstructChildLabelsToVertexDescriptorMap(v);
 	}
 	VertexDescriptor node = AddNodes(closest_encloser, labels, index);
-	//TODO: This expensive operation can be removed for non DNS-CENSUS data
-	/*if (!checkDuplicate((*this)[node].rrs, record)) {
+
+	//Check for duplicate data. 
+	if (!checkDuplicate((*this)[node].rrs, record)) {
 		(*this)[node].rrs.push_back(record);
 		if (record.get_type() == RRType::SOA) {
-			z.origin = record.get_name();
+			origin_ = record.get_name();
 		}
 		return node;
 	}
 	else {
 		return {};
-	}*/
-	(*this)[node].rrs.push_back(record);
-	if (record.get_type() == RRType::SOA) {
-		origin_ = record.get_name();
+	}	
+}
+
+bool zone::Graph::CheckZoneMembership(const ResourceRecord& record, const string& filename)
+{
+	if (record.get_type() == RRType::SOA && origin_.size() == 0) {
+		return true;
 	}
-	return node;
+	else if (origin_.size() == 0) {
+		Logger->critical(fmt::format("zone-graph.cpp (CheckZoneMembership) - Non SOA record is written before a SOA record in the zone file {}", filename));
+		exit(EXIT_FAILURE);
+	}
+	return LabelUtils::SubDomainCheck(origin_, record.get_name());
 }
 
 vector<ResourceRecord> zone::Graph::LookUpGlueRecords(const vector<ResourceRecord>& ns_records) const
@@ -104,17 +123,6 @@ vector<ResourceRecord> zone::Graph::LookUpGlueRecords(const vector<ResourceRecor
 		}
 	}
 	return ip_records;
-}
-
-bool checkDuplicate(vector<ResourceRecord>& rrs, ResourceRecord& newr) {
-	for (auto& rr : rrs) {
-		if (rr.get_type() == newr.get_type()) {
-			if (rr.get_ttl() == newr.get_ttl() && rr.get_rdata() == newr.get_rdata()) {
-				return true;
-			}
-		}
-	}
-	return false;
 }
 
 void zone::Graph::ConstructChildLabelsToVertexDescriptorMap(const zone::Graph::VertexDescriptor node)

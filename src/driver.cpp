@@ -82,9 +82,51 @@ long Driver::GetECCountForCurrentJob() const
 	return current_job_.ec_count;
 }
 
+void MetadataSanityCheck(const json& metadata, string directory) {
+	if (metadata.count("TopNameServers") != 1) {
+		Logger->critical(fmt::format("driver.cpp (MetadataSanityCheck) - Metadata.json does not have the \"TopNameServers\" field. Check the example metadata.json format."));
+		exit(EXIT_FAILURE);
+	}
+	std::unordered_set<string> top_nameservers;
+	for (auto& server : metadata["TopNameServers"]) {
+		top_nameservers.insert(string(server));
+	}
+	if (metadata.count("ZoneFiles") != 1) {
+		Logger->critical(fmt::format("driver.cpp (MetadataSanityCheck) - Metadata.json does not have the \"ZoneFiles\" field. Check the example metadata.json format."));
+		exit(EXIT_FAILURE);
+	}
+	std::unordered_set<string> nameservers;
+	for (auto& zone_json : metadata["ZoneFiles"]) {
+		if (zone_json.count("FileName") != 1) {
+			Logger->critical(fmt::format("driver.cpp (MetadataSanityCheck) -\n{} \nThis item in the list of zone files doesn't have the \"FileName\" field. Check the example metadata.json format.", zone_json.dump(4)));
+			exit(EXIT_FAILURE);
+		}
+		if (zone_json.count("NameServer") != 1) {
+			Logger->critical(fmt::format("driver.cpp (MetadataSanityCheck) -\n{} \nThis item in the list of zone files doesn't have the \"NameServer\" field. Check the example metadata.json format.", zone_json.dump(4)));
+			exit(EXIT_FAILURE);
+		}
+		nameservers.insert(string(zone_json["NameServer"]));
+		string file_name;
+		zone_json["FileName"].get_to(file_name);
+		auto zone_file_path = (boost::filesystem::path{ directory } / boost::filesystem::path{ file_name }).string();
+		if (!boost::filesystem::exists(zone_file_path)) {
+			Logger->critical(fmt::format("driver.cpp (MetadataSanityCheck) - ZoneFile {} doesn't exist", zone_file_path));
+			exit(EXIT_FAILURE);
+		}
+	}
+	bool atleast_one = false;
+	for (auto& top : top_nameservers) {
+
+	}
+}
+
+
 long Driver::SetContext(const json& metadata, string directory)
 {
 	//TODO: Teardown if the context is set multiple times
+
+	MetadataSanityCheck(metadata, directory);
+
 	for (auto& server : metadata["TopNameServers"]) {
 		context_.top_nameservers.push_back(server);
 	}
@@ -210,9 +252,9 @@ void Driver::SetJob(const json& user_job)
 	}
 }
 
-void Driver::SetJob(const string& second_level_tld) {
+void Driver::SetJob(const string& domain_name) {
 	current_job_.ec_count = 0;
-	current_job_.user_input_domain = second_level_tld;
+	current_job_.user_input_domain = domain_name;
 	current_job_.check_subdomains = true;
 	current_job_.path_functions.clear();
 	current_job_.node_functions.clear();
@@ -233,11 +275,12 @@ void Driver::SetJob(const string& second_level_tld) {
 	current_job_.path_functions.push_back(lame_delegation);
 
 	vector<vector<NodeLabel>> allowed_domains;
-	allowed_domains.push_back(LabelUtils::StringToLabels(second_level_tld));
+	allowed_domains.push_back(LabelUtils::StringToLabels(domain_name));
 	auto query_rewrite = [d = std::move(allowed_domains)](const interpretation::Graph& graph, const interpretation::Graph::Path& p, moodycamel::ConcurrentQueue<json>& json_queue) {interpretation::Graph::Properties::QueryRewrite(graph, p, json_queue, d); };
 	current_job_.path_functions.push_back(query_rewrite);
 
 	current_job_.path_functions.push_back(interpretation::Graph::Properties::RewriteBlackholing);
+	//current_job_.check_structural_delegations = true;
 }
 
 void Driver::WriteViolationsToFile(string output_file) const

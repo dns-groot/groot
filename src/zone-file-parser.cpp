@@ -207,25 +207,24 @@ struct Parser
 				boost::to_lower(name);
 				mc.rrs_parsed++;
 				ResourceRecord RR(name, type, class_, ttl, rdata);
-				bool add = true;
-				/*	if (!type.compare("SOA") && !CheckForSubDomain(z.origin, RR.get_name())) {
-						add = false;
-					}*/
-				if (add) {
+				if (z.CheckZoneMembership(RR, mc.file_name)) {
 					boost::optional<zone::Graph::VertexDescriptor> vertexid = z.AddResourceRecord(RR);
 					if (vertexid) {
 						label_graph.AddResourceRecord(RR, z.get_id(), vertexid.get());
-					}
-					if (mc.type_to_count.find(type) != mc.type_to_count.end()) {
-						mc.type_to_count.insert({ type, 0 });
-					}
-					mc.type_to_count[type]++;
-					if (boost::algorithm::starts_with(name, "*.")) {
-						if (mc.type_to_count.find("wildcard") != mc.type_to_count.end()) {
-							mc.type_to_count.insert({ "wildcard", 0 });
+						mc.type_to_count[type]++;
+						if (boost::algorithm::starts_with(name, "*.")) {
+							mc.type_to_count["Wildcard"]++;
 						}
-						mc.type_to_count["wildcard"]++;
 					}
+					else {
+						mc.type_to_count["Duplicate-Records"]++;
+						Logger->debug(fmt::format("zone-file-parser.cpp (Parser()) - Duplicate record found on line {} in file {}", l, mc.file_name));
+					}
+					
+				}
+				else {
+					mc.type_to_count["Out-of-Zone-Records"]++;
+					Logger->debug(fmt::format("zone-file-parser.cpp (Parser()) - Ignoring out of zone record on line {} in file {}", l, mc.file_name));
 				}
 				current_record.clear();
 				Logger->trace(fmt::format("zone-file-parser.cpp (Parser()) - Parsed line {} in file {}", l, mc.file_name));

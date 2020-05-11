@@ -30,8 +30,10 @@ using json = nlohmann::json;
 #define kMaxLabelLength     63
 #define kMaxDomainLength    255
 
+struct Empty {};
+
 struct NodeLabel {
-	boost::flyweight<std::string, boost::flyweights::no_tracking> n;
+	boost::flyweight<std::string, boost::flyweights::tag<Empty>, boost::flyweights::no_tracking> n;
 	NodeLabel(const std::string s) : n{ s } {};
 	NodeLabel() : n{ "" } {};
 	std::string get() const;

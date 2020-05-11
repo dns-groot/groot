@@ -19,13 +19,13 @@ BOOST_AUTO_TEST_CASE(demo_test)
 
 	long total_rrs_parsed = driver.SetContext(metadata, (directory / boost::filesystem::path{ "zone_files" }).string());
 
-	BOOST_TEST(101 == total_rrs_parsed);
+	BOOST_TEST(102 == total_rrs_parsed);
 	BOOST_TEST(43 == dt.GetNumberofLabelGraphVertices(driver));
 	BOOST_TEST(43 == dt.GetNumberofLabelGraphEdges(driver));
 
 	boost::unordered_map<string, long> types_to_count = dt.GetTypeToCountMap(driver);
 
-	BOOST_TEST(1 == types_to_count["wildcard"]);
+	BOOST_TEST(1 == types_to_count["Wildcard"]);
 	BOOST_TEST(1 == types_to_count["DNAME"]);
 	BOOST_TEST(3 == types_to_count["CNAME"]);
 

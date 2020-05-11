@@ -64,6 +64,7 @@ namespace zone {
 		const vector<NodeLabel>& get_origin() const;
 
 		boost::optional<zone::Graph::VertexDescriptor> AddResourceRecord(const ResourceRecord&);
+		bool CheckZoneMembership(const ResourceRecord&, const string&);
 		vector<ResourceRecord> LookUpGlueRecords(const vector<ResourceRecord>&) const;
 		boost::optional<vector<zone::LookUpAnswer>> QueryLookUpAtZone(const EC&, bool&) const;
 		bool RequireGlueRecords(const vector<ResourceRecord>& NSRecords) const;

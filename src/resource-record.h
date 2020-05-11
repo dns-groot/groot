@@ -50,7 +50,7 @@ private:
 	RRType type_;
 	uint16_t class_;
 	uint32_t ttl_;
-	string rdata_;
+	boost::flyweight<std::string, boost::flyweights::tag<string>, boost::flyweights::no_tracking> rdata_;
 	friend class boost::serialization::access;
 	template <typename Archive>
 	void serialize(Archive& ar, const unsigned int version)

@@ -1,5 +1,6 @@
 @ 	3600	IN	SOA	ns1.tld.sy. dns.tld.sy. 2016122620 3600 3600 2592000 3600
 mtn.net.sy.		86400	IN	NS	ns1.mtn.net.sy.
+foo.com.		4500	IN	A	10.10.10.10
 mtn.net.sy.		86400	IN	NS	ns2.mtn.net.sy.
 ns1.mtn.net.sy.		86400	IN	A	188.160.0.221
 ns2.mtn.net.sy.		86400	IN	A	188.160.0.222

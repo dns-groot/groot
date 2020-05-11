@@ -15,7 +15,7 @@
 
 using json = nlohmann::json;
 
-const int kECConsumerCount = 1;
+const int kECConsumerCount = 8;
 
 class Driver {
 

@@ -130,7 +130,6 @@ void label::Graph::AddResourceRecord(const ResourceRecord& record, const int& zo
 
 void label::Graph::CheckStructuralDelegationConsistency(string user_input, boost::optional<label::Graph::VertexDescriptor> current_node, const Context& context, Job& current_job)
 {
-	//LCOV_EXCL_START
 	VertexDescriptor node;
 	if (!current_node) {
 		vector<NodeLabel> labels = LabelUtils::StringToLabels(user_input);
@@ -188,7 +187,6 @@ void label::Graph::CheckStructuralDelegationConsistency(string user_input, boost
 	else {
 
 	}
-	//LCOV_EXCL_STOP
 }
 
 void label::Graph::CompareParentChildDelegationRecords(const std::vector<ZoneIdGlueNSRecords>& parent, const std::vector<ZoneIdGlueNSRecords>& child, string user_input, const Context& context, Job& current_job) const
@@ -198,7 +196,7 @@ void label::Graph::CompareParentChildDelegationRecords(const std::vector<ZoneIdG
 	std::map<int, string> zoneId_to_ns;
 	for (auto& p : parent) {
 		zoneId_to_ns.try_emplace(std::get<0>(p), GetHostingNameServer(std::get<0>(p), context));
-		for (auto c : child) {
+		for (auto& c : child) {
 			zoneId_to_ns.try_emplace(std::get<0>(c), GetHostingNameServer(std::get<0>(c), context));
 			auto nsDiff = RRUtils::CompareRRs(std::get<2>(p), std::get<2>(c));
 			if (std::get<1>(c)) {
@@ -210,6 +208,12 @@ void label::Graph::CompareParentChildDelegationRecords(const std::vector<ZoneIdG
 			}
 		}
 	}
+	// Required, otherwise the zoneId_to_ns will be empty
+	if (parent.size() == 0) {
+		for (auto& c : child) {
+			zoneId_to_ns.try_emplace(std::get<0>(c), GetHostingNameServer(std::get<0>(c), context));
+		}
+	}
 	for (auto it = parent.begin(); it != parent.end(); ++it) {
 		for (auto itp = it + 1; itp != parent.end(); ++itp) {
 			auto nsDiff = RRUtils::CompareRRs(std::get<2>(*it), std::get<2>(*itp));
@@ -217,7 +221,7 @@ void label::Graph::CompareParentChildDelegationRecords(const std::vector<ZoneIdG
 			ConstructOutputNS(j, nsDiff, glueDiff, zoneId_to_ns.at(std::get<0>(*it)), zoneId_to_ns.at(std::get<0>(*itp)), "parent-a", "parent-b");
 		}
 	}
-	for (auto it = child.begin(); it != child.end(); ++it) {
+	for (auto it = child.begin(); it != child.end(); ++it) {		
 		for (auto itp = it + 1; itp != child.end(); ++itp) {
 			auto nsDiff = RRUtils::CompareRRs(std::get<2>(*it), std::get<2>(*itp));
 			auto glueDiff = RRUtils::CompareRRs(std::get<1>(*it).get_value_or({}), std::get<1>(*itp).get_value_or({}));
@@ -230,7 +234,7 @@ void label::Graph::CompareParentChildDelegationRecords(const std::vector<ZoneIdG
 		if (parent.empty() && !child.empty()) {
 			j["Warning"] = "There are no NS records at the parent or parent zone file is missing";
 			j["Child NS"] = {};
-			for (auto c : child) j["Child NS"].push_back(GetHostingNameServer(std::get<0>(c), context));
+			for (auto c : child) j["Child NS"].push_back(zoneId_to_ns.at(std::get<0>(c)));
 		}
 		current_job.json_queue.enqueue(j);
 	}
@@ -476,7 +480,7 @@ void label::Graph::GenerateECs(Job& current_job, const Context& context)
 		if (labels.size() == matchedIndex) {
 			if (current_job.check_subdomains == true) {
 				vector<NodeLabel> parent_domain_name = labels;
-				parent_domain_name.pop_back();
+				if (parent_domain_name.size())parent_domain_name.pop_back();
 				vector<std::thread> ECproducers;
 				if (current_job.ec_queue.size_approx() != 0) {
 					Logger->warn(fmt::format("label-graph.cpp (GenerateECs) - The global EC queue is non-empty for {}", current_job.user_input_domain));
