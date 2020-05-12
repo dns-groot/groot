@@ -98,7 +98,7 @@ string ZoneFileNSMap(string file, json& metadata, set<string>& required_domains,
 
 void CensusData() {
 	string data_path = "C:/Users/sivak/Desktop/Data/";
-	string second_level_tld = "com.ar";
+	string second_level_tld = "com.br";
 
 	json subdomains;
 	std::ifstream subdomainsFile((boost::filesystem::path{ data_path } / boost::filesystem::path{ "2ndLevelTLD-SubZones.json" }).string());
@@ -235,8 +235,8 @@ int main(int argc, const char** argv)
 		}
 
 		// TODO: validate that the directory and property files exist
-		//CensusData();
-		demo(zone_directory, jobs_file, output_file);
+		CensusData();
+		//demo(zone_directory, jobs_file, output_file);
 		Logger->debug("groot.cpp (main) - Finished checking all jobs");
 		spdlog::shutdown();
 		return 0;

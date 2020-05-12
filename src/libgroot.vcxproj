@@ -160,6 +160,7 @@
     <ClCompile Include="node-label.cpp" />
     <ClCompile Include="properties.cpp" />
     <ClCompile Include="resource-record.cpp" />
+    <ClCompile Include="structural-task.cpp" />
     <ClCompile Include="utils.cpp" />
     <ClCompile Include="zone-file-parser.cpp" />
     <ClCompile Include="zone-graph.cpp" />
@@ -177,6 +178,8 @@
     <ClInclude Include="node-label.h" />
     <ClInclude Include="resource-record.h" />
     <ClInclude Include="job.h" />
+    <ClInclude Include="structural-task.h" />
+    <ClInclude Include="task.h" />
     <ClInclude Include="utils.h" />
     <ClInclude Include="zone-graph.h" />
   </ItemGroup>

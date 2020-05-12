@@ -45,7 +45,11 @@ namespace label {
 	};
 
 	class Graph : public boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS, Vertex, Edge> {
+	public:	
 		using VertexDescriptor = boost::graph_traits<Graph>::vertex_descriptor;
+		
+	private:
+		
 		using EdgeDescriptor = boost::graph_traits<Graph>::edge_descriptor;
 		using VertexIterator = boost::graph_traits<Graph>::vertex_iterator;
 		using EdgeIterator = boost::graph_traits<Graph>::edge_iterator;
@@ -53,7 +57,6 @@ namespace label {
 		using ClosestNode = std::pair <VertexDescriptor, int>;
 		using ZoneIdGlueNSRecords = tuple<int, boost::optional<vector<ResourceRecord>>, vector<ResourceRecord>>;
 
-	private:
 		template <class VertexMap>
 		class VertexWriter {
 		public:
@@ -101,7 +104,6 @@ namespace label {
 		VertexDescriptor root_ = 0;
 
 		VertexDescriptor AddNodes(VertexDescriptor, const vector<NodeLabel>&, int&);
-		void CheckStructuralDelegationConsistency(string, boost::optional<label::Graph::VertexDescriptor>, const Context&, Job&);
 		void CompareParentChildDelegationRecords(const std::vector<ZoneIdGlueNSRecords>&, const std::vector<ZoneIdGlueNSRecords>&, string, const Context&, Job&) const;
 		void ConstructChildLabelsToVertexDescriptorMap(VertexDescriptor);
 		void ConstructOutputNS(json&, const CommonSymDiff&, boost::optional<CommonSymDiff>, string, string, string, string) const;
@@ -114,6 +116,7 @@ namespace label {
 
 	public:
 		void AddResourceRecord(const ResourceRecord&, const int&, zone::Graph::VertexDescriptor);
+		void CheckStructuralDelegationConsistency(string, label::Graph::VertexDescriptor, const Context&, Job&);
 		void GenerateDotFile(string);
 		void GenerateECs(Job&, const Context&);
 		Graph();

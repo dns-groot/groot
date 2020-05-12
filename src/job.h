@@ -7,7 +7,7 @@ struct Job {
 	bool check_subdomains = false;
 	bool check_structural_delegations = false;
 	std::atomic<long> ec_count = 0;
-	moodycamel::ConcurrentQueue<EC> ec_queue;
+	moodycamel::ConcurrentQueue<unique_ptr<Task>> ec_queue;
 	std::atomic<bool> finished_ec_generation = false;
 	moodycamel::ConcurrentQueue<json> json_queue;
 	vector<interpretation::Graph::NodeFunction> node_functions;

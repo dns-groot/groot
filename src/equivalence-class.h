@@ -2,13 +2,10 @@
 #define EQUIVALENCE_CLASS_H
 
 #include "resource-record.h"
+#include "task.h"
 
-struct EC {
-	boost::optional<std::vector<NodeLabel>> excluded;
-	vector<NodeLabel> name;
-	std::bitset<RRType::N> rrTypes;
-	bool nonExistent = false;
-
+class EC: public Task {
+	
 private:
 	friend class boost::serialization::access;
 	template <typename Archive>
@@ -18,8 +15,14 @@ private:
 		ar& excluded;
 	}
 public:
+	boost::optional<std::vector<NodeLabel>> excluded;
+	vector<NodeLabel> name;
+	std::bitset<RRType::N> rrTypes;
+	bool nonExistent = false;
+	
 	string ToString() const;
 	bool operator== (const EC&) const;
+	virtual string PrintTaskType();
 };
 
 #endif

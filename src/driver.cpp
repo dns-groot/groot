@@ -1,5 +1,6 @@
 #include "driver.h"
 #include <boost/filesystem.hpp>
+#include "structural-task.h"
 
 void Driver::GenerateECsAndCheckProperties()
 {
@@ -20,18 +21,29 @@ void Driver::GenerateECsAndCheckProperties()
 	//After all the threads are finished the doneConsumers count would be ECConsumerCount+1
 	for (int i = 0; i != kECConsumerCount; ++i) {
 		EC_consumers[i] = thread([i, &done_consumers, this]() {
-			EC item;
 			bool itemsLeft;
+			unique_ptr<Task> item;
 			int id = i;
 			do {
 				itemsLeft = !current_job_.finished_ec_generation;
 				while (current_job_.ec_queue.try_dequeue(item)) {
 					itemsLeft = true;
-					current_job_.ec_count++;
-					interpretation::Graph interpretation_graph_for_ec(item, context_);
-					//interpretation_graph_for_ec.CheckForLoops(json_queue_);
-					//interpretation_graph_for_ec.GenerateDotFile("InterpretationGraph.dot");
-					interpretation_graph_for_ec.CheckPropertiesOnEC(current_job_.path_functions, current_job_.node_functions, current_job_.json_queue);
+					if (dynamic_cast<EC*>(item.get()) != nullptr) {
+						EC* ec = dynamic_cast<EC*>(item.get());
+						item.release();
+						interpretation::Graph interpretation_graph_for_ec(*ec, context_);
+						////interpretation_graph_for_ec.CheckForLoops(json_queue_);
+						////interpretation_graph_for_ec.GenerateDotFile("InterpretationGraph.dot");
+						interpretation_graph_for_ec.CheckPropertiesOnEC(current_job_.path_functions, current_job_.node_functions, current_job_.json_queue);
+						delete ec;
+						current_job_.ec_count++;
+					}
+					else if (dynamic_cast<StructuralTask*>(item.get()) != nullptr) {
+						StructuralTask* st = dynamic_cast<StructuralTask*>(item.get());
+						item.release();
+						label_graph_.CheckStructuralDelegationConsistency(st->domain_name_, st->node_, context_, current_job_);
+						delete st;
+					}
 				}
 			} while (itemsLeft || done_consumers.fetch_add(1, std::memory_order_acq_rel) + 1 == kECConsumerCount);
 			});
@@ -280,7 +292,7 @@ void Driver::SetJob(const string& domain_name) {
 	current_job_.path_functions.push_back(query_rewrite);
 
 	current_job_.path_functions.push_back(interpretation::Graph::Properties::RewriteBlackholing);
-	//current_job_.check_structural_delegations = true;
+	current_job_.check_structural_delegations = true;
 }
 
 void Driver::WriteViolationsToFile(string output_file) const
