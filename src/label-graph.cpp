@@ -135,6 +135,8 @@ void label::Graph::CheckStructuralDelegationConsistency(string user_input, label
 	if (types[RRType::NS] == 1) {
 		std::vector<ZoneIdGlueNSRecords> parents;
 		std::vector<ZoneIdGlueNSRecords> children;
+		vector<NodeLabel> child_zone;
+		vector<NodeLabel> longest_parent;
 		for (auto zoneId_vertexId_pair : zoneId_vertexIds) {
 			if (context.zoneId_to_zone.find(std::get<0>(zoneId_vertexId_pair)) != context.zoneId_to_zone.end()) {
 				const zone::Graph& z = context.zoneId_to_zone.find(std::get<0>(zoneId_vertexId_pair))->second;
@@ -149,7 +151,9 @@ void label::Graph::CheckStructuralDelegationConsistency(string user_input, label
 						The RequireGlueRecords check is necessary as the child may not need glue records but the parent might in which case we
 						don't need to compare the glue record consistency. This case might arise for example in ucla.edu the NS for zone cs.ucla.edu
 						may be listed as ns1.ee.ucla.edu, then ucla.edu requires a glue record but not cs.ucla.edu zone.
+						RequireGLueRecords returns true if at least one glue record is required.
 					*/
+					child_zone = z.get_origin();
 					if (z.RequireGlueRecords(ns_records)) {
 						children.push_back(std::make_tuple(std::get<0>(zoneId_vertexId_pair), z.LookUpGlueRecords(ns_records), std::move(ns_records)));
 					}
@@ -158,12 +162,43 @@ void label::Graph::CheckStructuralDelegationConsistency(string user_input, label
 					}
 				}
 				else {
-					parents.push_back(std::make_tuple(std::get<0>(zoneId_vertexId_pair), z.LookUpGlueRecords(ns_records), std::move(ns_records)));
+					//Parents issue: For a domain - dns.foo.com.ar. the records can come from multiple sources like from com.ar. (glue record), foo.com.ar. (delegation) and dns.foo.com.ar (SOA)
+					//In such cases we get multiple parents which should not be accounted for.
+					if (longest_parent.size()) {
+						if (longest_parent == z.get_origin()) {
+							parents.push_back(std::make_tuple(std::get<0>(zoneId_vertexId_pair), z.LookUpGlueRecords(ns_records), std::move(ns_records)));
+						}
+						else if (LabelUtils::SubDomainCheck(longest_parent, z.get_origin())) {
+							parents.clear();
+							longest_parent = z.get_origin();
+							parents.push_back(std::make_tuple(std::get<0>(zoneId_vertexId_pair), z.LookUpGlueRecords(ns_records), std::move(ns_records)));
+						}
+					}
+					else {
+						longest_parent = z.get_origin();
+						parents.push_back(std::make_tuple(std::get<0>(zoneId_vertexId_pair), z.LookUpGlueRecords(ns_records), std::move(ns_records)));
+					}
 				}
 			}
 			else {
 				Logger->critical(fmt::format("label-graph.cpp (CheckStructuralDelegationConsistency) - ZoneId {} not found in the Name Server ZoneIds map"));
 				exit(EXIT_FAILURE);
+			}
+		}
+		//Remove unnecessary glue records from parents - This case arises when some of the NS records require glue records at child but not all unlike the parent.
+		if (child_zone.size()) {
+			for (auto& p : parents) {
+				if (std::get<1>(p)) {
+					auto& glue_rrs = std::get<1>(p).get();
+					for (auto it = glue_rrs.begin(); it != glue_rrs.end();) {
+						if (!LabelUtils::SubDomainCheck(child_zone, it->get_name())) {
+							it = glue_rrs.erase(it);
+						}
+						else {
+							++it;
+						}
+					}
+				}
 			}
 		}
 		//Compare the children and parents records
@@ -178,39 +213,31 @@ void label::Graph::CompareParentChildDelegationRecords(const std::vector<ZoneIdG
 {
 	// ZoneId, GlueRecords, NSRecords
 	json j;
-	std::map<int, string> zoneId_to_ns;
 	for (auto& p : parent) {
-		zoneId_to_ns.try_emplace(std::get<0>(p), GetHostingNameServer(std::get<0>(p), context));
 		for (auto& c : child) {
-			zoneId_to_ns.try_emplace(std::get<0>(c), GetHostingNameServer(std::get<0>(c), context));
 			auto nsDiff = RRUtils::CompareRRs(std::get<2>(p), std::get<2>(c));
 			if (std::get<1>(c)) {
 				auto glueDiff = RRUtils::CompareRRs(std::get<1>(p).get(), std::get<1>(c).get());
-				ConstructOutputNS(j, nsDiff, glueDiff, zoneId_to_ns.at(std::get<0>(p)), zoneId_to_ns.at(std::get<0>(c)), "parent", "child");
+				ConstructOutputNS(j, nsDiff, glueDiff, context.zoneId_nameserver_map.at(std::get<0>(p)), context.zoneId_nameserver_map.at(std::get<0>(c)), "parent", "child");
 			}
 			else {
-				ConstructOutputNS(j, nsDiff, {}, zoneId_to_ns.at(std::get<0>(p)), zoneId_to_ns.at(std::get<0>(c)), "parent", "child");
+				ConstructOutputNS(j, nsDiff, {}, context.zoneId_nameserver_map.at(std::get<0>(p)), context.zoneId_nameserver_map.at(std::get<0>(c)), "parent", "child");
 			}
 		}
 	}
-	// Required, otherwise the zoneId_to_ns will be empty
-	if (parent.size() == 0) {
-		for (auto& c : child) {
-			zoneId_to_ns.try_emplace(std::get<0>(c), GetHostingNameServer(std::get<0>(c), context));
-		}
-	}
+
 	for (auto it = parent.begin(); it != parent.end(); ++it) {
 		for (auto itp = it + 1; itp != parent.end(); ++itp) {
 			auto nsDiff = RRUtils::CompareRRs(std::get<2>(*it), std::get<2>(*itp));
 			auto glueDiff = RRUtils::CompareRRs(std::get<1>(*it).get(), std::get<1>(*itp).get());
-			ConstructOutputNS(j, nsDiff, glueDiff, zoneId_to_ns.at(std::get<0>(*it)), zoneId_to_ns.at(std::get<0>(*itp)), "parent-a", "parent-b");
+			ConstructOutputNS(j, nsDiff, glueDiff, context.zoneId_nameserver_map.at(std::get<0>(*it)), context.zoneId_nameserver_map.at(std::get<0>(*itp)), "parent-a", "parent-b");
 		}
 	}
-	for (auto it = child.begin(); it != child.end(); ++it) {		
+	for (auto it = child.begin(); it != child.end(); ++it) {
 		for (auto itp = it + 1; itp != child.end(); ++itp) {
 			auto nsDiff = RRUtils::CompareRRs(std::get<2>(*it), std::get<2>(*itp));
 			auto glueDiff = RRUtils::CompareRRs(std::get<1>(*it).get_value_or({}), std::get<1>(*itp).get_value_or({}));
-			ConstructOutputNS(j, nsDiff, glueDiff, zoneId_to_ns.at(std::get<0>(*it)), zoneId_to_ns.at(std::get<0>(*itp)), "child-a", "child-b");
+			ConstructOutputNS(j, nsDiff, glueDiff, context.zoneId_nameserver_map.at(std::get<0>(*it)), context.zoneId_nameserver_map.at(std::get<0>(*itp)), "child-a", "child-b");
 		}
 	}
 	if (j.size() || (parent.empty() && !child.empty())) {
@@ -219,7 +246,7 @@ void label::Graph::CompareParentChildDelegationRecords(const std::vector<ZoneIdG
 		if (parent.empty() && !child.empty()) {
 			j["Warning"] = "There are no NS records at the parent or parent zone file is missing";
 			j["Child NS"] = {};
-			for (auto c : child) j["Child NS"].push_back(zoneId_to_ns.at(std::get<0>(c)));
+			for (auto c : child) j["Child NS"].push_back(context.zoneId_nameserver_map.at(std::get<0>(c)));
 		}
 		current_job.json_queue.enqueue(j);
 	}

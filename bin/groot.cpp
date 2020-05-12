@@ -96,9 +96,8 @@ string ZoneFileNSMap(string file, json& metadata, set<string>& required_domains,
 	return top_server;
 }
 
-void CensusData() {
+void CensusData(string second_level_tld, string output_file) {
 	string data_path = "C:/Users/sivak/Desktop/Data/";
-	string second_level_tld = "com.br";
 
 	json subdomains;
 	std::ifstream subdomainsFile((boost::filesystem::path{ data_path } / boost::filesystem::path{ "2ndLevelTLD-SubZones.json" }).string());
@@ -139,6 +138,7 @@ void CensusData() {
 		time_span = duration_cast<duration<double>>(t2 - t1);
 		Logger->info(fmt::format("Total number of ECs: {}", driver.GetECCountForCurrentJob()));
 		Logger->info(fmt::format("Time to check all user jobs: {}s", time_span.count()));
+		driver.WriteViolationsToFile(output_file);
 	}
 	else {
 		Logger->error(fmt::format("groot.cpp (CensusData) - top name server is empty"));
@@ -235,8 +235,8 @@ int main(int argc, const char** argv)
 		}
 
 		// TODO: validate that the directory and property files exist
-		CensusData();
-		//demo(zone_directory, jobs_file, output_file);
+		//CensusData(zone_directory, output_file);
+		demo(zone_directory, jobs_file, output_file);
 		Logger->debug("groot.cpp (main) - Finished checking all jobs");
 		spdlog::shutdown();
 		return 0;
