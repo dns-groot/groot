@@ -55,9 +55,9 @@ jobs:
         tags: latest  
     
     - name: Docker Hub Description
-        uses: peter-evans/dockerhub-description@v2
-        env:
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
-          DOCKERHUB_REPOSITORY:  dnsgt/groot
+      uses: peter-evans/dockerhub-description@v2
+      env:
+         DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+         DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+         DOCKERHUB_REPOSITORY:  dnsgt/groot
     
