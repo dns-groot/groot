@@ -1,7 +1,7 @@
 #ifndef JOB_H_
 #define JOB_H_
 
-#include "interpretation-properties.h"
+#include "task.h"
 
 struct Job {
 	bool check_subdomains = false;

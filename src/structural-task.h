@@ -1,4 +1,3 @@
-#pragma once
 #ifndef STRUCTURAL_TASK_CLASS_H
 #define STRUCTURAL_TASK_CLASS_H
 
@@ -12,6 +11,7 @@ public:
 	string domain_name_;
 	StructuralTask(label::Graph::VertexDescriptor, string);
 	virtual string PrintTaskType();
+	virtual void Process(const Context&, vector<boost::any>&);
 };
 
 #endif

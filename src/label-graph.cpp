@@ -1,6 +1,7 @@
 #include "label-graph.h"
 #include "utils.h"
 #include "structural-task.h"
+#include "EC-task.h"
 
 label::Graph::Graph()
 {
@@ -64,9 +65,9 @@ string label::Graph::GetHostingNameServer(int zoneId, const Context& context) co
 
 void label::Graph::NodeEC(const vector<NodeLabel>& name, Job& current_job) const
 {
-	unique_ptr<EC> present = make_unique<EC>();
-	present->name = name;
-	present->rrTypes = current_job.types_req;
+	unique_ptr<ECTask> present = make_unique<ECTask>();
+	present->ec_.name = name;
+	present->ec_.rrTypes = current_job.types_req;
 	//EC generated
 	//Push it to the EC queue
 	current_job.ec_queue.enqueue(std::move(present));
@@ -435,11 +436,11 @@ void label::Graph::SubDomainECGeneration(VertexDescriptor start, vector<NodeLabe
 	}
 	else {
 		//Non-existent child category
-		unique_ptr<EC> nonExistent = make_unique<EC>();
-		nonExistent->name = name;
-		nonExistent->rrTypes.flip();
-		nonExistent->excluded = boost::make_optional(std::move(children_labels));
-		nonExistent->nonExistent = true;
+		unique_ptr<ECTask> nonExistent = make_unique<ECTask>();
+		nonExistent->ec_.name = name;
+		nonExistent->ec_.rrTypes.flip();
+		nonExistent->ec_.excluded = boost::make_optional(std::move(children_labels));
+		nonExistent->ec_.nonExistent = true;
 		//EC generated
 		//Push it to the queue
 		current_job.ec_queue.enqueue(std::move(nonExistent));
@@ -448,13 +449,13 @@ void label::Graph::SubDomainECGeneration(VertexDescriptor start, vector<NodeLabe
 
 void label::Graph::WildcardChildEC(std::vector<NodeLabel>& children_labels, const vector<NodeLabel>& labels, int index, Job& current_job) const
 {
-	unique_ptr<EC> wildcard_match = make_unique<EC>();
-	wildcard_match->name.clear();
+	unique_ptr<ECTask> wildcard_match = make_unique<ECTask>();
+	wildcard_match->ec_.name.clear();
 	for (int i = 0; i < index; i++) {
-		wildcard_match->name.push_back(labels[i]);
+		wildcard_match->ec_.name.push_back(labels[i]);
 	}
-	wildcard_match->rrTypes = current_job.types_req;
-	wildcard_match->excluded = boost::make_optional(std::move(children_labels));
+	wildcard_match->ec_.rrTypes = current_job.types_req;
+	wildcard_match->ec_.excluded = boost::make_optional(std::move(children_labels));
 	//EC generated - Push it to the queue
 	current_job.ec_queue.enqueue(std::move(wildcard_match));
 }
@@ -522,13 +523,13 @@ void label::Graph::GenerateECs(Job& current_job, const Context& context)
 				}
 			}
 			// The query might match a "wildcard" or its part of non-existent child nodes. We just set excluded to know there is some negation set there.
-			unique_ptr<EC> non_existent = make_unique<EC>();
-			non_existent->name.clear();
+			unique_ptr<ECTask> non_existent = make_unique<ECTask>();
+			non_existent->ec_.name.clear();
 			for (int i = 0; i < matchedIndex; i++) {
-				non_existent->name.push_back(labels[i]);
+				non_existent->ec_.name.push_back(labels[i]);
 			}
-			non_existent->rrTypes = current_job.types_req;
-			non_existent->excluded = boost::make_optional(std::vector<NodeLabel>());
+			non_existent->ec_.rrTypes = current_job.types_req;
+			non_existent->ec_.excluded = boost::make_optional(std::vector<NodeLabel>());
 			//EC generated
 			current_job.ec_queue.enqueue(std::move(non_existent));
 		}

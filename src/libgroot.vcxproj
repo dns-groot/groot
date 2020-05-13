@@ -154,6 +154,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="driver.cpp" />
+    <ClCompile Include="EC-task.cpp" />
     <ClCompile Include="equivalence-class.cpp" />
     <ClCompile Include="interpretation-graph.cpp" />
     <ClCompile Include="label-graph.cpp" />
@@ -171,6 +172,7 @@
   <ItemGroup>
     <ClInclude Include="context.h" />
     <ClInclude Include="driver.h" />
+    <ClInclude Include="EC-task.h" />
     <ClInclude Include="equivalence-class.h" />
     <ClInclude Include="interpretation-properties.h" />
     <ClInclude Include="label-graph.h" />

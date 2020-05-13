@@ -2,9 +2,8 @@
 #define EQUIVALENCE_CLASS_H
 
 #include "resource-record.h"
-#include "task.h"
 
-class EC: public Task {
+class EC {
 	
 private:
 	friend class boost::serialization::access;
@@ -22,7 +21,6 @@ public:
 	
 	string ToString() const;
 	bool operator== (const EC&) const;
-	virtual string PrintTaskType();
 };
 
 #endif

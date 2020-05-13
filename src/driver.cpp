@@ -1,6 +1,7 @@
 #include "driver.h"
 #include <boost/filesystem.hpp>
 #include "structural-task.h"
+#include "EC-task.h"
 
 void Driver::GenerateECsAndCheckProperties()
 {
@@ -17,10 +18,17 @@ void Driver::GenerateECsAndCheckProperties()
 	std::thread EC_consumers[kECConsumerCount];
 	std::atomic<int> done_consumers(0);
 
+	vector<boost::any> structural_variadic;
+	structural_variadic.push_back(&current_job_);
+	structural_variadic.push_back(&label_graph_);
+
+	vector<boost::any> ec_variadic;
+	ec_variadic.push_back(&current_job_);
+
 	//EC consumer threads which are also JSON producer threads.
 	//After all the threads are finished the doneConsumers count would be ECConsumerCount+1
 	for (int i = 0; i != kECConsumerCount; ++i) {
-		EC_consumers[i] = thread([i, &done_consumers, this]() {
+		EC_consumers[i] = thread([i, &structural_variadic, &ec_variadic, &done_consumers, this]() {
 			bool itemsLeft;
 			unique_ptr<Task> item;
 			int id = i;
@@ -28,21 +36,12 @@ void Driver::GenerateECsAndCheckProperties()
 				itemsLeft = !current_job_.finished_ec_generation;
 				while (current_job_.ec_queue.try_dequeue(item)) {
 					itemsLeft = true;
-					if (dynamic_cast<EC*>(item.get()) != nullptr) {
-						EC* ec = dynamic_cast<EC*>(item.get());
-						item.release();
-						interpretation::Graph interpretation_graph_for_ec(*ec, context_);
-						////interpretation_graph_for_ec.CheckForLoops(json_queue_);
-						////interpretation_graph_for_ec.GenerateDotFile("InterpretationGraph.dot");
-						interpretation_graph_for_ec.CheckPropertiesOnEC(current_job_.path_functions, current_job_.node_functions, current_job_.json_queue);
-						delete ec;
+					if (dynamic_cast<ECTask*>(item.get()) != nullptr) {
+						item->Process(context_, ec_variadic);
 						current_job_.ec_count++;
 					}
 					else if (dynamic_cast<StructuralTask*>(item.get()) != nullptr) {
-						StructuralTask* st = dynamic_cast<StructuralTask*>(item.get());
-						item.release();
-						label_graph_.CheckStructuralDelegationConsistency(st->domain_name_, st->node_, context_, current_job_);
-						delete st;
+						item->Process(context_, structural_variadic);
 					}
 				}
 			} while (itemsLeft || done_consumers.fetch_add(1, std::memory_order_acq_rel) + 1 == kECConsumerCount);

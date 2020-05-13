@@ -32,8 +32,3 @@ bool EC::operator==(const EC& q) const
 	}
 	return true;
 }
-
-string EC::PrintTaskType()
-{
-	return "Task: EC";
-}

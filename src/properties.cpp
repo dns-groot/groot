@@ -165,7 +165,7 @@ void interpretation::Graph::Properties::AllAliases(const interpretation::Graph& 
 					tmp["Canonical Name"] = graph[p[j]].query.ToString();
 					json_queue.enqueue(tmp);
 				}
-			}			
+			}
 		}
 	}
 
@@ -177,6 +177,8 @@ void interpretation::Graph::Properties::CheckDelegationConsistency(const interpr
 	  The path should have at least three nodes including the dummy node.
 	  There should be consective nodes answering for the given query, more specifically, the parent should have Ref type and the child with Ans type.
 	  If there is no such pair then the given query name is not a zone cut and delegation consistency is not a valid property to check.
+	  Nameserver shadowing case: Consider the query 511.dabomb.com.ar which is sent to ns1.com.ar. which provides Ref to dabomb.com.ar. as server X.
+	  The server X has zone files for 511 and dabomb and picks the 511 one to answer the query(Ans). Both the parent and child should be answering for the same domain_name.
 	*/
 	if (p.size() > 2) {
 		if (graph[p[0]].ns == "") {
@@ -198,18 +200,40 @@ void interpretation::Graph::Properties::CheckDelegationConsistency(const interpr
 				}
 			}
 			if (parentIndex != -1) {
-				tuple<vector<ResourceRecord>, vector<ResourceRecord>> parentRecords = GetNSGlueRecords(std::get<2>(graph[p[parentIndex]].answer.get()[0]));
-				tuple<vector<ResourceRecord>, vector<ResourceRecord>> childRecords = GetNSGlueRecords(std::get<2>(graph[p[static_cast<long long>(parentIndex) + 1]].answer.get()[0]));
-				CommonSymDiff nsDiff = RRUtils::CompareRRs(std::get<0>(parentRecords), std::get<0>(childRecords));
-				CommonSymDiff glueDiff = RRUtils::CompareRRs(std::get<1>(parentRecords), std::get<1>(childRecords));
-				if (std::get<1>(nsDiff).size() || std::get<2>(nsDiff).size()) {
+				tuple<vector<ResourceRecord>, vector<ResourceRecord>> parent_records = GetNSGlueRecords(std::get<2>(graph[p[parentIndex]].answer.get()[0]));
+				tuple<vector<ResourceRecord>, vector<ResourceRecord>> child_records = GetNSGlueRecords(std::get<2>(graph[p[static_cast<long long>(parentIndex) + 1]].answer.get()[0]));
+
+				//Parent and child be about the same domain name
+				if (std::get<0>(parent_records).size() && std::get<0>(child_records).size()) {
+					if (std::get<0>(parent_records)[0].get_name() != std::get<0>(child_records)[0].get_name()) {
+						return;
+					}
+				}
+
+				//Remove glue records that are required by parent but not child
+				if (std::get<0>(child_records).size()) {
+					vector<NodeLabel> child_domain = std::get<0>(child_records)[0].get_name();
+					vector<ResourceRecord>& parent_glue_records = std::get<1>(parent_records);
+					for (auto it = parent_glue_records.begin(); it != parent_glue_records.end();) {
+						if (!LabelUtils::SubDomainCheck(child_domain, it->get_name())) {
+							it = parent_glue_records.erase(it);
+						}
+						else {
+							++it;
+						}
+					}
+				}
+
+				CommonSymDiff ns_diff = RRUtils::CompareRRs(std::get<0>(parent_records), std::get<0>(child_records));
+				CommonSymDiff glue_diff = RRUtils::CompareRRs(std::get<1>(parent_records), std::get<1>(child_records));
+				if (std::get<1>(ns_diff).size() || std::get<2>(ns_diff).size()) {
 					json tmp;
 					tmp["Property"] = "Delegation Consistency";
 					tmp["Equivalence Class"] = query.ToString();
 					tmp["Violation"] = "Inconsistency in NS records  at " + graph[p[parentIndex]].ns + " and " + graph[p[static_cast<long long>(parentIndex) + 1]].ns;
 					json_queue.enqueue(tmp);
 				}
-				if (std::get<1>(glueDiff).size() || std::get<2>(glueDiff).size()) {
+				if (std::get<1>(glue_diff).size() || std::get<2>(glue_diff).size()) {
 					json tmp;
 					tmp["Property"] = "Delegation Consistency";
 					tmp["Equivalence Class"] = query.ToString();
@@ -378,11 +402,11 @@ void interpretation::Graph::Properties::RewriteBlackholing(const interpretation:
 					tmp["Equivalence Class"] = graph[p[i]].query.ToString();
 					tmp["Violation"] = "Query is eventually rewritten to " + graph[p[p.size() - 1]].query.ToString() + " which returns a NXDOMAIN at NS: " + graph[p[p.size() - 1]].ns;
 					json_queue.enqueue(tmp);
-				/*	stringstream ss;
-					ss << std::this_thread::get_id();
-					if (!boost::filesystem::exists("Graphs/" + ss.str() + ".dot")) {
-						graph.GenerateDotFile("Graphs/" + ss.str() + ".dot");
-					}*/
+					/*	stringstream ss;
+						ss << std::this_thread::get_id();
+						if (!boost::filesystem::exists("Graphs/" + ss.str() + ".dot")) {
+							graph.GenerateDotFile("Graphs/" + ss.str() + ".dot");
+						}*/
 				}
 				/*else if (end_tag == ReturnTag::REFUSED || end_tag == ReturnTag::NSNOTFOUND) {
 					json tmp;

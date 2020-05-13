@@ -4,10 +4,6 @@
 //#define BOOST_GRAPH_NO_BUNDLED_PROPERTIES 1
 
 #include "my_logger.h"
-#include "resource-record.h"
-#include "utils.h"
-#include "zone-graph.h"
-#include "context.h"
 #include "job.h"
 
 namespace label {

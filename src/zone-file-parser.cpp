@@ -349,7 +349,7 @@ int Driver::ParseZoneFileAndExtendGraphs(string file, string nameserver, string 
 		}
 		else {
 			it->second.push_back(zoneId);
-			context_.zoneId_nameserver_map.insert({ zoneId, nameserver });
+			context_.zoneId_nameserver_map.insert({ zoneId, Nameserver(nameserver)});
 		}
 	}
 	else
