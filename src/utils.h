@@ -7,26 +7,27 @@
 
 class LabelUtils
 {
-public:
-	static string LabelsToString(vector<NodeLabel>);
-	static string LabelsToString(vector<vector<NodeLabel>>);
-	static vector<NodeLabel> StringToLabels(string);
-	static bool SubDomainCheck(const vector<NodeLabel>&, const vector<NodeLabel>&);
-	static bool SubDomainCheck(const vector<vector<NodeLabel>>&, const vector<NodeLabel>&);
+  public:
+    static string LabelsToString(vector<NodeLabel>);
+    static string LabelsToString(vector<vector<NodeLabel>>);
+    static vector<NodeLabel> StringToLabels(string);
+    static bool SubDomainCheck(const vector<NodeLabel> &, const vector<NodeLabel> &);
+    static bool SubDomainCheck(const vector<vector<NodeLabel>> &, const vector<NodeLabel> &);
 };
 
 class TypeUtils
 {
-public:
-	static RRType StringToType(const string&);
-	static string TypesToString(std::bitset<RRType::N>);
+  public:
+    static RRType StringToType(const string &);
+    static string TypesToString(std::bitset<RRType::N>);
 };
 
 using CommonSymDiff = tuple<vector<ResourceRecord>, vector<ResourceRecord>, vector<ResourceRecord>>;
 
-class RRUtils {
-public:
-	static CommonSymDiff CompareRRs(vector<ResourceRecord>, vector<ResourceRecord>);
+class RRUtils
+{
+  public:
+    static CommonSymDiff CompareRRs(vector<ResourceRecord>, vector<ResourceRecord>);
 };
 
 #endif

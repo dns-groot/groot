@@ -3,120 +3,135 @@
 
 //#define BOOST_GRAPH_NO_BUNDLED_PROPERTIES 1
 
-#include "my_logger.h"
 #include "job.h"
+#include "my_logger.h"
 
-namespace label {
+namespace label
+{
 
-	struct Vertex {
-		NodeLabel name;
-		int16_t	len = -1;
-		std::bitset<RRType::N> rrtypes_available;
-		std::vector<tuple<int, zone::Graph::VertexDescriptor>> zoneId_vertexId;
+struct Vertex {
+    NodeLabel name;
+    int16_t len = -1;
+    std::bitset<RRType::N> rrtypes_available;
+    std::vector<tuple<int, zone::Graph::VertexDescriptor>> zoneId_vertexId;
 
-	private:
-		friend class boost::serialization::access;
-		template <typename Archive>
-		void serialize(Archive& ar, const unsigned int version) {
-			ar& name;
-			ar& len;
-			ar& rrtypes_available;
-			ar& zoneId_vertexId;
-		}
-	};
+  private:
+    friend class boost::serialization::access;
+    template <typename Archive> void serialize(Archive &ar, const unsigned int version)
+    {
+        ar &name;
+        ar &len;
+        ar &rrtypes_available;
+        ar &zoneId_vertexId;
+    }
+};
 
-	enum EdgeType {
-		normal = 1,
-		dname = 2
-	};
+enum EdgeType { normal = 1, dname = 2 };
 
-	struct Edge {
-		EdgeType type;
-	private:
-		friend class boost::serialization::access;
-		template <typename Archive>
-		void serialize(Archive& ar, const unsigned int version) {
-			ar& type;
-		}
-	};
+struct Edge {
+    EdgeType type;
 
-	class Graph : public boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS, Vertex, Edge> {
-	public:	
-		using VertexDescriptor = boost::graph_traits<Graph>::vertex_descriptor;
-		
-	private:
-		
-		using EdgeDescriptor = boost::graph_traits<Graph>::edge_descriptor;
-		using VertexIterator = boost::graph_traits<Graph>::vertex_iterator;
-		using EdgeIterator = boost::graph_traits<Graph>::edge_iterator;
-		using LabelToVertex = boost::unordered_map<NodeLabel, VertexDescriptor>;
-		using ClosestNode = std::pair <VertexDescriptor, int>;
-		using ZoneIdGlueNSRecords = tuple<int, boost::optional<vector<ResourceRecord>>, vector<ResourceRecord>>;
+  private:
+    friend class boost::serialization::access;
+    template <typename Archive> void serialize(Archive &ar, const unsigned int version)
+    {
+        ar &type;
+    }
+};
 
-		template <class VertexMap>
-		class VertexWriter {
-		public:
-			VertexWriter(VertexMap w) : wm(w) {}
-			template <class Vertex>
-			void operator()(ostream& out, const Vertex& v) const {
-				auto type = get(wm, v);
-				out << "[label=\"" << type.get() << "\"]";
-			}
-		private:
-			VertexMap wm;
-		};
+class Graph : public boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS, Vertex, Edge>
+{
+  public:
+    using VertexDescriptor = boost::graph_traits<Graph>::vertex_descriptor;
 
-		template <class VertexMap>
-		inline VertexWriter<VertexMap>
-			MakeVertexWriter(VertexMap w) {
-			return VertexWriter<VertexMap>(w);
-		}
+  private:
+    using EdgeDescriptor = boost::graph_traits<Graph>::edge_descriptor;
+    using VertexIterator = boost::graph_traits<Graph>::vertex_iterator;
+    using EdgeIterator = boost::graph_traits<Graph>::edge_iterator;
+    using LabelToVertex = boost::unordered_map<NodeLabel, VertexDescriptor>;
+    using ClosestNode = std::pair<VertexDescriptor, int>;
+    using ZoneIdGlueNSRecords = tuple<int, boost::optional<vector<ResourceRecord>>, vector<ResourceRecord>>;
 
-		template <class EdgeMap>
-		class EdgeWriter {
-		public:
-			EdgeWriter(EdgeMap w) : wm(w) {}
-			template <class Edge>
-			void operator()(ostream& out, const Edge& e) const {
-				auto type = get(wm, e);
-				if (type == normal) {
-					out << "[color=black]";
-				}
-				else {
-					out << "[color=red]";
-				}
-			}
-		private:
-			EdgeMap wm;
-		};
+    template <class VertexMap> class VertexWriter
+    {
+      public:
+        VertexWriter(VertexMap w) : wm(w)
+        {
+        }
+        template <class Vertex> void operator()(ostream &out, const Vertex &v) const
+        {
+            auto type = get(wm, v);
+            out << "[label=\"" << type.get() << "\"]";
+        }
 
-		template <class EdgeMap>
-		inline EdgeWriter<EdgeMap>
-			MakeEdgeWriter(EdgeMap w) {
-			return EdgeWriter<EdgeMap>(w);
-		}
+      private:
+        VertexMap wm;
+    };
 
-		boost::unordered_map<VertexDescriptor, LabelToVertex> vertex_to_child_map_;
-		VertexDescriptor root_ = 0;
+    template <class VertexMap> inline VertexWriter<VertexMap> MakeVertexWriter(VertexMap w)
+    {
+        return VertexWriter<VertexMap>(w);
+    }
 
-		VertexDescriptor AddNodes(VertexDescriptor, const vector<NodeLabel>&, int&);
-		void CompareParentChildDelegationRecords(const std::vector<ZoneIdGlueNSRecords>&, const std::vector<ZoneIdGlueNSRecords>&, string, const Context&, Job&) const;
-		void ConstructChildLabelsToVertexDescriptorMap(VertexDescriptor);
-		void ConstructOutputNS(json&, const CommonSymDiff&, boost::optional<CommonSymDiff>, string, string, string, string) const;
-		VertexDescriptor GetAncestor(VertexDescriptor, const vector<NodeLabel>&, vector<VertexDescriptor>&, int& index) const;
-		string GetHostingNameServer(int, const Context&) const;
-		void NodeEC(const vector<NodeLabel>& name, Job&) const;
-		vector<ClosestNode> SearchNode(VertexDescriptor, const vector<NodeLabel>&, int);
-		void SubDomainECGeneration(VertexDescriptor, vector<NodeLabel>, bool, Job&, const Context&, bool);
-		void WildcardChildEC(std::vector<NodeLabel>&, const vector<NodeLabel>&, int, Job&) const;
+    template <class EdgeMap> class EdgeWriter
+    {
+      public:
+        EdgeWriter(EdgeMap w) : wm(w)
+        {
+        }
+        template <class Edge> void operator()(ostream &out, const Edge &e) const
+        {
+            auto type = get(wm, e);
+            if (type == normal) {
+                out << "[color=black]";
+            } else {
+                out << "[color=red]";
+            }
+        }
 
-	public:
-		void AddResourceRecord(const ResourceRecord&, const int&, zone::Graph::VertexDescriptor);
-		void CheckStructuralDelegationConsistency(string, label::Graph::VertexDescriptor, const Context&, Job&);
-		void GenerateDotFile(string);
-		void GenerateECs(Job&, const Context&);
-		Graph();
-	};
-}
+      private:
+        EdgeMap wm;
+    };
+
+    template <class EdgeMap> inline EdgeWriter<EdgeMap> MakeEdgeWriter(EdgeMap w)
+    {
+        return EdgeWriter<EdgeMap>(w);
+    }
+
+    boost::unordered_map<VertexDescriptor, LabelToVertex> vertex_to_child_map_;
+    VertexDescriptor root_ = 0;
+
+    VertexDescriptor AddNodes(VertexDescriptor, const vector<NodeLabel> &, int &);
+    void CompareParentChildDelegationRecords(
+        const std::vector<ZoneIdGlueNSRecords> &,
+        const std::vector<ZoneIdGlueNSRecords> &,
+        string,
+        const Context &,
+        Job &) const;
+    void ConstructChildLabelsToVertexDescriptorMap(VertexDescriptor);
+    void ConstructOutputNS(
+        json &,
+        const CommonSymDiff &,
+        boost::optional<CommonSymDiff>,
+        string,
+        string,
+        string,
+        string) const;
+    VertexDescriptor GetAncestor(VertexDescriptor, const vector<NodeLabel> &, vector<VertexDescriptor> &, int &index)
+        const;
+    string GetHostingNameServer(int, const Context &) const;
+    void NodeEC(const vector<NodeLabel> &name, Job &) const;
+    vector<ClosestNode> SearchNode(VertexDescriptor, const vector<NodeLabel> &, int);
+    void SubDomainECGeneration(VertexDescriptor, vector<NodeLabel>, bool, Job &, const Context &, bool);
+    void WildcardChildEC(std::vector<NodeLabel> &, const vector<NodeLabel> &, int, Job &) const;
+
+  public:
+    void AddResourceRecord(const ResourceRecord &, const int &, zone::Graph::VertexDescriptor);
+    void CheckStructuralDelegationConsistency(string, label::Graph::VertexDescriptor, const Context &, Job &);
+    void GenerateDotFile(string);
+    void GenerateECs(Job &, const Context &);
+    Graph();
+};
+} // namespace label
 
 #endif
