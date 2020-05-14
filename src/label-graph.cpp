@@ -437,7 +437,7 @@ void label::Graph::SubDomainECGeneration(
     const Context &context,
     bool check_structural_delegations)
 {
-    int len = 0;
+    size_t len = 0;
     for (NodeLabel &l : parent_domain_name) {
         len += l.get().length() + 1;
     }
@@ -457,11 +457,11 @@ void label::Graph::SubDomainECGeneration(
         name.push_back(node_labels);
     }
     int16_t beforeLen = (*this)[start].len;
-    int nodeLen = 0;
+    size_t nodeLen = 0;
     for (NodeLabel &l : name) {
         nodeLen += l.get().length() + 1;
     }
-    (*this)[start].len = nodeLen;
+    (*this)[start].len = static_cast<int16_t>(nodeLen);
     std::vector<NodeLabel> children_labels;
     std::optional<VertexDescriptor> wildcard_node;
 
@@ -489,7 +489,7 @@ void label::Graph::SubDomainECGeneration(
     }
     // wildcardNode is useful when we want to generate only positive queries and avoid the negations.
     if (wildcard_node) {
-        WildcardChildEC(children_labels, name, name.size(), current_job);
+        WildcardChildEC(children_labels, name, static_cast<int>(name.size()), current_job);
     } else {
         // Non-existent child category
         unique_ptr<ECTask> nonExistent = make_unique<ECTask>();

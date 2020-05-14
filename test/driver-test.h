@@ -8,11 +8,11 @@ class DriverTest {
 
 public:
 	int GetNumberofLabelGraphVertices(Driver& d) {
-		return num_vertices(d.label_graph_);
+		return static_cast<int>(num_vertices(d.label_graph_));
 	}
 
 	int GetNumberofLabelGraphEdges(Driver& d) {
-		return num_edges(d.label_graph_);
+        return static_cast<int>(num_edges(d.label_graph_));
 	}
 
 	int GetNumberofResourceRecordsParsed(Driver& d, string file, string nameserver) {
@@ -20,7 +20,7 @@ public:
 	}
 
 	int GetNumberofViolations(Driver& d) {
-		return d.property_violations_.size();
+        return static_cast<int>(d.property_violations_.size());
 	}
 
 	boost::unordered_map<string, long> GetTypeToCountMap(Driver& d) {
