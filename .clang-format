@@ -1,0 +1,6 @@
+BasedOnStyle: Microsoft 
+IndentWidth: 4
+BreakBeforeBraces: Linux 
+AlignAfterOpenBracket: AlwaysBreak
+AllowAllParametersOfDeclarationOnNextLine: false
+BinPackParameters: false
