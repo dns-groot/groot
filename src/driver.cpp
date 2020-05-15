@@ -1,5 +1,5 @@
 #include "driver.h"
-#include "EC-task.h"
+#include "ec-task.h"
 #include "structural-task.h"
 #include <boost/filesystem.hpp>
 
