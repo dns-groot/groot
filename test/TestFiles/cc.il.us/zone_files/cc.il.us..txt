@@ -104,6 +104,7 @@ hunley.ssc.cc.il.us.			      14400 IN A	64.107.44.10
 trial.cc.il.us.				      14400 IN DNAME	richland.cc.il.us.
 whois.cc.il.us.				      14400 IN CNAME	us.illinois.net.
 
+;; https://tldrproject.s3.amazonaws.com/index.html?prefix=cc.il.us./
 ;; Query time: 80 msec
 ;; SERVER: 66.99.142.110#53(66.99.142.110)
 ;; WHEN: Thu May 14 15:06:48 PDT 2020

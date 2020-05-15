@@ -27,5 +27,5 @@ jobs:
         cd build 
         cmake -DCODE_COVERAGE=ON -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug .. 
         cmake --build . --config Debug
-        cp ../test/TestFiles/ test/ 
+        cp -r ../test/TestFiles/ test/ 
         ctest --output-on-failure --extra-verbose
