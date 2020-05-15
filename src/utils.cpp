@@ -106,49 +106,23 @@ RRType TypeUtils::StringToType(const string &type)
     return N;
 }
 
+string type_to_string[] = {"A", "NS", "CNAME", "DNAME", "SOA", "PTR", "MX", "TXT", "AAAA", "SRV", "RRSIG", "NSEC", "SPF"};
+
 string TypeUtils::TypesToString(std::bitset<RRType::N> rrTypes)
 {
     std::set<string> types;
 
     for (int i = 0; i < RRType::N; i++) {
         if (rrTypes[i] == 1) {
-            switch (i) {
-            case 0:
-                types.insert("A");
-                break;
-            case 1:
-                types.insert("NS");
-                break;
-            case 2:
-                types.insert("CNAME");
-                break;
-            case 3:
-                types.insert("DNAME");
-                break;
-            case 4:
-                types.insert("SOA");
-                break;
-            case 5:
-                types.insert("PTR");
-                break;
-            case 6:
-                types.insert("MX");
-                break;
-            case 7:
-                types.insert("TXT");
-                break;
-            case 8:
-                types.insert("AAAA");
-                break;
-            case 9:
-                types.insert("SRV");
-                break;
-            }
+            types.insert(type_to_string[i]);
         }
     }
     string stypes = "";
     for (auto r : types) {
-        stypes += r + " ";
+        if (stypes.size() > 0) {
+            stypes += " ";
+        }
+        stypes += r;
     }
     return stypes;
 }
