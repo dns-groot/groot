@@ -342,9 +342,9 @@ healthchecksdb
 *.dot
 *.png
 
-zone_files*
-*.json
+
 Data
 build
 !/bin
 /bin/log.txt
+output.json

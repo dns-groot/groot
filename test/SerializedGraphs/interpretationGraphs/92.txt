@@ -1,1 +1,0 @@
-22 serialization::archive 17 0 0 0 0 5 3 0 0 0  0 0 11 spc.net.sy. 0 0 10 1111111101 28 0 1 0 0 1 0 11 ns1.tld.sy. 11 spc.net.sy. 10 1111111101 28 0 1 0 0 1 0 0 0 11 spc.net.sy. 1 1 86400 11 ns4.tld.sy. 0  11 ns4.tld.sy. 10 0100000001 0 0 0 11 ns1.tld.sy. 11 ns4.tld.sy. 10 0100000001 0 0 0 11 ns4.tld.sy. 11 spc.net.sy. 10 1111111101 28 0 0 0 1 0 0 0 1 0 1 4 1 2 2 3 0 0 0 0

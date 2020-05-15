@@ -70,11 +70,11 @@ Check for any violations of the input properties by invoking Groot as:
 
 For docker (Ubuntu):
 ```bash
-$ .~/groot/build/bin/groot ~/groot/demo/zone_files --jobs=~/groot/demo/jobs.json --output=output.json
+$ .~/groot/build/bin/groot ~/groot/test/TestFiles/cc.il.us/zone_files --jobs=~/groot/test/TestFiles/cc.il.us/jobs.json --output=output.json
 ```
 For Windows:
 ```bash
-$ .~\groot\x64\Release\groot.exe ~\groot\demo\zone_files --jobs=~\groot\demo\jobs.json --output=output.json
+$ .~\groot\x64\Release\groot.exe ~\groot\test\TestFiles\cc.il.us\zone_files --jobs=~\groot\test\TestFiles\cc.il.us\jobs.json --output=output.json
 ```
 Groot outputs any violations to the `output.json` file. 
 
@@ -86,28 +86,28 @@ Groot expects all the required zone files to be available in the input directory
 
 <details>
 
-<summary><kbd>CLICK</kbd> to reveal an <a href="https://github.com/dns-groot/groot/blob/master/demo/zone_files/metadata.json">example<code>metadata.json</code></a></summary>
+<summary><kbd>CLICK</kbd> to reveal an <a href="https://github.com/dns-groot/groot/blob/master/test/TestFiles/cc.il.us/zone_files/metadata.json">example<code>metadata.json</code></a></summary>
 
 ```json5
 {  
-  "TopNameServers" : ["ns1.tld.sy."],  //List of top name servers as strings
+  "TopNameServers" : ["us.illinois.net."],  //List of top name servers as strings
   "ZoneFiles" : [
       {
-         "FileName": "net.sy.txt", //net.sy. zone file from ns1.tld.sy. name server
-         "NameServer": "ns1.tld.sy."
+         "FileName": "cc.il.us..txt", //cc.il.us. zone file from us.illinois.net. name server
+         "NameServer": "us.illinois.net."
       },
       {
-         "FileName": "mtn.net.sy.txt", //mtn.net.sy. zone file from ns1.mtn.net.sy. name server
-         "NameServer": "ns1.mtn.net.sy.",
-         "Origin": "mtn.net.sy." // optional field to indicate the origin of the input zone file.
+         "FileName": "richland.cc.il.us..txt", //richland.cc.il.us. zone file from ns1.richland.cc.il.us. name server
+         "NameServer": "ns1.richland.cc.il.us.",
+         "Origin": "richland.cc.il.us." // optional field to indicate the origin of the input zone file.
       },
       {
-         "FileName": "child.mtn.net.sy.txt", //child.mtn.net.sy. zone file from ns1.child.mtn.net.sy. name server
-         "NameServer": "ns1.child.mtn.net.sy."
+         "FileName": "child.richland.cc.il.us..txt", //child.richland.cc.il.us. zone file from ns1.child.richland.cc.il.us. name server
+         "NameServer": "ns1.child.richland.cc.il.us."
       },
       {
-         "FileName": "child.mtn.net.sy-2.txt", //child.mtn.net.sy. zone file from ns2.child.mtn.net.sy. name server 
-         "NameServer": "ns2.child.mtn.net.sy." //for same domain (child.mtn.net.sy.) as the last one but from a different name server
+         "FileName": "child.richland.cc.il.us.-2.txt", //child.richland.cc.il.us. zone file from ns2.child.richland.cc.il.us. name server 
+         "NameServer": "ns2.child.richland.cc.il.us." //for same domain (child.richland.cc.il.us.) as the last one but from a different name server
       }
   ]
 }
@@ -118,20 +118,20 @@ Groot expects all the required zone files to be available in the input directory
 Groot can currently verify properties shown below on the zone files and expects the input list in a `json` file format. A **job** verifies properties on a domain and optionally on all its subdomains. The input `json` file can have a list of jobs.
 
 <details>
-<summary><kbd>CLICK</kbd> to reveal an <a href="https://github.com/dns-groot/groot/blob/master/demo/jobs.json">example job</a></summary>
+<summary><kbd>CLICK</kbd> to reveal an <a href="https://github.com/dns-groot/groot/blob/master/test/TestFiles/cc.il.us/jobs.json">example job</a></summary>
 
 ```json5
 {
-   "Domain": "mtn.net.sy." // Name of the domain to check
+   "Domain": "cc.il.us." // Name of the domain to check
    "SubDomain": true, //Whether to check the properties on all the subdomains also
    "Properties":[ 
       {
          "PropertyName": "QueryRewrite",
-         "Value": ["foo.mtn.net.sy.", "bar.mtn.net.sy"]
+         "Value": ["illinois.net." , "cc.il.us."]
       },
       {
          "PropertyName": "Rewrites",
-         "Value": 0
+         "Value": 1
       },
       {
          "PropertyName": "RewriteBlackholing"
@@ -162,7 +162,7 @@ Input `json` format:
 ```json5
       {
          "PropertyName": "AllAliases",
-         "Value": ["baz.mtn.net.sy"] //List of canonical names
+         "Value": ["gw1.richland.cc.il.us."] //List of canonical names
       }
 ```
 </details>
@@ -187,7 +187,7 @@ Input `json` format:
 ```json5
       {
          "PropertyName": "NameserverContact",
-         "Value": ["tld.sy."] //List of allowed domains
+         "Value": ["edu.", "net.", "cc.il.us."] //List of allowed domain suffixes
       }
 ```
 </details>
@@ -226,7 +226,7 @@ Input `json` format:
 ```json5
       {
          "PropertyName": "QueryRewrite",
-         "Value": ["foo.mtn.net.sy.", "bar.mtn.net.sy"] //List of allowed domains
+         "Value": ["illinois.net." , "cc.il.us."] //List of allowed domain suffixes
       }
 ```
 </details>
@@ -266,7 +266,7 @@ Input `json` format:
       {
          "PropertyName": "ResponseValue"
          "Types": ["A"],
-         "Value": ["2.2.2.1"] //The expected response
+         "Value": ["64.107.104.4"] //The expected response
          
       }
 ```

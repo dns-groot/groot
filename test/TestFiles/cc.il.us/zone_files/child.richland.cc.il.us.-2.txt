@@ -1,0 +1,10 @@
+child.richland.cc.il.us. 	3600	IN	SOA	ns1.child.richland.cc.il.us. james.richland.edu. 19122302 10800 3600 3600000 86400
+child.richland.cc.il.us.		    IN	NS ns1.child.richland.cc.il.us.
+child.richland.cc.il.us.		    IN	NS ns2.child.richland.cc.il.us.
+ns1.child.richland.cc.il.us.	    IN	A	4.4.4.4
+ns2.child.richland.cc.il.us.	    IN	A 	5.5.5.5
+child.richland.cc.il.us.		    IN	A	6.6.6.6
+chicago.child.richland.cc.il.us.	    IN	A	7.7.7.7
+darwin.child.richland.cc.il.us. 	1800   IN   CNAME   uranus.child.richland.cc.il.us.
+uranus.child.richland.cc.il.us. 		1800   IN   CNAME   fusion.child.richland.cc.il.us.
+
