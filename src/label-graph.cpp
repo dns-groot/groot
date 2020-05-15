@@ -1,5 +1,5 @@
 #include "label-graph.h"
-#include "EC-task.h"
+#include "ec-task.h"
 #include "structural-task.h"
 #include "utils.h"
 
@@ -356,6 +356,16 @@ void label::Graph::ConstructOutputNS(
     j["Inconsistent Pairs"].push_back(diffAB);
 }
 
+vector<label::Graph::ClosestNode> label::Graph::ClosestEnclosers(const vector<NodeLabel> &labels)
+{
+    return SearchNode(root_, labels, 0);
+}
+
+vector<label::Graph::ClosestNode> label::Graph::ClosestEnclosers(const string &domain_name)
+{
+    return ClosestEnclosers(LabelUtils::StringToLabels(domain_name));
+}
+
 vector<label::Graph::ClosestNode> label::Graph::SearchNode(
     VertexDescriptor closest_encloser,
     const vector<NodeLabel> &labels,
@@ -547,7 +557,7 @@ void label::Graph::GenerateECs(Job &current_job, const Context &context)
             return;
         }
     }
-    vector<ClosestNode> closest_enclosers = SearchNode(root_, labels, 0);
+    vector<ClosestNode> closest_enclosers = ClosestEnclosers(labels);
     if (closest_enclosers.size()) {
         // cross-check
         int matchedIndex = closest_enclosers[0].second;

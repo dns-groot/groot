@@ -1,4 +1,4 @@
-#include "EC-task.h"
+#include "ec-task.h"
 #include "job.h"
 
 string ECTask::PrintTaskType()

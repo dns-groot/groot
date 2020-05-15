@@ -4,7 +4,7 @@
 //#define BOOST_GRAPH_NO_BUNDLED_PROPERTIES 1
 
 #include "job.h"
-#include "my_logger.h"
+#include "my-logger.h"
 
 namespace label
 {
@@ -43,13 +43,13 @@ class Graph : public boost::adjacency_list<boost::vecS, boost::vecS, boost::dire
 {
   public:
     using VertexDescriptor = boost::graph_traits<Graph>::vertex_descriptor;
+    using ClosestNode = std::pair<VertexDescriptor, int>;
 
   private:
     using EdgeDescriptor = boost::graph_traits<Graph>::edge_descriptor;
     using VertexIterator = boost::graph_traits<Graph>::vertex_iterator;
     using EdgeIterator = boost::graph_traits<Graph>::edge_iterator;
     using LabelToVertex = boost::unordered_map<NodeLabel, VertexDescriptor>;
-    using ClosestNode = std::pair<VertexDescriptor, int>;
     using ZoneIdGlueNSRecords = tuple<int, boost::optional<vector<ResourceRecord>>, vector<ResourceRecord>>;
 
     template <class VertexMap> class VertexWriter
@@ -128,6 +128,8 @@ class Graph : public boost::adjacency_list<boost::vecS, boost::vecS, boost::dire
   public:
     void AddResourceRecord(const ResourceRecord &, const int &, zone::Graph::VertexDescriptor);
     void CheckStructuralDelegationConsistency(string, label::Graph::VertexDescriptor, const Context &, Job &);
+    vector<ClosestNode> ClosestEnclosers(const vector<NodeLabel> &);
+    vector<ClosestNode> ClosestEnclosers(const string &);
     void GenerateDotFile(string);
     void GenerateECs(Job &, const Context &);
     Graph();

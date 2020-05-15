@@ -157,6 +157,7 @@
     <ClCompile Include="demo-test.cpp" />
     <ClCompile Include="label-graph-test.cpp" />
     <ClCompile Include="tester.cpp" />
+    <ClCompile Include="util-test.cpp" />
     <ClCompile Include="zone-graph-test.cpp" />
   </ItemGroup>
   <ItemGroup>
