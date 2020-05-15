@@ -1,0 +1,31 @@
+; <<>> DiG 9.11.3-1ubuntu1.11-Ubuntu <<>> AXFR richland.cc.il.us. @ns2.richland.edu.
+;; global options: +cmd
+
+@               			      43200 IN SOA	ns1.richland.edu. james.richland.edu. 19122302 10800 3600 3600000 86400
+richland.cc.il.us.			      43200 IN NS	ns1.illinois.net.
+richland.cc.il.us.			      43200 IN NS	ns1.richland.cc.il.us.
+richland.cc.il.us.			      43200 IN NS	ns1.richland.edu.
+richland.cc.il.us.			      43200 IN NS	ns2.illinois.net.
+richland.cc.il.us.			      43200 IN NS	ns2.richland.cc.il.us.
+richland.cc.il.us.			      43200 IN NS	ns2.richland.edu.
+richland.cc.il.us.			      43200 IN A	64.107.104.27
+richland.cc.il.us.			      43200 IN MX	10 smtp.richland.edu.
+richland.cc.il.us.			      43200 IN TXT	"v=spf1 a mx ~all"
+child.richland.cc.il.us.		      4500 IN NS	ns1.child.richland.cc.il.us.
+child.richland.cc.il.us.		      4500 IN NS	ns2.child.richland.cc.il.us.
+ns1.child.richland.cc.il.us.		      4500 IN A		4.4.4.4
+ns2.child.richland.cc.il.us.		      4500 IN A		5.5.5.5
+ds3.richland.cc.il.us.			      43200 IN CNAME	gw1.richland.cc.il.us.
+foo.cc.il.us.	                      4500	IN	A	10.10.10.10
+gw1.richland.cc.il.us.			      43200 IN A	64.107.104.3
+gw2.richland.cc.il.us.			      43200 IN A	64.107.104.4
+gw3.richland.cc.il.us.			      43200 IN A	64.107.104.5
+gw4.richland.cc.il.us.			      43200 IN A	64.107.104.59
+ns1.richland.cc.il.us.			      43200 IN A	64.107.104.28
+ns1.richland.cc.il.us.			      43200 IN A	64.107.104.29
+ns2.richland.cc.il.us.			      43200 IN A	64.107.104.12
+
+;; Query time: 64 msec
+;; SERVER: 64.107.104.12#53(64.107.104.12)
+;; WHEN: Thu May 14 15:13:43 PDT 2020
+;; XFR size: 16 records (messages 1, bytes 415)

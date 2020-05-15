@@ -1,0 +1,77 @@
+[
+	{
+		"Domain": "child.richland.cc.il.us.",
+		"SubDomain": false,
+		"Properties":[
+			{
+				"PropertyName": "DelegationConsistency"
+			}
+		]
+	},
+	{
+		"Domain": "gw1.richland.cc.il.us.",
+		"SubDomain": false,
+		"Properties":[
+			{
+				"PropertyName": "ResponseConsistency",
+				"Types": ["A"]
+			},
+			{
+				"PropertyName": "ResponseValue",
+				"Types": ["A"],
+				"Value": ["64.107.104.4"]
+			}
+		]
+	},
+	{
+		"Domain": "child.richland.cc.il.us.",
+		"SubDomain": true,
+		"Properties":[
+			{
+				"PropertyName": "ResponseConsistency",
+				"Types": ["A","MX"]
+			},
+			{
+				"PropertyName": "RewriteBlackholing"
+			}
+		]
+	},
+	{
+		"Domain": "ds3.richland.cc.il.us.",
+		"SubDomain": false,
+		"Properties":[
+			{
+				"PropertyName": "ResponseReturned",
+				"Types": ["CNAME","A"]
+			}
+		]
+	},
+	{
+		"Domain": "cc.il.us.",
+		"SubDomain": true,
+		"Properties":[
+			{
+				"PropertyName": "QueryRewrite",
+				"Value": ["illinois.net." , "cc.il.us."]
+			},
+			{
+				"PropertyName": "Rewrites",
+				"Value": 1
+			},
+			{
+				"PropertyName": "AllAliases",
+				"Value":["gw1.richland.cc.il.us."]
+			},
+			{
+				"PropertyName": "NameserverContact",
+				"Value": ["edu.", "net.", "cc.il.us."]
+			},
+			{
+				"PropertyName": "LameDelegation"
+			},
+			{
+				"PropertyName": "StructuralDelegationConsistency"
+			}
+		]
+	}
+]

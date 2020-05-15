@@ -1,0 +1,24 @@
+{
+	"TopNameServers":[
+		"us.illinois.net."
+	],
+	"ZoneFiles":[
+		{
+			"FileName": "cc.il.us..txt",
+			"NameServer": "us.illinois.net."
+		},
+		{
+			"FileName": "richland.cc.il.us..txt",
+			"NameServer": "ns1.richland.cc.il.us.",
+			"Origin": "richland.cc.il.us."
+		},
+		{
+			"FileName": "child.richland.cc.il.us..txt",
+			"NameServer": "ns1.child.richland.cc.il.us."
+		},
+		{
+			"FileName": "child.richland.cc.il.us.-2.txt",
+			"NameServer": "ns2.child.richland.cc.il.us."
+		}
+	]
+}
