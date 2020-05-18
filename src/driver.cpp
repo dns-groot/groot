@@ -38,7 +38,6 @@ void Driver::GenerateECsAndCheckProperties()
                     itemsLeft = true;
                     if (dynamic_cast<ECTask *>(item.get()) != nullptr) {
                         item->Process(context_, ec_variadic);
-                        current_job_.ec_count++;
                     } else if (dynamic_cast<StructuralTask *>(item.get()) != nullptr) {
                         item->Process(context_, structural_variadic);
                     }
@@ -89,6 +88,11 @@ void Driver::GenerateECsAndCheckProperties()
 long Driver::GetECCountForCurrentJob() const
 {
     return current_job_.ec_count;
+}
+
+long Driver::GetInterpretationVerticesCountForCurrentJob() const
+{
+    return current_job_.interpretation_vertices;
 }
 
 void MetadataSanityCheck(const json &metadata, string directory)
@@ -352,7 +356,7 @@ void Driver::SetJob(const string &domain_name)
     current_job_.path_functions.push_back(query_rewrite);
 
     current_job_.path_functions.push_back(interpretation::Graph::Properties::RewriteBlackholing);
-    current_job_.check_structural_delegations = true;
+    //current_job_.check_structural_delegations = true;
 }
 
 void Driver::WriteViolationsToFile(string output_file) const

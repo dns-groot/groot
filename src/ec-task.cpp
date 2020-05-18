@@ -12,6 +12,8 @@ void ECTask::Process(const Context &context, vector<boost::any> &variadic_argume
     interpretation::Graph interpretation_graph_for_ec(ec_, context);
     // interpretation_graph_for_ec.CheckForLoops(json_queue_);
     // interpretation_graph_for_ec.GenerateDotFile("InterpretationGraph.dot");
+    current_job->interpretation_vertices += num_vertices(interpretation_graph_for_ec);
+    current_job->ec_count++;
     interpretation_graph_for_ec.CheckPropertiesOnEC(
         current_job->path_functions, current_job->node_functions, current_job->json_queue);
 }
