@@ -331,7 +331,7 @@ int main(int argc, const char** argv)
 		{
 			output_file = p->second.asString();
 		}
-
+        GenerateMetaDataFiles();
 		// TODO: validate that the directory and property files exist
 		Main(zone_directory, jobs_file, output_file);
 		Logger->debug("groot.cpp (main) - Finished checking all jobs");
