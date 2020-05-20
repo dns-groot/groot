@@ -58,7 +58,7 @@ void Driver::GenerateECsAndCheckProperties()
                     if (aliases.find(string(item["Canonical Name"])) == aliases.end()) {
                         aliases[string(item["Canonical Name"])] = {};
                     }
-                    aliases[string(item["Canonical Name"])].insert(string(item["Equivalence Class"]));
+                    aliases[string(item["Canonical Name"])].insert(string(item["Query"]));
                 } else {
                     property_violations_.insert(item);
                 }

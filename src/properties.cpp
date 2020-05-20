@@ -14,8 +14,8 @@ void interpretation::Graph::Properties::PrettyPrintResponseValue(
     // printf(ANSI_COLOR_RED     "Response Mismatch:"     ANSI_COLOR_RESET "\n");
     json j;
     j["Found"] = std::accumulate(response.begin(), response.end(), std::string{});
-    j["Equivalence class"] = graph[node].query.ToString();
-    j["At NS"] = graph[node].ns;
+    j["Query"] = graph[node].query.ToString();
+    j["Nameserver"] = graph[node].ns;
     tmp["Mismatches"].push_back(j);
 }
 
@@ -62,9 +62,8 @@ void interpretation::Graph::Properties::CheckResponseReturned(
                             json tmp;
                             tmp["Property"] = "ResponseReturned";
                             tmp["Equivalence Class"] = graph[vd].query.ToString();
-                            tmp["Violation"] =
-                                "There was no response for T:" + TypeUtils::TypesToString(std::get<1>(a) & types_req) +
-                                " at name server:" + graph[vd].ns;
+                            tmp["Violation"]["Types"] = TypeUtils::TypesToString(std::get<1>(a) & types_req);
+                            tmp["Violation"]["Nameserver"] = graph[vd].ns;
                             json_queue.enqueue(tmp);
                         }
                     }
@@ -165,9 +164,8 @@ void interpretation::Graph::Properties::CheckSameResponseReturned(
     }
     if (foundDiff) {
         json tmp;
-        tmp["Property"] = "ResponseConsistency";
-        tmp["Equivalence Class"] = graph[end_nodes[0]].query.ToString();
-        tmp["Violation"] = "Difference in responses found";
+        tmp["Property"] = "Response Consistency";
+        tmp["Query"] = graph[end_nodes[0]].query.ToString();
         json_queue.enqueue(tmp);
     }
 }
@@ -191,7 +189,7 @@ void interpretation::Graph::Properties::AllAliases(
                 if (it != canonical_names.end() && !graph[p[j]].query.excluded) {
                     json tmp;
                     tmp["Property"] = "All Aliases";
-                    tmp["Equivalence Class"] = graph[p[i]].query.ToString();
+                    tmp["Query"] = graph[p[i]].query.ToString();
                     tmp["Canonical Name"] = graph[p[j]].query.ToString();
                     json_queue.enqueue(tmp);
                 }
@@ -263,17 +261,19 @@ void interpretation::Graph::Properties::CheckDelegationConsistency(
                 if (std::get<1>(ns_diff).size() || std::get<2>(ns_diff).size()) {
                     json tmp;
                     tmp["Property"] = "Delegation Consistency";
-                    tmp["Equivalence Class"] = query.ToString();
-                    tmp["Violation"] = "Inconsistency in NS records  at " + graph[p[parentIndex]].ns + " and " +
-                                       graph[p[static_cast<long long>(parentIndex) + 1]].ns;
+                    tmp["Query"] = query.ToString();
+                    tmp["Violation"]["Nameserver1"] = graph[p[parentIndex]].ns;
+                    tmp["Violation"]["Nameserver2"] = graph[p[static_cast<long long>(parentIndex) + 1]].ns;
+                    tmp["Violation"]["InconsistencyType"] = "NS";
                     json_queue.enqueue(tmp);
                 }
                 if (std::get<1>(glue_diff).size() || std::get<2>(glue_diff).size()) {
                     json tmp;
                     tmp["Property"] = "Delegation Consistency";
-                    tmp["Equivalence Class"] = query.ToString();
-                    tmp["Violation"] = "Inconsistency in Glue records  at " + graph[p[parentIndex]].ns + " and " +
-                                       graph[p[static_cast<long long>(parentIndex) + 1]].ns;
+                    tmp["Query"] = query.ToString();
+                    tmp["Violation"]["Nameserver1"] = graph[p[parentIndex]].ns;
+                    tmp["Violation"]["Nameserver2"] = graph[p[static_cast<long long>(parentIndex) + 1]].ns;
+                    tmp["Violation"]["InconsistencyType"] = "Glue";
                     json_queue.enqueue(tmp);
                 }
             }
@@ -313,9 +313,9 @@ void interpretation::Graph::Properties::CheckLameDelegation(
                             // Child found and also the query matches
                             json tmp;
                             tmp["Property"] = "Lame Delegation";
-                            tmp["Equivalence Class"] = query.ToString();
-                            tmp["Violation"] = "Inconsistency at " + graph[p[i]].ns + " and " +
-                                               graph[p[static_cast<long long>(i) + 1]].ns;
+                            tmp["Query"] = query.ToString();
+                            tmp["Violation"]["Nameserver1"] = graph[p[i]].ns;
+                            tmp["Violation"]["Nameserver2"] = graph[p[static_cast<long long>(i) + 1]].ns;
                             json_queue.enqueue(tmp);
                         }
                     }
@@ -344,9 +344,9 @@ void interpretation::Graph::Properties::NameServerContact(
             if (!LabelUtils::SubDomainCheck(allowed_domains, LabelUtils::StringToLabels(graph[p[i]].ns))) {
                 json tmp;
                 tmp["Property"] = "Name Server Contact";
-                tmp["Equivalence Class"] = graph[p[i]].query.ToString();
-                tmp["Violation"] = "Query is sent to NS:" + graph[p[i]].ns + " which is not under " +
-                                   LabelUtils::LabelsToString(allowed_domains);
+                tmp["Query"] = graph[p[i]].query.ToString();
+                tmp["Violation"]["ExternalNameserver"] = graph[p[i]].ns;
+                tmp["Violation"]["AllowedDomains"] = LabelUtils::LabelsToString(allowed_domains);
                 json_queue.enqueue(tmp);
             }
         }
@@ -377,10 +377,9 @@ void interpretation::Graph::Properties::NumberOfHops(
     if (nameServers.size() > num_hops) {
         json tmp;
         tmp["Property"] = "Hops";
-        tmp["Equivalence Class"] = graph[p[0]].query.ToString();
-        std::ostringstream stringStream;
-        stringStream << "Number of hops (" << nameServers.size() << ") exceeded " << num_hops;
-        tmp["Violation"] = stringStream.str();
+        tmp["Query"] = graph[p[0]].query.ToString();
+        tmp["Violation"]["ActualHops"] = nameServers.size();
+        tmp["Violation"]["MaxAllowedHops"] = num_hops;
         json_queue.enqueue(tmp);
     }
 }
@@ -410,10 +409,9 @@ void interpretation::Graph::Properties::NumberOfRewrites(
     if (rewrites > num_rewrites) {
         json tmp;
         tmp["Property"] = "Rewrites";
-        tmp["Equivalence Class"] = graph[p[0]].query.ToString();
-        std::ostringstream stringStream;
-        stringStream << "Number of rewrites (" << rewrites << ") exceeded " << num_rewrites;
-        tmp["Violation"] = stringStream.str();
+        tmp["Query"] = graph[p[0]].query.ToString();
+        tmp["Violation"]["ActualRewrites"] = rewrites;
+        tmp["Violation"]["MaxAllowedRewrites"] = num_rewrites;
         json_queue.enqueue(tmp);
     }
 }
@@ -436,10 +434,10 @@ void interpretation::Graph::Properties::QueryRewrite(
                 if (!LabelUtils::SubDomainCheck(domain, graph[p[static_cast<long long>(i) + 1]].query.name)) {
                     json tmp;
                     tmp["Property"] = "Query Rewrite";
-                    tmp["Equivalence Class"] = graph[p[i]].query.ToString();
-                    tmp["Violation"] =
-                        "Query is rewritten to " + graph[p[static_cast<long long>(i) + 1]].query.ToString() +
-                        " at NS:" + graph[p[i]].ns + " which is not under any of " + LabelUtils::LabelsToString(domain);
+                    tmp["Query"] = graph[p[i]].query.ToString();
+                    tmp["Violation"]["RewriteTarget"] = graph[p[static_cast<long long>(i) + 1]].query.ToString();
+                    tmp["Violation"]["Nameserver"] = graph[p[i]].ns;
+                    tmp["Violation"]["ExpectedUnder"] = LabelUtils::LabelsToString(domain);
                     json_queue.enqueue(tmp);
                 }
             } else {
@@ -468,11 +466,12 @@ void interpretation::Graph::Properties::RewriteBlackholing(
             if (i < p.size() - 1) {
                 auto &end_tag = std::get<0>(graph[p[p.size() - 1]].answer.get()[0]);
                 if (end_tag == ReturnTag::NX) {
+                    auto targetNode = graph[p[p.size() - 1]];
                     json tmp;
                     tmp["Property"] = "Rewrite Blackholing";
-                    tmp["Equivalence Class"] = graph[p[i]].query.ToString();
-                    tmp["Violation"] = "Query is eventually rewritten to " + graph[p[p.size() - 1]].query.ToString() +
-                                       " which returns a NXDOMAIN at NS: " + graph[p[p.size() - 1]].ns;
+                    tmp["Query"] = graph[p[i]].query.ToString();
+                    tmp["Violation"]["RewriteTarget"] = targetNode.query.ToString();
+                    tmp["Violation"]["BlackholeNameserver"] = targetNode.ns;
                     json_queue.enqueue(tmp);
                     /*	stringstream ss;
                         ss << std::this_thread::get_id();
