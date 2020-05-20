@@ -190,7 +190,7 @@ void interpretation::Graph::Properties::AllAliases(
                     json tmp;
                     tmp["Property"] = "All Aliases";
                     tmp["Query"] = graph[p[i]].query.ToString();
-                    tmp["Violation"]["Canonical Name"] = graph[p[j]].query.ToString();
+                    tmp["Canonical Name"] = graph[p[j]].query.ToString();
                     json_queue.enqueue(tmp);
                 }
             }
