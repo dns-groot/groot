@@ -1,5 +1,4 @@
 Groot
-<a href="https://microbadger.com/images/sivakesava/groot"><img align="right" src="https://img.shields.io/microbadger/image-size/sivakesava/groot.svg?style=flat&label=docker"></img></a>
 ==========
 <!---
 [![](https://img.shields.io/docker/cloud/build/sivakesava/groot.svg?logo=docker&style=popout&label=Docker+Image)][docker-hub]
