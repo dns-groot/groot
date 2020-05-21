@@ -29,13 +29,20 @@ jobs:
         cp -r ../test/TestFiles/ test/ 
         ctest --output-on-failure --extra-verbose
     
-    - name: Codecov
+    - name: Generate coverage file
       run:  |-
         cd build
         lcov --capture --directory . --output-file coverage.info
         lcov --remove coverage.info '/usr/*' --output-file coverage.info
         lcov --list coverage.info
-        curl -s https://codecov.io/bash | bash -s - -f coverage.info -t ${{ secrets.CODECOV_TOKEN }}
+#         curl -s https://codecov.io/bash | bash -s - -f coverage.info -t ${{ secrets.CODECOV_TOKEN }}
+   
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: build/coverage.info
+        fail_ci_if_error: true
     
     - name: Free up space to allow docker build
       run:  |-
