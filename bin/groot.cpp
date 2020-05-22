@@ -61,6 +61,188 @@ void Main(string directory, string jobs_file, string output_file) {
 	driver.WriteViolationsToFile(output_file);
 }
 
+string ZoneFileNSMap(string file, json& metadata, set<string>& required_domains, string second_level_tld) {
+	std::ifstream infile(file);
+	std::string line;
+	const boost::regex fieldsregx(";(?=(?:[^\"]*\"[^\"]*\")*(?![^\"]*\"))");
+	const boost::regex linesregx("\\r\\n|\\n\\r|\\n|\\r");
+	string top_server = "";
+	while (std::getline(infile, line))
+	{
+		boost::sregex_token_iterator ti(line.begin(), line.end(), fieldsregx, -1);
+		boost::sregex_token_iterator end2;
+
+		std::vector<std::string> row;
+		while (ti != end2) {
+			std::string token = ti->str();
+			++ti;
+			row.push_back(token);
+		}
+		if (line.back() == ',') {
+			// last character was a separator
+			row.push_back("");
+		}
+		if (row.size() == 3) {
+			string domain = row[1].substr(0, row[1].size() - 5);
+			if (required_domains.find(domain) != required_domains.end()) {
+				json tmp = {};
+				tmp["FileName"] = row[1];
+				tmp["NameServer"] = row[2] + ".";
+				metadata["ZoneFiles"].push_back(tmp);
+				if (domain == second_level_tld)top_server = row[2] + ".";
+			}
+		}
+	}
+	return top_server;
+}
+
+void ReadZoneFilesInfo(string file, std::vector<vector<std::string>> &info)
+{
+    std::ifstream infile(file);
+    std::string line;
+    const boost::regex fieldsregx(";(?=(?:[^\"]*\"[^\"]*\")*(?![^\"]*\"))");
+    const boost::regex linesregx("\\r\\n|\\n\\r|\\n|\\r");
+    string top_server = "";
+    while (std::getline(infile, line)) {
+        boost::sregex_token_iterator ti(line.begin(), line.end(), fieldsregx, -1);
+        boost::sregex_token_iterator end2;
+
+        std::vector<std::string> row;
+        while (ti != end2) {
+            std::string token = ti->str();
+            ++ti;
+            row.push_back(token);
+        }
+        if (row.size() == 3) {
+            info.push_back(row);
+        }
+    }
+}
+
+string SearchReturnNS(
+    std::vector<vector<std::string>> &info,
+    json &metadata,
+    set<string> &required_domains,
+    string second_level_tld)
+{
+    string top_server = "";
+    for (auto &row : info) {
+        string domain = row[1].substr(0, row[1].size() - 5);
+        if (required_domains.find(domain) != required_domains.end()) {
+            json tmp = {};
+            tmp["FileName"] = row[1];
+            tmp["NameServer"] = row[2] + ".";
+            metadata["ZoneFiles"].push_back(tmp);
+            if (domain == second_level_tld)
+                top_server = row[2] + ".";
+        }
+	}
+    return top_server;
+}
+
+void GenerateMetaDataFiles()
+{
+    string data_path = "C:/Users/sivak/Desktop/Data/";
+
+    json subdomains;
+    std::ifstream subdomainsFile(
+        (boost::filesystem::path{data_path} / boost::filesystem::path{"2ndLevelTLD-SubZones.json"}).string());
+    subdomainsFile >> subdomains;
+    Logger->debug(fmt::format("groot.cpp (CensusData) - Successfully read subdomain json"));
+
+    std::vector<vector<std::string>> info;
+    ReadZoneFilesInfo(data_path + "NameServer_FileName.csv", info);
+
+    const int thread_count = 16;
+    std::thread metadata_producers[thread_count];
+    int chunk = (subdomains.size() / thread_count) + thread_count;
+
+    for (int i = 0; i != thread_count; ++i) {
+        metadata_producers[i] = thread([i, &chunk, &subdomains, &info, &data_path]() {
+            int j = 0;
+            int start = i * chunk;
+            int end = (i + 1) * chunk;
+            for (auto &[second_level_tld, subs] : subdomains.items()) {
+                if (start <= j && j<= end) {
+                    //Logger->info(fmt::format("Thread {} started with start {} and end {}, stld {}", i, start, end, second_level_tld));
+                    json metadata = {};
+                    metadata["TopNameServers"] = {};
+                    metadata["ZoneFiles"] = {};
+                    std::set<string> required_domains;
+                    required_domains.insert(string(second_level_tld));
+                    for (auto &s : subs) {
+                        required_domains.insert(string(s));
+                    }
+                    string top_server = SearchReturnNS(info, metadata, required_domains, string(second_level_tld));
+                    if (top_server.length() > 0) {
+                        metadata["TopNameServers"].push_back(top_server);
+                        std::ofstream ofs;
+                        ofs.open(
+                            data_path + "metadata_files/" + string(second_level_tld) + ".json", std::ofstream::out);
+                        ofs << metadata.dump(4);
+                        ofs.close();
+                    }
+				}
+                j++;
+            }
+        });
+    }
+    for (int i = 0; i != thread_count; ++i) {
+        metadata_producers[i].join();
+    }
+}
+
+
+void CensusData(string second_level_tld, string output_file) {
+	string data_path = "C:/Users/sivak/Desktop/Data/";
+
+	json subdomains;
+	std::ifstream subdomainsFile((boost::filesystem::path{ data_path } / boost::filesystem::path{ "2ndLevelTLD-SubZones.json" }).string());
+	subdomainsFile >> subdomains;
+	Logger->debug(fmt::format("groot.cpp (CensusData) - Successfully read subdomain json"));
+
+	json metadata = {};
+	metadata["TopNameServers"] = {};
+	metadata["ZoneFiles"] = {};
+	std::set<string> required_domains;
+	for (auto& s : subdomains[second_level_tld]) {
+		required_domains.insert(string(s));
+	}
+	required_domains.insert(second_level_tld);
+	string top_server = ZoneFileNSMap(data_path + "NameServer_FileName.csv", metadata, required_domains, second_level_tld);
+
+	if (top_server.length() > 0) {
+		metadata["TopNameServers"].push_back(top_server);
+		Logger->debug(fmt::format("groot.cpp (CensusData) - Successfully constructed metadata"));
+
+		Driver driver;
+
+		high_resolution_clock::time_point t1 = high_resolution_clock::now();
+		driver.SetContext(metadata, data_path + "zone_files");
+		Logger->debug("groot.cpp (CensusData) - Label graph and Zone graphs built");
+
+		high_resolution_clock::time_point t2 = high_resolution_clock::now();
+		duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
+		Logger->info(fmt::format("Time to build label graph and zone graphs: {}s", time_span.count()));
+
+
+		driver.SetJob(second_level_tld + ".");
+		Logger->debug(fmt::format("groot.cpp (CensusData) - Started property checking for {}", second_level_tld));
+		driver.GenerateECsAndCheckProperties();
+		Logger->debug(fmt::format("groot.cpp (CensusData) - Finished property checking for {} with {} ECs", second_level_tld, driver.GetECCountForCurrentJob()));
+
+		t2 = high_resolution_clock::now();
+		time_span = duration_cast<duration<double>>(t2 - t1);
+		Logger->info(fmt::format("Total number of ECs: {}", driver.GetECCountForCurrentJob()));
+        Logger->info(fmt::format("Total number of vertices across all interpretation graphs: {}", driver.GetInterpretationVerticesCountForCurrentJob()));
+		Logger->info(fmt::format("Time to check all user jobs: {}s", time_span.count()));
+		driver.WriteViolationsToFile(output_file);
+	}
+	else {
+		Logger->error(fmt::format("groot.cpp (CensusData) - top name server is empty"));
+	}
+}
+
 static const char USAGE[] =
 R"(groot 1.0
    
