@@ -31,10 +31,10 @@ class Driver
     friend class DriverTest;
     void GenerateECsAndCheckProperties();
     long GetECCountForCurrentJob() const;
-    long GetInterpretationVerticesCountForCurrentJob() const;
     long SetContext(const json &, string);
     void SetJob(const json &);
     void SetJob(const string &);
+    void WriteStatsForAJob();
     void WriteViolationsToFile(string) const;
 };
 

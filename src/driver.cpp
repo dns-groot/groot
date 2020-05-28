@@ -1,7 +1,11 @@
 #include "driver.h"
 #include "ec-task.h"
 #include "structural-task.h"
+#include <boost/accumulators/accumulators.hpp>
+#include <boost/accumulators/statistics.hpp>
 #include <boost/filesystem.hpp>
+
+using namespace boost::accumulators;
 
 void Driver::GenerateECsAndCheckProperties()
 {
@@ -77,22 +81,33 @@ void Driver::GenerateECsAndCheckProperties()
             property_violations_.insert(aliases_tmp);
         }
     });
+
+    // Stats collector thread
+    std::thread stats_collector = thread([this, &done_consumers]() {
+        interpretation::Graph::Attributes item;
+        bool itemsLeft;
+        do {
+            itemsLeft = done_consumers.load(std::memory_order_acquire) <= kECConsumerCount;
+            while (current_job_.attributes_queue.try_dequeue(item)) {
+                itemsLeft = true;
+                current_job_.stats.interpretation_vertices.push_back(std::get<0>(item));
+                current_job_.stats.interpretation_edges.push_back(std::get<1>(item));
+            }
+        } while (itemsLeft);
+    });
+
     label_graph_ec_generator.join();
     current_job_.finished_ec_generation = true;
     for (int i = 0; i != kECConsumerCount; ++i) {
         EC_consumers[i].join();
     }
     json_consumer.join();
+    stats_collector.join();
 }
 
 long Driver::GetECCountForCurrentJob() const
 {
-    return current_job_.ec_count;
-}
-
-long Driver::GetInterpretationVerticesCountForCurrentJob() const
-{
-    return current_job_.interpretation_vertices;
+    return current_job_.stats.ec_count;
 }
 
 void MetadataSanityCheck(const json &metadata, string directory)
@@ -165,12 +180,16 @@ long Driver::SetContext(const json &metadata, string directory)
         types_info += k + ":" + to_string(v) + ", ";
     }
     Logger->info(fmt::format("RR Stats: {}", types_info));
+    Logger->info(
+        fmt::format("Label Graph: vertices = {}, edges = {}", num_vertices(label_graph_), num_edges(label_graph_)));
     return rr_count;
 }
 
 void Driver::SetJob(const json &user_job)
 {
-    current_job_.ec_count = 0;
+    current_job_.stats.ec_count = 0;
+    current_job_.stats.interpretation_edges.clear();
+    current_job_.stats.interpretation_vertices.clear();
     current_job_.user_input_domain = string(user_job["Domain"]);
     current_job_.check_subdomains = user_job["SubDomain"];
     current_job_.path_functions.clear();
@@ -311,7 +330,9 @@ void Driver::SetJob(const json &user_job)
 
 void Driver::SetJob(const string &domain_name)
 {
-    current_job_.ec_count = 0;
+    current_job_.stats.ec_count = 0;
+    current_job_.stats.interpretation_edges.clear();
+    current_job_.stats.interpretation_vertices.clear();
     current_job_.user_input_domain = domain_name;
     current_job_.check_subdomains = true;
     current_job_.path_functions.clear();
@@ -356,7 +377,27 @@ void Driver::SetJob(const string &domain_name)
     current_job_.path_functions.push_back(query_rewrite);
 
     current_job_.path_functions.push_back(interpretation::Graph::Properties::RewriteBlackholing);
-    //current_job_.check_structural_delegations = true;
+    // current_job_.check_structural_delegations = true;
+}
+
+void Driver::WriteStatsForAJob()
+{
+
+    Logger->info(fmt::format("Number of ECs: {}", current_job_.stats.ec_count));
+    /*auto [min, max] = std::minmax_element(
+        begin(current_job_.stats.interpretation_vertices), end(current_job_.stats.interpretation_vertices));*/
+    accumulator_set<double, features<tag::mean, tag::median, tag::min, tag::max>> acc;
+    for_each(
+        begin(current_job_.stats.interpretation_vertices), end(current_job_.stats.interpretation_vertices), ref(acc));
+    Logger->info(fmt::format(
+        "Interpretation Graph Vertices: Max={}, Min={}, Mean={}, Median={}", boost::accumulators::max(acc),
+        boost::accumulators::min(acc), mean(acc), median(acc)));
+    acc = {};
+    for_each(
+        begin(current_job_.stats.interpretation_edges), end(current_job_.stats.interpretation_edges), ref(acc));
+    Logger->info(fmt::format(
+        "Interpretation Graph Edges: Max={}, Min={}, Mean={}, Median={}", boost::accumulators::max(acc),
+        boost::accumulators::min(acc), mean(acc), median(acc)));
 }
 
 void Driver::WriteViolationsToFile(string output_file) const

@@ -53,6 +53,7 @@ class Graph : public boost::adjacency_list<boost::vecS, boost::vecS, boost::bidi
     using NodeFunction =
         std::function<void(const Graph &, const vector<VertexDescriptor> &, moodycamel::ConcurrentQueue<json> &)>;
     using PathFunction = std::function<void(const Graph &, const Path &, moodycamel::ConcurrentQueue<json> &)>;
+    using Attributes = std::tuple<int, int>;
 
   private:
     template <class NSMap, class QueryMap, class AnswerMap> class VertexWriter
@@ -97,7 +98,7 @@ class Graph : public boost::adjacency_list<boost::vecS, boost::vecS, boost::bidi
     boost::unordered_map<string, vector<VertexDescriptor>> nameserver_to_vertices_map_;
 
     void CheckCnameDnameAtSameNameserver(VertexDescriptor &, const EC, const Context &);
-    void CheckForLoops(VertexDescriptor, Path, moodycamel::ConcurrentQueue<json> &) const;
+    bool CheckForLoops(VertexDescriptor, Path, moodycamel::ConcurrentQueue<json> &) const;
     void EnumeratePathsAndReturnEndNodes(
         VertexDescriptor,
         vector<VertexDescriptor> &,

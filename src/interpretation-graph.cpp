@@ -132,7 +132,7 @@ boost::optional<interpretation::Graph::VertexDescriptor> interpretation::Graph::
                     std::exit(EXIT_FAILURE);
                 }
                 if (edge_query) {
-                    (*this)[e].intermediate_query = boost::make_optional(edge_query.get());
+                    (*this)[e].intermediate_query = boost::make_optional(static_cast<int>(edge_query.get()));
                 }
                 //}
                 // Logger->debug(fmt::format("interpretation-graph (InsertNode) Found duplicate node in interpretation
@@ -157,7 +157,7 @@ boost::optional<interpretation::Graph::VertexDescriptor> interpretation::Graph::
             std::exit(EXIT_FAILURE);
         }
         if (edge_query) {
-            (*this)[e].intermediate_query = boost::make_optional(edge_query.get());
+            (*this)[e].intermediate_query = boost::make_optional(static_cast<int>(edge_query.get()));
         }
         it->second.push_back(v);
         return v;
@@ -272,13 +272,14 @@ void interpretation::Graph::PrettyPrintLoop(
 {
     Path loop;
     bool found = false;
-    for (auto v : p) {
+    for (auto& v : p) {
         if (v == start) {
             found = true;
         }
         if (found)
             loop.push_back(v);
     }
+
     json tmp;
     tmp["Property"] = "Cyclic Zone Dependency";
     tmp["Loop"] = {};
@@ -457,26 +458,33 @@ void interpretation::Graph::StartFromTopNameservers(
     }
 }
 
-void interpretation::Graph::CheckForLoops(
+bool interpretation::Graph::CheckForLoops(
     VertexDescriptor current_vertex,
     Path p,
     moodycamel::ConcurrentQueue<json> &json_queue) const
 {
+    /*
+        Checks for loops in the graph taking into accoun the side queries. 
+        The function returns as soon as a single loop is found without enumerating all loops as it can lead to explosion.
+        EnumeratePathsAndReturnEndNodes - currently doesn't handle sidequeries and the explosion problem is minimzed.
+    */
     const EC &query = (*this)[current_vertex].query;
     for (auto &v : p) {
         if (v == current_vertex) {
             PrettyPrintLoop(current_vertex, p, json_queue);
-            return;
+            return true;
         }
     }
     p.push_back(current_vertex);
     for (EdgeDescriptor edge : boost::make_iterator_range(out_edges(current_vertex, *this))) {
-        // TODO : Edges that have side query
         if ((*this)[edge].intermediate_query) {
-            CheckForLoops((*this)[edge].intermediate_query.get(), p, json_queue);
+            if (CheckForLoops((*this)[edge].intermediate_query.get(), p, json_queue))
+                return true;
         }
-        CheckForLoops(edge.m_target, p, json_queue);
+        if (CheckForLoops(edge.m_target, p, json_queue))
+            return true;
     }
+    return false;
 }
 
 void interpretation::Graph::CheckForLoops(moodycamel::ConcurrentQueue<json> &json_queue) const

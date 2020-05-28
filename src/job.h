@@ -3,18 +3,24 @@
 
 #include "task.h"
 
+struct Stats {
+    std::vector<int> interpretation_vertices;
+    std::vector<int> interpretation_edges;
+    std::atomic<long> ec_count = 0;
+};
+
 struct Job {
+    moodycamel::ConcurrentQueue<interpretation::Graph::Attributes> attributes_queue;
     bool check_subdomains = false;
     bool check_structural_delegations = false;
-    std::atomic<long> ec_count = 0;
-    std::atomic<long> interpretation_vertices = 0;
     moodycamel::ConcurrentQueue<unique_ptr<Task>> ec_queue;
     std::atomic<bool> finished_ec_generation = false;
     moodycamel::ConcurrentQueue<json> json_queue;
     vector<interpretation::Graph::NodeFunction> node_functions;
     vector<interpretation::Graph::PathFunction> path_functions;
-    string user_input_domain;
+    Stats stats;
     std::bitset<RRType::N> types_req;
+    string user_input_domain;
 };
 
 #endif

@@ -41,23 +41,25 @@ void Main(string directory, string jobs_file, string output_file) {
 
 		for (auto& user_job : jobs) {
 			driver.SetJob(user_job);
-			Logger->debug(fmt::format("groot.cpp (demo) - Started property checking for {}", string(user_job["Domain"])));
+			Logger->info(fmt::format("groot.cpp (demo) - Started property checking for the job- {}", string(user_job["Domain"])));
 			driver.GenerateECsAndCheckProperties();
 			total_ecs += driver.GetECCountForCurrentJob();
-			Logger->debug(fmt::format("groot.cpp (demo) - Finished property checking for {} with {} ECs", string(user_job["Domain"]), driver.GetECCountForCurrentJob()));
+            driver.WriteStatsForAJob();
+			Logger->info(fmt::format("groot.cpp (demo) - Finished property checking for the job- {}", string(user_job["Domain"])));
 		}
 	}
 	else {
 		driver.SetJob(string("."));
-		Logger->debug(fmt::format("groot.cpp (demo) - Started default property checking"));
+		Logger->info(fmt::format("groot.cpp (demo) - Started default property checking for the job"));
 		driver.GenerateECsAndCheckProperties();
 		total_ecs += driver.GetECCountForCurrentJob();
-		Logger->debug(fmt::format("groot.cpp (demo) - Finished default property checking with {} ECs", driver.GetECCountForCurrentJob()));
+        driver.WriteStatsForAJob();
+		Logger->info(fmt::format("groot.cpp (demo) - Finished default property checking for the job"));
 	}
 	t2 = high_resolution_clock::now();
 	time_span = duration_cast<duration<double>>(t2 - t1);
 	Logger->info(fmt::format("Time to check all user jobs: {}s", time_span.count()));
-	Logger->info(fmt::format("Total number of ECs across all jobs: {}", total_ecs));
+    Logger->info(fmt::format("Total number of ECs across all jobs: {}", total_ecs));
 	driver.WriteViolationsToFile(output_file);
 }
 
