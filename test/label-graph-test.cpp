@@ -3,6 +3,32 @@
 
 BOOST_AUTO_TEST_SUITE(ParsingTestSuite)
 
+void CheckClosestEncloser(string d1, string d2, string d3, string query, string expectedLabel)
+{
+    label::Graph labelGraph;
+    zone::Graph zoneGraph(0);
+
+    for (int i = 0; i < RRType::N; i++) {
+        string type = TypeUtils::TypeToString(static_cast<RRType>(i));
+
+        ResourceRecord r1(d1, type, 1, 10, "");
+        auto id1 = zoneGraph.AddResourceRecord(r1);
+        labelGraph.AddResourceRecord(r1, 0, id1.get());
+
+        ResourceRecord r2(d2, type, 1, 10, "");
+        auto id2 = zoneGraph.AddResourceRecord(r2);
+        if (id2.has_value()) labelGraph.AddResourceRecord(r2, 0, id2.get());
+
+        ResourceRecord r3(d3, type, 1, 10, "");
+        auto id3 = zoneGraph.AddResourceRecord(r3);
+        if (id3.has_value()) labelGraph.AddResourceRecord(r3, 0, id3.get());
+
+        auto enclosers = labelGraph.ClosestEnclosers(query);
+        auto x = labelGraph[enclosers[0].first];
+        BOOST_CHECK_EQUAL(expectedLabel, x.name.get());
+    }
+}
+
 BOOST_AUTO_TEST_CASE(label_graph_building)
 {
     Driver d;
@@ -13,7 +39,6 @@ BOOST_AUTO_TEST_CASE(label_graph_building)
     BOOST_CHECK_EQUAL(7, dt.GetNumberofLabelGraphVertices(d));
     BOOST_CHECK_EQUAL(7, dt.GetNumberofLabelGraphEdges(d));
 }
-
 
 BOOST_AUTO_TEST_CASE(label_graph_search)
 {
@@ -35,6 +60,38 @@ BOOST_AUTO_TEST_CASE(label_graph_search)
     enclosers = labelGraph.ClosestEnclosers("foo.com");
     node = labelGraph[enclosers[0].first];
     BOOST_CHECK_EQUAL(2, node.rrtypes_available.count());
+}
+
+BOOST_AUTO_TEST_CASE(label_graph_dnames)
+{
+    label::Graph labelGraph;
+    zone::Graph zoneGraph(0);
+
+    ResourceRecord r1("foo.com", "A", 1, 10, "1.2.3.4");
+    auto id1 = zoneGraph.AddResourceRecord(r1);
+    labelGraph.AddResourceRecord(r1, 0, id1.get());
+
+    ResourceRecord r2("bar.com", "DNAME", 1, 10, "foo.com");
+    auto id2 = zoneGraph.AddResourceRecord(r2);
+    labelGraph.AddResourceRecord(r2, 0, id2.get());
+
+    ResourceRecord r3("foo.com", "DNAME", 1, 10, "bar.com");
+    auto id3 = zoneGraph.AddResourceRecord(r3);
+    labelGraph.AddResourceRecord(r3, 0, id3.get());
+
+    auto enclosers = labelGraph.ClosestEnclosers("a.foo.com");
+    auto x = labelGraph[enclosers[0].first];
+    BOOST_CHECK_EQUAL("foo", x.name.get());
+    BOOST_CHECK_EQUAL(2, x.rrtypes_available.count());
+}
+
+BOOST_AUTO_TEST_CASE(label_graph_examples)
+{
+    CheckClosestEncloser("com", "a.com", "b.a.com", "c.b.a.com", "b");
+    CheckClosestEncloser("org", "com", "net", "a.b.c.org", "org");
+    CheckClosestEncloser("a.org", "aa.org", "aaa.org", "aaa.org", "aaa");
+    CheckClosestEncloser("a.org", "aa.org", "aaa.org", "aaaa.org", "org");
+    CheckClosestEncloser("com", "com", "com", "com", "com");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

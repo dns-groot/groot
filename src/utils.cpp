@@ -108,6 +108,11 @@ RRType TypeUtils::StringToType(const string &type)
 
 string type_to_string[] = {"A", "NS", "CNAME", "DNAME", "SOA", "PTR", "MX", "TXT", "AAAA", "SRV", "RRSIG", "NSEC", "SPF"};
 
+string TypeUtils::TypeToString(RRType type)
+{
+    return type_to_string[type];
+}
+
 string TypeUtils::TypesToString(std::bitset<RRType::N> rrTypes)
 {
     std::set<string> types;
