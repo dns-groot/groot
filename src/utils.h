@@ -19,6 +19,7 @@ class TypeUtils
 {
   public:
     static RRType StringToType(const string &);
+    static string TypeToString(RRType type);
     static string TypesToString(std::bitset<RRType::N>);
 };
 
