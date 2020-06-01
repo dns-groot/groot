@@ -17,11 +17,11 @@ void CheckClosestEncloser(string d1, string d2, string d3, string query, string 
 
         ResourceRecord r2(d2, type, 1, 10, "");
         auto id2 = zoneGraph.AddResourceRecord(r2);
-        if (id2.has_value()) labelGraph.AddResourceRecord(r2, 0, id2.get());
+        if (id2) labelGraph.AddResourceRecord(r2, 0, id2.get());
 
         ResourceRecord r3(d3, type, 1, 10, "");
         auto id3 = zoneGraph.AddResourceRecord(r3);
-        if (id3.has_value()) labelGraph.AddResourceRecord(r3, 0, id3.get());
+        if (id3) labelGraph.AddResourceRecord(r3, 0, id3.get());
 
         auto enclosers = labelGraph.ClosestEnclosers(query);
         auto x = labelGraph[enclosers[0].first];
