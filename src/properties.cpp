@@ -135,6 +135,10 @@ void interpretation::Graph::Properties::CheckSameResponseReturned(
     boost::optional<vector<zone::LookUpAnswer>> response;
     bool incomplete = false;
     bool foundDiff = false;
+    /*
+       CNAME end nodes - (1) Nodes with Rewrite tag in this vector 
+                         (2) Nodes with the query requesting for CNAME
+    */
     vector<VertexDescriptor> cname_endnodes{}; // TODO: Check for CNAME End nodes separately.
     for (auto vd : end_nodes) {
         if ((graph[vd].query.rrTypes & typesReq).count() > 0 && graph[vd].ns != "") {
@@ -168,6 +172,46 @@ void interpretation::Graph::Properties::CheckSameResponseReturned(
         tmp["Query"] = graph[end_nodes[0]].query.ToString();
         json_queue.enqueue(tmp);
     }
+}
+
+void interpretation::Graph::Properties::ZeroTTL(
+    const interpretation::Graph &graph,
+    const vector<VertexDescriptor> &end_nodes,
+    moodycamel::ConcurrentQueue<json> &json_queue,
+    std::bitset<RRType::N> typesReq)
+{
+    /*
+      The set of end nodes is given and checks if the response contains resource records with zero TTL 
+      for the given types.
+    */
+    /*bool incomplete = false;
+    for (auto vd : end_nodes) {
+        if ((graph[vd].query.rrTypes & typesReq).count() > 0 && graph[vd].ns != "") {
+            boost::optional<vector<zone::LookUpAnswer>> answer = graph[vd].answer;
+            if (answer) {
+                if (std::get<0>(answer.get()[0]) == ReturnTag::REFUSED ||
+                    std::get<0>(answer.get()[0]) == ReturnTag::NSNOTFOUND) {
+                    incomplete = true;
+                } else if (std::get<0>(answer.get()[0]) == ReturnTag::REWRITE) {
+                    cname_endnodes.push_back(vd);
+                } else if (!response) {
+                    response = answer;
+                } else {
+                    CommonSymDiff diff =
+                        RRUtils::CompareRRs(std::get<2>(answer.get()[0]), std::get<2>(response.get()[0]));
+                    if (std::get<1>(diff).size() || std::get<2>(diff).size()) {
+                        foundDiff = true;
+                    }
+                }
+            } else {
+                Logger->error(fmt::format(
+                    "properties.cpp (ZeroTTL) - An implementation error - "
+                    "Empty answer at a node for {}",
+                    graph[vd].query.ToString()));
+            }
+        }
+    }*/
+
 }
 
 void interpretation::Graph::Properties::AllAliases(

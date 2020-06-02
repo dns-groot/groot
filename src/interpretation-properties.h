@@ -147,6 +147,11 @@ class Graph : public boost::adjacency_list<boost::vecS, boost::vecS, boost::bidi
             const vector<VertexDescriptor> &,
             moodycamel::ConcurrentQueue<json> &,
             std::bitset<RRType::N>);
+        static void ZeroTTL(
+            const interpretation::Graph &,
+            const vector<VertexDescriptor> &,
+            moodycamel::ConcurrentQueue<json> &,
+            std::bitset<RRType::N>);
 
         // Path properties
         static void AllAliases(

@@ -52,7 +52,7 @@ The `~/data` on the host system would then be accessible within the container at
 #### Installation for Windows
 1. Install [`vcpkg`](https://docs.microsoft.com/en-us/cpp/build/vcpkg?view=vs-2019) package manager to install dependecies. 
 2. Install the C++ libraries (64 bit versions) using:
-    - .\vcpkg.exe install boost-serialization:x64-windows boost-flyweight:x64-windows boost-dynamic-bitset:x64-windows boost-graph:x64-windows  docopt:x64-windows nlohmann-json:x64-windows spdlog:x64-windows
+    - .\vcpkg.exe install boost-serialization:x64-windows boost-flyweight:x64-windows boost-dynamic-bitset:x64-windows boost-graph:x64-windows  boost-accumulators:x64-windows docopt:x64-windows nlohmann-json:x64-windows spdlog:x64-windows
     - .\vcpkg.exe integrate install 
 3. Clone the repository (with  `--recurse-submodules`) and open the solution (groot.sln) using Visual studio. Set the platform to x64 and mode to Release.
 4. Configure the project properties to use ISO C++17 Standard (std:c++17) for C++ language standard.
@@ -237,7 +237,7 @@ Different executions in DNS that might happen due to multiple name servers shoul
 Input `json` format:
 ```json5
       {
-         "PropertyName": "ResponseConsistency"
+         "PropertyName": "ResponseConsistency",
          "Types": ["A", "MX"] //Checks the consistency for only these types
       }
 ```
@@ -250,7 +250,7 @@ Different executions in DNS that might happen due to multiple name servers shoul
 Input `json` format:
 ```json5
       {
-         "PropertyName": "ResponseReturned"
+         "PropertyName": "ResponseReturned",
          "Types": ["CNAME", "A"] //Checks that some non-empty response is returned for these types
       }
 ```
@@ -263,7 +263,7 @@ Every execution in DNS should return an answer that matches the user input answe
 Input `json` format:
 ```json5
       {
-         "PropertyName": "ResponseValue"
+         "PropertyName": "ResponseValue",
          "Types": ["A"],
          "Value": ["64.107.104.4"] //The expected response
          
@@ -297,7 +297,20 @@ Input `json` format:
 ```
 </details>
 
-<!-- Groot, by default, checks for cyclic zone dependency and other loops while verifying any of the above properties.  -->
+<details>
+<summary>Zero Time To Live</summary>
+   
+The query should not return a resource record with zero TTL for the given types.  
+Input `json` format:
+```json5
+      {
+         "PropertyName": "ZeroTTL",
+         "Types": ["A"]
+      }
+```
+</details>
+
+Groot, by default, checks for cyclic zone dependency and other loops while verifying any of the above properties. 
 
 [docker-hub]:         https://hub.docker.com/r/sivakesava/groot
 [bind mount]:         https://docs.docker.com/storage/bind-mounts

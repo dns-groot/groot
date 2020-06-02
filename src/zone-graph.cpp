@@ -1,5 +1,5 @@
-﻿#include "utils.h"
-#include "zone-graph.h"
+﻿#include "zone-graph.h"
+#include "utils.h"
 
 zone::Graph::Graph(int zoneId)
 {
@@ -63,20 +63,17 @@ zone::Graph::VertexDescriptor zone::Graph::AddNodes(
     return closest_encloser;
 }
 
-bool checkDuplicate(const vector<ResourceRecord> &rrs, const ResourceRecord &newr)
+tuple<zone::RRAddCode, boost::optional<zone::Graph::VertexDescriptor>> zone::Graph::AddResourceRecord(
+    const ResourceRecord &record)
 {
-    for (auto &rr : rrs) {
-        if (rr.get_type() == newr.get_type()) {
-            if (rr.get_ttl() == newr.get_ttl() && rr.get_rdata() == newr.get_rdata()) {
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
-boost::optional<zone::Graph::VertexDescriptor> zone::Graph::AddResourceRecord(const ResourceRecord &record)
-{
+    /*
+       Return codes
+       0 - No errors
+       1 - Duplicate
+       2 - CNAME multiple
+       3 - DNAME multiple
+       4 - CNAME other records
+   */
     vector<NodeLabel> labels = record.get_name();
     int index = 0;
     vector<VertexDescriptor> vertices_to_create_maps{};
@@ -86,16 +83,26 @@ boost::optional<zone::Graph::VertexDescriptor> zone::Graph::AddResourceRecord(co
     }
     VertexDescriptor node = AddNodes(closest_encloser, labels, index);
 
-    // Check for duplicate data.
-    if (!checkDuplicate((*this)[node].rrs, record)) {
-        (*this)[node].rrs.push_back(record);
-        if (record.get_type() == RRType::SOA) {
-            origin_ = record.get_name();
+    for (auto &rr : (*this)[node].rrs) {
+        if (rr.get_type() == record.get_type()) {
+            if (rr.get_ttl() == record.get_ttl() && rr.get_rdata() == record.get_rdata()) {
+                return {RRAddCode::DUPLICATE, {}};
+            }
+            if (record.get_type() == RRType::CNAME) {
+                return {RRAddCode::CNAME_MULTIPLE, node};
+            }
+            if (record.get_type() == RRType::DNAME) {
+                return {RRAddCode::DNAME_MULTIPLE, node};
+            }
+        } else if (rr.get_type() == RRType::CNAME) {
+            return {RRAddCode::CNAME_OTHER, {}};
         }
-        return node;
-    } else {
-        return {};
     }
+    (*this)[node].rrs.push_back(record);
+    if (record.get_type() == RRType::SOA) {
+        origin_ = record.get_name();
+    }
+    return {RRAddCode::SUCCESS, node};
 }
 
 bool zone::Graph::CheckZoneMembership(const ResourceRecord &record, const string &filename)

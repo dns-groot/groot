@@ -12,16 +12,16 @@ void CheckClosestEncloser(string d1, string d2, string d3, string query, string 
         string type = TypeUtils::TypeToString(static_cast<RRType>(i));
 
         ResourceRecord r1(d1, type, 1, 10, "");
-        auto id1 = zoneGraph.AddResourceRecord(r1);
+        auto [code1, id1] = zoneGraph.AddResourceRecord(r1);
         labelGraph.AddResourceRecord(r1, 0, id1.get());
 
         ResourceRecord r2(d2, type, 1, 10, "");
-        auto id2 = zoneGraph.AddResourceRecord(r2);
+        auto [code2, id2] = zoneGraph.AddResourceRecord(r2);
         if (id2)
             labelGraph.AddResourceRecord(r2, 0, id2.get());
 
         ResourceRecord r3(d3, type, 1, 10, "");
-        auto id3 = zoneGraph.AddResourceRecord(r3);
+        auto [code3, id3] = zoneGraph.AddResourceRecord(r3);
         if (id3)
             labelGraph.AddResourceRecord(r3, 0, id3.get());
 
@@ -48,7 +48,7 @@ BOOST_AUTO_TEST_CASE(label_graph_search)
     zone::Graph zoneGraph(0);
 
     ResourceRecord r1("foo.com.", "A", 1, 10, "1.2.3.4");
-    auto id1 = zoneGraph.AddResourceRecord(r1);
+    auto [code1, id1] = zoneGraph.AddResourceRecord(r1);
     labelGraph.AddResourceRecord(r1, 0, id1.get());
 
     auto enclosers = labelGraph.ClosestEnclosers("foo.com.");
@@ -56,7 +56,7 @@ BOOST_AUTO_TEST_CASE(label_graph_search)
     BOOST_CHECK_EQUAL(1, node.rrtypes_available.count());
 
     ResourceRecord r2("foo.com", "NS", 1, 10, "ns1.foo.com");
-    auto id2 = zoneGraph.AddResourceRecord(r2);
+    auto [code2, id2] = zoneGraph.AddResourceRecord(r2);
     labelGraph.AddResourceRecord(r2, 0, id2.get());
 
     enclosers = labelGraph.ClosestEnclosers("foo.com");
@@ -70,15 +70,15 @@ BOOST_AUTO_TEST_CASE(label_graph_dnames)
     zone::Graph zoneGraph(0);
 
     ResourceRecord r1("foo.com", "A", 1, 10, "1.2.3.4");
-    auto id1 = zoneGraph.AddResourceRecord(r1);
+    auto [code1, id1] = zoneGraph.AddResourceRecord(r1);
     labelGraph.AddResourceRecord(r1, 0, id1.get());
 
     ResourceRecord r2("bar.com", "DNAME", 1, 10, "foo.com");
-    auto id2 = zoneGraph.AddResourceRecord(r2);
+    auto [code2, id2] = zoneGraph.AddResourceRecord(r2);
     labelGraph.AddResourceRecord(r2, 0, id2.get());
 
     ResourceRecord r3("foo.com", "DNAME", 1, 10, "bar.com");
-    auto id3 = zoneGraph.AddResourceRecord(r3);
+    auto [code3, id3] = zoneGraph.AddResourceRecord(r3);
     labelGraph.AddResourceRecord(r3, 0, id3.get());
 
     auto enclosers = labelGraph.ClosestEnclosers("a.foo.com");
@@ -107,7 +107,7 @@ BOOST_AUTO_TEST_CASE(label_graph_many_children)
     for (int i = 0; i <= max; i++) {
         string domain = "d" + std::to_string(i);
         ResourceRecord r(domain, "TXT", 1, 10, domain);
-        auto id = zoneGraph.AddResourceRecord(r);
+        auto [code, id] = zoneGraph.AddResourceRecord(r);
         labelGraph.AddResourceRecord(r, 0, id.get());
     }
 
@@ -115,7 +115,7 @@ BOOST_AUTO_TEST_CASE(label_graph_many_children)
     for (int i = 0; i <= max; i++) {
         string domain = "d" + std::to_string(i) + ".d0";
         ResourceRecord r(domain, "TXT", 1, 10, domain);
-        auto id = zoneGraph.AddResourceRecord(r);
+        auto [code, id] = zoneGraph.AddResourceRecord(r);
         labelGraph.AddResourceRecord(r, 0, id.get());
     }
 

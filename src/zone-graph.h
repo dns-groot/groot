@@ -14,6 +14,8 @@ enum class ReturnTag { ANS, REWRITE, REF, NX, REFUSED, NSNOTFOUND };
 namespace zone
 {
 
+enum class RRAddCode { SUCCESS, DUPLICATE, CNAME_MULTIPLE, DNAME_MULTIPLE, CNAME_OTHER };
+
 struct Vertex {
     NodeLabel name;
     vector<ResourceRecord> rrs;
@@ -63,7 +65,7 @@ class Graph : public boost::adjacency_list<boost::vecS, boost::vecS, boost::dire
     const int &get_id();
     const vector<NodeLabel> &get_origin() const;
 
-    boost::optional<zone::Graph::VertexDescriptor> AddResourceRecord(const ResourceRecord &);
+    tuple<RRAddCode, boost::optional<zone::Graph::VertexDescriptor>> AddResourceRecord(const ResourceRecord &);
     bool CheckZoneMembership(const ResourceRecord &, const string &);
     vector<ResourceRecord> LookUpGlueRecords(const vector<ResourceRecord> &) const;
     boost::optional<vector<zone::LookUpAnswer>> QueryLookUpAtZone(const EC &, bool &) const;

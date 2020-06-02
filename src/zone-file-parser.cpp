@@ -214,20 +214,31 @@ struct Parser {
                 mc.rrs_parsed++;
                 ResourceRecord RR(name, type, class_, ttl, rdata);
                 if (z.CheckZoneMembership(RR, mc.file_name)) {
-                    boost::optional<zone::Graph::VertexDescriptor> vertexid = z.AddResourceRecord(RR);
-                    if (vertexid) {
+                    auto [code, vertexid] = z.AddResourceRecord(RR);
+                    if (code == zone::RRAddCode::SUCCESS) {
                         label_graph.AddResourceRecord(RR, z.get_id(), vertexid.get());
                         mc.type_to_count[type]++;
                         if (boost::algorithm::starts_with(name, "*.")) {
                             mc.type_to_count["Wildcard"]++;
                         }
-                    } else {
+                    } else if (code == zone::RRAddCode::DUPLICATE) {
                         mc.type_to_count["Duplicate-Records"]++;
                         Logger->debug(fmt::format(
                             "zone-file-parser.cpp (Parser()) - Duplicate record found on line {} in file {}", l,
                             mc.file_name));
+                    } else if (code == zone::RRAddCode::CNAME_MULTIPLE || code == zone::RRAddCode::CNAME_OTHER) {
+                        mc.type_to_count["CNAME/DNAME Errors"]++;
+                        Logger->warn(fmt::format(
+                            "zone-file-parser.cpp (Parser()) - |{}| record exists but trying to add another"
+                            "record |{}| from line {}",
+                            z[vertexid.get()].rrs[0].toString(), RR.toString(), l));
+                    } else if (code == zone::RRAddCode::DNAME_MULTIPLE) {
+                        mc.type_to_count["CNAME/DNAME Errors"]++;
+                        Logger->warn(fmt::format(
+                            "zone-file-parser.cpp (Parser()) - |{}| record exists but trying to add another DNAME "
+                            "record |{}| from line {}",
+                            z[vertexid.get()].rrs[0].toString(), RR.toString(), l));
                     }
-
                 } else {
                     mc.type_to_count["Out-of-Zone-Records"]++;
                     Logger->debug(fmt::format(
