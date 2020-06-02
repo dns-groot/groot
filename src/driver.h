@@ -25,7 +25,7 @@ class Driver
     Job current_job_;
     std::set<json> property_violations_;
     int ParseZoneFileAndExtendGraphs(string file, string nameserver, string origin);
-    void DumpNameServerZoneMap() const;
+    // void DumpNameServerZoneMap() const;
 
   public:
     friend class DriverTest;

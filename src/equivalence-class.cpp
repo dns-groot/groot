@@ -18,10 +18,8 @@ bool EC::operator==(const EC &q) const
     if (name != q.name) {
         return false;
     }
-    for (int i = 0; i < RRType::N; i++) {
-        if (rrTypes[i] == 1 && q.rrTypes[i] != 1) {
-            return false;
-        }
+    if (rrTypes != q.rrTypes) {
+        return false;
     }
     if (excluded && !q.excluded) {
         return false;

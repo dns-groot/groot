@@ -418,7 +418,7 @@ void Driver::WriteViolationsToFile(string output_file) const
     Logger->debug(fmt::format("driver.cpp (WriteViolationsToFile) - Output written to {}", output_file));
 }
 
-void Driver::DumpNameServerZoneMap() const
+/* void Driver::DumpNameServerZoneMap() const
 {
     boost::unordered_map<int, string> zoneId_to_zone_name;
 
@@ -436,4 +436,4 @@ void Driver::DumpNameServerZoneMap() const
     ofs.open("Graphs/nameserver_map.json", std::ofstream::out);
     ofs << j.dump(4);
     ofs.close();
-}
+} */
