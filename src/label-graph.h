@@ -119,7 +119,7 @@ class Graph : public boost::adjacency_list<boost::vecS, boost::vecS, boost::dire
         string) const;
     VertexDescriptor GetAncestor(VertexDescriptor, const vector<NodeLabel> &, vector<VertexDescriptor> &, int &index)
         const;
-    string GetHostingNameServer(int, const Context &) const;
+    // string GetHostingNameServer(int, const Context &) const;
     void NodeEC(const vector<NodeLabel> &name, Job &) const;
     vector<ClosestNode> SearchNode(VertexDescriptor, const vector<NodeLabel> &, int);
     void SubDomainECGeneration(VertexDescriptor, vector<NodeLabel>, bool, Job &, const Context &, bool);
