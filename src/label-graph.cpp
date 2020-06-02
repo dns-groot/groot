@@ -54,9 +54,9 @@ label::Graph::VertexDescriptor label::Graph::GetAncestor(
     return closest_encloser;
 }
 
-string label::Graph::GetHostingNameServer(int zoneId, const Context &context) const
+/* string label::Graph::GetHostingNameServer(int zoneId, const Context &context) const
 {
-    /* Given a zoneId return the name server which hosts that zone.*/
+    // Given a zoneId return the name server which hosts that zone.
     for (auto const &[ns, zoneIds] : context.nameserver_zoneIds_map) {
         if (std::find(zoneIds.begin(), zoneIds.end(), zoneId) != zoneIds.end()) {
             return ns;
@@ -65,7 +65,7 @@ string label::Graph::GetHostingNameServer(int zoneId, const Context &context) co
     Logger->critical(fmt::format(
         "label-graph.cpp (GetHostingNameServer) - ZoneId {} not found in the Name Server ZoneIds map", zoneId));
     exit(EXIT_FAILURE);
-}
+} */
 
 void label::Graph::NodeEC(const vector<NodeLabel> &name, Job &current_job) const
 {

@@ -272,7 +272,7 @@ void interpretation::Graph::PrettyPrintLoop(
 {
     Path loop;
     bool found = false;
-    for (auto& v : p) {
+    for (auto &v : p) {
         if (v == start) {
             found = true;
         }
@@ -464,9 +464,10 @@ bool interpretation::Graph::CheckForLoops(
     moodycamel::ConcurrentQueue<json> &json_queue) const
 {
     /*
-        Checks for loops in the graph taking into accoun the side queries. 
-        The function returns as soon as a single loop is found without enumerating all loops as it can lead to explosion.
-        EnumeratePathsAndReturnEndNodes - currently doesn't handle sidequeries and the explosion problem is minimzed.
+        Checks for loops in the graph taking into accoun the side queries.
+        The function returns as soon as a single loop is found without enumerating all loops as it can lead to
+       explosion. EnumeratePathsAndReturnEndNodes - currently doesn't handle sidequeries and the explosion problem is
+       minimzed.
     */
     const EC &query = (*this)[current_vertex].query;
     for (auto &v : p) {

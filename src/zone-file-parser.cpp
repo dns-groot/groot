@@ -331,10 +331,14 @@ int Driver::ParseZoneFileAndExtendGraphs(string file, string nameserver, string 
         // check if parsing was successful.
         if (!r || parenCount != 0) {
             Logger->error(fmt::format(
-                "zone-file-parser.cpp (ParseZoneFileAndExtendGraphs) - Failed to completely parse zone file {} containing {} lines", file, l));
+                "zone-file-parser.cpp (ParseZoneFileAndExtendGraphs) - Failed to completely parse zone file {} "
+                "containing {} lines",
+                file, l));
         } else {
             Logger->debug(fmt::format(
-                "zone-file-parser.cpp (ParseZoneFileAndExtendGraphs) - Successfully parsed zone file {} containing {} lines", file, l));
+                "zone-file-parser.cpp (ParseZoneFileAndExtendGraphs) - Successfully parsed zone file {} containing {} "
+                "lines",
+                file, l));
         }
 
         // Add the new zone graph to the context
