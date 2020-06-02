@@ -59,5 +59,4 @@ BOOST_AUTO_TEST_CASE(subdomain_check)
     BOOST_TEST(!CheckSubdomain("a.b.c", "a.c.c"));
 }
 
-
 BOOST_AUTO_TEST_SUITE_END()

@@ -106,7 +106,8 @@ RRType TypeUtils::StringToType(const string &type)
     return N;
 }
 
-string type_to_string[] = {"A", "NS", "CNAME", "DNAME", "SOA", "PTR", "MX", "TXT", "AAAA", "SRV", "RRSIG", "NSEC", "SPF"};
+string type_to_string[] = {"A",   "NS",   "CNAME", "DNAME", "SOA",  "PTR", "MX",
+                           "TXT", "AAAA", "SRV",   "RRSIG", "NSEC", "SPF"};
 
 string TypeUtils::TypeToString(RRType type)
 {

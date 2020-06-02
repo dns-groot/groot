@@ -393,8 +393,7 @@ void Driver::WriteStatsForAJob()
         "Interpretation Graph Vertices: Max={}, Min={}, Mean={}, Median={}", boost::accumulators::max(acc),
         boost::accumulators::min(acc), mean(acc), median(acc)));
     acc = {};
-    for_each(
-        begin(current_job_.stats.interpretation_edges), end(current_job_.stats.interpretation_edges), ref(acc));
+    for_each(begin(current_job_.stats.interpretation_edges), end(current_job_.stats.interpretation_edges), ref(acc));
     Logger->info(fmt::format(
         "Interpretation Graph Edges: Max={}, Min={}, Mean={}, Median={}", boost::accumulators::max(acc),
         boost::accumulators::min(acc), mean(acc), median(acc)));
