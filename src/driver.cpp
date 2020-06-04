@@ -322,6 +322,14 @@ void Driver::SetJob(const json &user_job)
                     "driver.cpp (SetJob) - Skipping AlliAliases property check for {} as the Values is an empty list.",
                     string(user_job["Domain"])));
             }
+        } else if (name == "ZeroTTL") {
+            auto la = [propertyTypes](
+                          const interpretation::Graph &graph,
+                          const vector<interpretation::Graph::VertexDescriptor> &end,
+                          moodycamel::ConcurrentQueue<json> &json_queue) {
+                interpretation::Graph::Properties::ZeroTTL(graph, end, json_queue, propertyTypes);
+            };
+            current_job_.node_functions.push_back(la);
         } else if (name == "StructuralDelegationConsistency") {
             current_job_.check_structural_delegations = true;
         }

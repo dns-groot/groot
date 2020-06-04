@@ -59,6 +59,7 @@ class Graph : public boost::adjacency_list<boost::vecS, boost::vecS, boost::dire
     zone::Graph::VertexDescriptor GetClosestEncloser(zone::Graph::VertexDescriptor, const vector<NodeLabel> &, int &)
         const;
     std::bitset<RRType::N> GetNodeRRTypes(const vector<ResourceRecord> &rrs) const;
+    bool WildcardMatch(VertexDescriptor, std::bitset<RRType::N> &, vector<zone::LookUpAnswer> &, const EC &) const;
 
   public:
     Graph(int);

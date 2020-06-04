@@ -10,24 +10,27 @@ void CheckClosestEncloser(string d1, string d2, string d3, string query, string 
 
     for (int i = 0; i < RRType::N; i++) {
         string type = TypeUtils::TypeToString(static_cast<RRType>(i));
+        if (type != "CNAME") {
+            ResourceRecord r1(d1, type, 1, 10, "");
+            auto [code1, id1] = zoneGraph.AddResourceRecord(r1);
+            if (code1 == zone::RRAddCode::SUCCESS)
+                labelGraph.AddResourceRecord(r1, 0, id1.get());
 
-        ResourceRecord r1(d1, type, 1, 10, "");
-        auto [code1, id1] = zoneGraph.AddResourceRecord(r1);
-        labelGraph.AddResourceRecord(r1, 0, id1.get());
+            ResourceRecord r2(d2, type, 1, 10, "");
+            auto [code2, id2] = zoneGraph.AddResourceRecord(r2);
+            if (code2 == zone::RRAddCode::SUCCESS)
+                labelGraph.AddResourceRecord(r2, 0, id2.get());
 
-        ResourceRecord r2(d2, type, 1, 10, "");
-        auto [code2, id2] = zoneGraph.AddResourceRecord(r2);
-        if (id2)
-            labelGraph.AddResourceRecord(r2, 0, id2.get());
+            ResourceRecord r3(d3, type, 1, 10, "");
+            auto [code3, id3] = zoneGraph.AddResourceRecord(r3);
+            if (code3 == zone::RRAddCode::SUCCESS)
+                labelGraph.AddResourceRecord(r3, 0, id3.get());
 
-        ResourceRecord r3(d3, type, 1, 10, "");
-        auto [code3, id3] = zoneGraph.AddResourceRecord(r3);
-        if (id3)
-            labelGraph.AddResourceRecord(r3, 0, id3.get());
-
-        auto enclosers = labelGraph.ClosestEnclosers(query);
-        auto x = labelGraph[enclosers[0].first];
-        BOOST_CHECK_EQUAL(expectedLabel, x.name.get());
+            auto enclosers = labelGraph.ClosestEnclosers(query);
+            auto x = labelGraph[enclosers[0].first];
+            BOOST_CHECK_EQUAL(expectedLabel, x.name.get());
+        }
+        
     }
 }
 
