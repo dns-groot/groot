@@ -61,7 +61,7 @@ void interpretation::Graph::Properties::CheckResponseReturned(
                         if (!std::get<2>(a).size() && (std::get<1>(a) & types_req).count()) {
                             json tmp;
                             tmp["Property"] = "ResponseReturned";
-                            tmp["Equivalence Class"] = graph[vd].query.ToString();
+                            tmp["Query"] = graph[vd].query.ToString();
                             tmp["Violation"]["Types"] = TypeUtils::TypesToString(std::get<1>(a) & types_req);
                             tmp["Violation"]["Nameserver"] = graph[vd].ns;
                             json_queue.enqueue(tmp);
@@ -136,10 +136,10 @@ void interpretation::Graph::Properties::CheckSameResponseReturned(
     bool incomplete = false;
     bool foundDiff = false;
     /*
-       CNAME end nodes - (1) Nodes with Rewrite tag in this vector 
-                         (2) Nodes with the query requesting for CNAME
+       CNAME end nodes - (1) Nodes with Rewrite tag in this vector
+                         (2) Nodes with the query requesting for CNAME (covers 1 too)
     */
-    vector<VertexDescriptor> cname_endnodes{}; // TODO: Check for CNAME End nodes separately.
+    vector<VertexDescriptor> cname_end_nodes{};
     for (auto vd : end_nodes) {
         if ((graph[vd].query.rrTypes & typesReq).count() > 0 && graph[vd].ns != "") {
             boost::optional<vector<zone::LookUpAnswer>> answer = graph[vd].answer;
@@ -147,15 +147,18 @@ void interpretation::Graph::Properties::CheckSameResponseReturned(
                 if (std::get<0>(answer.get()[0]) == ReturnTag::REFUSED ||
                     std::get<0>(answer.get()[0]) == ReturnTag::NSNOTFOUND) {
                     incomplete = true;
-                } else if (std::get<0>(answer.get()[0]) == ReturnTag::REWRITE) {
-                    cname_endnodes.push_back(vd);
-                } else if (!response) {
-                    response = answer;
                 } else {
-                    CommonSymDiff diff =
-                        RRUtils::CompareRRs(std::get<2>(answer.get()[0]), std::get<2>(response.get()[0]));
-                    if (std::get<1>(diff).size() || std::get<2>(diff).size()) {
-                        foundDiff = true;
+                    if (graph[vd].query.rrTypes[RRType::CNAME]) {
+                        cname_end_nodes.push_back(vd);
+                    }
+                    if (!response) {
+                        response = answer;
+                    } else {
+                        CommonSymDiff diff =
+                            RRUtils::CompareRRs(std::get<2>(answer.get()[0]), std::get<2>(response.get()[0]));
+                        if (std::get<1>(diff).size() || std::get<2>(diff).size()) {
+                            foundDiff = true;
+                        }
                     }
                 }
             } else {
@@ -166,6 +169,25 @@ void interpretation::Graph::Properties::CheckSameResponseReturned(
             }
         }
     }
+    response = {};
+    for (auto &vd : cname_end_nodes) {
+        if (!response) {
+            response = graph[vd].answer;
+        } else {
+            if (std::get<0>(graph[vd].answer.get()[0]) != std::get<0>(response.get()[0])) {
+                foundDiff = true;
+            } else {
+                // If only CNAME is requested then the answer will only have one element
+                // If CNAME and other types are requested then there might be a node with Rewrite
+                CommonSymDiff diff =
+                    RRUtils::CompareRRs(std::get<2>(graph[vd].answer.get()[0]), std::get<2>(response.get()[0]));
+                if (std::get<1>(diff).size() || std::get<2>(diff).size()) {
+                    foundDiff = true;
+                }
+            }
+        }
+    }
+    // TODO: Provide more info about the inconsistency.
     if (foundDiff) {
         json tmp;
         tmp["Property"] = "Response Consistency";
@@ -181,26 +203,27 @@ void interpretation::Graph::Properties::ZeroTTL(
     std::bitset<RRType::N> typesReq)
 {
     /*
-      The set of end nodes is given and checks if the response contains resource records with zero TTL 
+      The set of end nodes is given and checks if the response contains resource records with zero TTL
       for the given types.
     */
-    /*bool incomplete = false;
-    for (auto vd : end_nodes) {
+    for (auto& vd : end_nodes) {
         if ((graph[vd].query.rrTypes & typesReq).count() > 0 && graph[vd].ns != "") {
             boost::optional<vector<zone::LookUpAnswer>> answer = graph[vd].answer;
             if (answer) {
                 if (std::get<0>(answer.get()[0]) == ReturnTag::REFUSED ||
                     std::get<0>(answer.get()[0]) == ReturnTag::NSNOTFOUND) {
-                    incomplete = true;
-                } else if (std::get<0>(answer.get()[0]) == ReturnTag::REWRITE) {
-                    cname_endnodes.push_back(vd);
-                } else if (!response) {
-                    response = answer;
+                    
                 } else {
-                    CommonSymDiff diff =
-                        RRUtils::CompareRRs(std::get<2>(answer.get()[0]), std::get<2>(response.get()[0]));
-                    if (std::get<1>(diff).size() || std::get<2>(diff).size()) {
-                        foundDiff = true;
+                    auto &rrs = std::get<2>(answer.get()[0]);
+                    for (auto &r : rrs) {
+                        if (r.get_ttl() == 0) {
+                            json tmp;
+                            tmp["Property"] = "Zero TTL";
+                            tmp["Query"] = graph[end_nodes[0]].query.ToString();
+                            tmp["Violation"]["Nameserver"] = graph[vd].ns;
+                            tmp["Violation"]["Record"] = r.toString();
+                            json_queue.enqueue(tmp);
+                        }
                     }
                 }
             } else {
@@ -210,8 +233,7 @@ void interpretation::Graph::Properties::ZeroTTL(
                     graph[vd].query.ToString()));
             }
         }
-    }*/
-
+    }
 }
 
 void interpretation::Graph::Properties::AllAliases(
@@ -450,6 +472,7 @@ void interpretation::Graph::Properties::NumberOfRewrites(
             }
         }
     }
+    
     if (rewrites > num_rewrites) {
         json tmp;
         tmp["Property"] = "Rewrites";

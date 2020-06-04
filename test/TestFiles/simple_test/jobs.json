@@ -1,0 +1,23 @@
+[
+	{
+		"Domain": "foo.com.",
+		"SubDomain": true,
+		"Properties":[
+			{
+				"PropertyName": "Rewrites",
+				"Value": 4
+			}
+		]
+	},
+	{
+		"Domain": "x.a.foo.com.",
+		"SubDomain": false,
+		"Properties":[
+			{
+				"PropertyName": "ResponseValue",
+				"Types": ["A"],
+				"Value": ["1.2.3.4"]
+			 }
+		]
+	}
+]

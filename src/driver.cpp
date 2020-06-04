@@ -322,6 +322,14 @@ void Driver::SetJob(const json &user_job)
                     "driver.cpp (SetJob) - Skipping AlliAliases property check for {} as the Values is an empty list.",
                     string(user_job["Domain"])));
             }
+        } else if (name == "ZeroTTL") {
+            auto la = [propertyTypes](
+                          const interpretation::Graph &graph,
+                          const vector<interpretation::Graph::VertexDescriptor> &end,
+                          moodycamel::ConcurrentQueue<json> &json_queue) {
+                interpretation::Graph::Properties::ZeroTTL(graph, end, json_queue, propertyTypes);
+            };
+            current_job_.node_functions.push_back(la);
         } else if (name == "StructuralDelegationConsistency") {
             current_job_.check_structural_delegations = true;
         }
@@ -418,7 +426,7 @@ void Driver::WriteViolationsToFile(string output_file) const
     Logger->debug(fmt::format("driver.cpp (WriteViolationsToFile) - Output written to {}", output_file));
 }
 
-void Driver::DumpNameServerZoneMap() const
+/* void Driver::DumpNameServerZoneMap() const
 {
     boost::unordered_map<int, string> zoneId_to_zone_name;
 
@@ -436,4 +444,4 @@ void Driver::DumpNameServerZoneMap() const
     ofs.open("Graphs/nameserver_map.json", std::ofstream::out);
     ofs << j.dump(4);
     ofs.close();
-}
+} */

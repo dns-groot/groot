@@ -73,6 +73,8 @@ tuple<zone::RRAddCode, boost::optional<zone::Graph::VertexDescriptor>> zone::Gra
        2 - CNAME multiple
        3 - DNAME multiple
        4 - CNAME other records
+       NO RRs should exist under a DNAME node but its harder to enforce at the time of addition as they may be added in
+       any order. Such RRs are ignored during QueryLookUpAtZone.
    */
     vector<NodeLabel> labels = record.get_name();
     int index = 0;
@@ -94,7 +96,7 @@ tuple<zone::RRAddCode, boost::optional<zone::Graph::VertexDescriptor>> zone::Gra
             if (record.get_type() == RRType::DNAME) {
                 return {RRAddCode::DNAME_MULTIPLE, node};
             }
-        } else if (rr.get_type() == RRType::CNAME) {
+        } else if (rr.get_type() == RRType::CNAME || record.get_type() == RRType::CNAME) {
             return {RRAddCode::CNAME_OTHER, {}};
         }
     }
@@ -207,9 +209,12 @@ zone::Graph::VertexDescriptor zone::Graph::GetClosestEncloser(
             index++;
             std::bitset<RRType::N> nodeRRtypes = GetNodeRRTypes((*this)[closest_encloser].rrs);
             // If at any node, we encoutner NS records and they are not part of authoritative data then the search stops
-            // here
-            // as they mark cuts along the bottom of a zone.
+            // here as they mark cuts along the bottom of a zone.
+            // If not NS but we encounter a node with DNAME then that takes precedence.
             if (nodeRRtypes[RRType::NS] == 1 and nodeRRtypes[RRType::SOA] != 1) {
+                return closest_encloser;
+            } else if (nodeRRtypes[RRType::DNAME] == 1 && labels.size() != index) {
+                // It should not be the last label and the current node has a DNAME RR
                 return closest_encloser;
             }
             return GetClosestEncloser(closest_encloser, labels, index);
@@ -220,6 +225,9 @@ zone::Graph::VertexDescriptor zone::Graph::GetClosestEncloser(
                 std::bitset<RRType::N> nodeRRtypes = GetNodeRRTypes((*this)[v].rrs);
                 index++;
                 if (nodeRRtypes[RRType::NS] == 1 and nodeRRtypes[RRType::SOA] != 1) {
+                    return v;
+                } else if (nodeRRtypes[RRType::DNAME] == 1 && labels.size() != index) {
+                    // It should not be the last label and the current node has a DNAME RR
                     return v;
                 }
                 closest_encloser = v;
@@ -239,6 +247,48 @@ std::bitset<RRType::N> zone::Graph::GetNodeRRTypes(const vector<ResourceRecord> 
     return rrTypes;
 }
 
+bool zone::Graph::WildcardMatch(
+    VertexDescriptor closest_encloser,
+    std::bitset<RRType::N> &node_rr_types,
+    vector<zone::LookUpAnswer> &answers,
+    const EC &query) const
+{
+    NodeLabel wildcard{"*"};
+    for (VertexDescriptor v : boost::make_iterator_range(adjacent_vertices(closest_encloser, *this))) {
+        if ((*this)[v].name == wildcard) {
+            vector<ResourceRecord> matchingRRs;
+            std::bitset<RRType::N> queryTypesFound;
+            for (auto &record : (*this)[v].rrs) {
+                if (record.get_type() == RRType::CNAME) {
+                    answers.clear();
+                    matchingRRs.clear();
+                    matchingRRs.push_back(record);
+                    // Return type is Ans if only CNAME is requested
+                    if (query.rrTypes[RRType::CNAME] && query.rrTypes.count() == 1) {
+                        answers.push_back(std::make_tuple(ReturnTag::ANS, node_rr_types, matchingRRs));
+                    } else {
+                        answers.push_back(std::make_tuple(ReturnTag::REWRITE, node_rr_types, matchingRRs));
+                    }
+                    return true; // If CNAME then other records would be ignored.
+                }
+                if (query.rrTypes[record.get_type()] == 1) {
+                    matchingRRs.push_back(record);
+                    queryTypesFound.set(record.get_type());
+                }
+                // NS records at a wildcard node are forbidden.
+            }
+            if (queryTypesFound.count())
+                answers.push_back(std::make_tuple(ReturnTag::ANS, queryTypesFound, matchingRRs));
+            if ((queryTypesFound ^ query.rrTypes).count()) {
+                answers.push_back(
+                    std::make_tuple(ReturnTag::ANS, queryTypesFound ^ query.rrTypes, vector<ResourceRecord>{}));
+            }
+            return true;
+        }
+    }
+    return false;
+}
+
 boost::optional<vector<zone::LookUpAnswer>> zone::Graph::QueryLookUpAtZone(const EC &query, bool &complete_match) const
 {
     // Query lookup at the zone is peformed only if it is relevant
@@ -256,181 +306,111 @@ boost::optional<vector<zone::LookUpAnswer>> zone::Graph::QueryLookUpAtZone(const
     VertexDescriptor closest_encloser = GetClosestEncloser(root_, query.name, index);
     vector<zone::LookUpAnswer> answers;
     NodeLabel wildcard{"*"};
-    if (query.name.size() != index) {
-        // Logger->debug(fmt::format("zone-graph (QueryLookUpAtZone) Incomplete match case"));
 
+    if (query.name.size() != index || (query.excluded && query.name.size() == index)) {
+        /*
+          Assuming that zone file may not be perfect. If its correct then NS and DNAME can not exist unless the node
+         has SOA. If SOA record is there then the order is (1) DNAME (2) Wildcard (3) NX
+         else (1) NS- Referral (2) DNAME (3) wildcard (4) NX
+        */
         std::bitset<RRType::N> node_rr_types = GetNodeRRTypes((*this)[closest_encloser].rrs);
-        // WildCard Child case - dq ∈∗ dr
-        for (VertexDescriptor v : boost::make_iterator_range(adjacent_vertices(closest_encloser, *this))) {
-            if ((*this)[v].name == wildcard) {
-                complete_match = true;
-                vector<ResourceRecord> matchingRRs;
-                std::bitset<RRType::N> queryTypesFound;
-                for (auto &record : (*this)[v].rrs) {
-                    if (record.get_type() == RRType::CNAME) {
-                        answers.clear();
-                        matchingRRs.clear();
-                        matchingRRs.push_back(record);
-                        // Return type is Ans if only CNAME is requested
-                        if (query.rrTypes[RRType::CNAME] && query.rrTypes.count() == 1) {
-                            answers.push_back(std::make_tuple(ReturnTag::ANS, node_rr_types, matchingRRs));
-                        } else {
-                            answers.push_back(std::make_tuple(ReturnTag::REWRITE, node_rr_types, matchingRRs));
-                        }
-                        return boost::make_optional(answers); // If CNAME then other records would be ignored.
-                    }
-                    if (query.rrTypes[record.get_type()] == 1) {
-                        matchingRRs.push_back(record);
-                        queryTypesFound.set(record.get_type());
-                    }
-                    // NS records at a wildcard node are forbidden.
-                }
-                if (queryTypesFound.count())
-                    answers.push_back(std::make_tuple(ReturnTag::ANS, queryTypesFound, matchingRRs));
-                if ((queryTypesFound ^ query.rrTypes).count()) {
-                    answers.push_back(
-                        std::make_tuple(ReturnTag::ANS, queryTypesFound ^ query.rrTypes, vector<ResourceRecord>{}));
-                }
-                return boost::make_optional(answers);
-            }
-        }
         complete_match = false;
-        vector<ResourceRecord> ns_records;
-
-        for (auto &record : (*this)[closest_encloser].rrs) {
-            if (record.get_type() == RRType::DNAME) {
-                // dr < dq ∧ DNAME ∈ T,  DNAME is a singleton type, there can be no other records of DNAME type at this
-                // node.
-                // Logger->debug(fmt::format("zone-graph (QueryLookUpAtZone) Incomplete match case returning a DNAME
-                // {}", LabelUtils::LabelsToString(record.get_name())));
-                vector<ResourceRecord> dname;
-                dname.push_back(record);
-                answers.push_back(std::make_tuple(ReturnTag::REWRITE, node_rr_types, dname));
-                return boost::make_optional(answers);
+        if (node_rr_types[RRType::SOA]) {
+            if (node_rr_types[RRType::DNAME]) {
+                for (auto &record : (*this)[closest_encloser].rrs) {
+                    if (record.get_type() == RRType::DNAME) {
+                        // dr < dq ∧ DNAME ∈ T,  DNAME is a singleton type, there can be no other records of DNAME type
+                        // at this node.
+                        vector<ResourceRecord> dname;
+                        dname.push_back(record);
+                        answers.push_back(std::make_tuple(ReturnTag::REWRITE, node_rr_types, dname));
+                    }
+                }
+            } else {
+                if (WildcardMatch(closest_encloser, node_rr_types, answers, query)) {
+                    complete_match = true;
+                } else {
+                    answers.push_back(std::make_tuple(ReturnTag::NX, query.rrTypes, vector<ResourceRecord>{}));
+                }
             }
-            if (record.get_type() == RRType::NS) {
-                ns_records.push_back(record);
-            }
-        }
-        // dr < dq ∧ NS ∈ T ∧ SOA ~∈ T
-        if (ns_records.size() && !node_rr_types[RRType::SOA]) {
-            AddGlueRecords(ns_records);
-            answers.push_back(std::make_tuple(ReturnTag::REF, node_rr_types, ns_records));
         } else {
-            // Logger->debug(fmt::format("zone-graph (QueryLookUpAtZone) Incomplete match case returning a NX"));
-            answers.push_back(std::make_tuple(ReturnTag::NX, query.rrTypes, vector<ResourceRecord>{}));
+            if (node_rr_types[RRType::NS]) {
+                vector<ResourceRecord> ns_records;
+                for (auto &record : (*this)[closest_encloser].rrs) {
+                    if (record.get_type() == RRType::NS) {
+                        ns_records.push_back(record);
+                    }
+                }
+                if (ns_records.size()) {
+                    AddGlueRecords(ns_records);
+                    answers.push_back(std::make_tuple(ReturnTag::REF, node_rr_types, ns_records));
+                }
+            } else if (node_rr_types[RRType::DNAME]) {
+                for (auto &record : (*this)[closest_encloser].rrs) {
+                    if (record.get_type() == RRType::DNAME) {
+                        vector<ResourceRecord> dname;
+                        dname.push_back(record);
+                        answers.push_back(std::make_tuple(ReturnTag::REWRITE, node_rr_types, dname));
+                    }
+                }
+            } else if (WildcardMatch(closest_encloser, node_rr_types, answers, query)) {
+                complete_match = true;
+            } else {
+                answers.push_back(std::make_tuple(ReturnTag::NX, query.rrTypes, vector<ResourceRecord>{}));
+            }
         }
         return boost::make_optional(answers);
+
     } else {
+        // Exact Query Match d_r = d_q
         complete_match = true;
-        if (query.excluded) {
-
-            std::bitset<RRType::N> node_rr_types = GetNodeRRTypes((*this)[closest_encloser].rrs);
-            vector<ResourceRecord> ns_records;
-            for (auto &record : (*this)[closest_encloser].rrs) {
-                if (record.get_type() == RRType::NS) {
-                    ns_records.push_back(record);
+        std::bitset<RRType::N> node_rr_types = GetNodeRRTypes((*this)[closest_encloser].rrs);
+        vector<ResourceRecord> matching_rrs; // All the RRs requested by query types except NS
+        vector<ResourceRecord> ns_records;
+        std::bitset<RRType::N> query_types_found;
+        for (auto &record : (*this)[closest_encloser].rrs) {
+            if (record.get_type() == RRType::NS) {
+                ns_records.push_back(record);
+            } else if (query.rrTypes[record.get_type()] == 1) {
+                query_types_found.set(record.get_type());
+                matching_rrs.push_back(record);
+            }
+            if (record.get_type() == RRType::CNAME) {
+                // CNAME Case
+                answers.clear();
+                matching_rrs.clear();
+                matching_rrs.push_back(record);
+                // Return type is Ans if only CNAME is requested
+                if (query.rrTypes[RRType::CNAME] && query.rrTypes.count() == 1) {
+                    answers.push_back(std::make_tuple(ReturnTag::ANS, node_rr_types, matching_rrs));
+                } else {
+                    answers.push_back(std::make_tuple(ReturnTag::REWRITE, node_rr_types, matching_rrs));
                 }
+                return boost::make_optional(answers); // If CNAME then other records would be ignored.
             }
-            // If there are NS records, then get their glue records too.
-            if (node_rr_types[RRType::NS]) {
-                AddGlueRecords(ns_records);
-            }
-            // Referral case (Zone-Cut)
-            if (node_rr_types[RRType::NS] && !node_rr_types[RRType::SOA]) {
-                answers.push_back(std::make_tuple(ReturnTag::REF, node_rr_types, ns_records));
-                return boost::make_optional(answers);
-            }
-            // If there is query excluded and the node has a wildcard then return records matching the query type
-            // If there is no wildcard child then its a NXDOMAIN Case
-            // If there is wildcard and non matching types then its a Ans with empty records
-            for (VertexDescriptor v : boost::make_iterator_range(adjacent_vertices(closest_encloser, *this))) {
-                if ((*this)[v].name == wildcard) {
-                    vector<ResourceRecord> matching_rrs;
-                    std::bitset<RRType::N> query_types_found;
-                    for (auto &record : (*this)[v].rrs) {
-                        if (record.get_type() == RRType::CNAME) {
-                            answers.clear();
-                            matching_rrs.clear();
-                            matching_rrs.push_back(record);
-                            // Return type is Ans if only CNAME is requested
-                            if (query.rrTypes[RRType::CNAME] && query.rrTypes.count() == 1) {
-                                answers.push_back(std::make_tuple(ReturnTag::ANS, node_rr_types, matching_rrs));
-                            } else {
-                                answers.push_back(std::make_tuple(ReturnTag::REWRITE, node_rr_types, matching_rrs));
-                            }
-                            return boost::make_optional(answers); // If CNAME then other records would be ignored.
-                        }
-                        if (query.rrTypes[record.get_type()] == 1) {
-                            matching_rrs.push_back(record);
-                            query_types_found.set(record.get_type());
-                        }
-                        // NS records at a wildcard node are forbidden.
-                    }
-                    if (query_types_found.count())
-                        answers.push_back(std::make_tuple(ReturnTag::ANS, query_types_found, matching_rrs));
-                    if ((query_types_found ^ query.rrTypes).count()) {
-                        answers.push_back(std::make_tuple(
-                            ReturnTag::ANS, query_types_found ^ query.rrTypes, vector<ResourceRecord>{}));
-                    }
-                    return boost::make_optional(answers);
-                }
-            }
-            // Logger->debug(fmt::format("zone-graph (QueryLookUpAtZone) Complete match case with excluded returning a
-            // NX"));
-            answers.push_back(std::make_tuple(ReturnTag::NX, query.rrTypes, vector<ResourceRecord>{}));
-            return boost::make_optional(answers);
-        } else {
-            // Exact Query Match d_r = d_q
-
-            std::bitset<RRType::N> node_rr_types = GetNodeRRTypes((*this)[closest_encloser].rrs);
-            vector<ResourceRecord> matching_rrs; // All the RRs requested by query types except NS
-            vector<ResourceRecord> ns_records;
-            std::bitset<RRType::N> query_types_found;
-            for (auto &record : (*this)[closest_encloser].rrs) {
-                if (record.get_type() == RRType::NS) {
-                    ns_records.push_back(record);
-                } else if (query.rrTypes[record.get_type()] == 1) {
-                    query_types_found.set(record.get_type());
-                    matching_rrs.push_back(record);
-                }
-                if (record.get_type() == RRType::CNAME) {
-                    // CNAME Case
-                    answers.clear();
-                    matching_rrs.clear();
-                    matching_rrs.push_back(record);
-                    // Return type is Ans if only CNAME is requested
-                    if (query.rrTypes[RRType::CNAME] && query.rrTypes.count() == 1) {
-                        answers.push_back(std::make_tuple(ReturnTag::ANS, node_rr_types, matching_rrs));
-                    } else {
-                        answers.push_back(std::make_tuple(ReturnTag::REWRITE, node_rr_types, matching_rrs));
-                    }
-                    return boost::make_optional(answers); // If CNAME then other records would be ignored.
-                }
-            }
-            // If there are NS records, then get their glue records too.
-            if (node_rr_types[RRType::NS]) {
-                AddGlueRecords(ns_records);
-            }
-            // Referral case
-            if (node_rr_types[RRType::NS] && !node_rr_types[RRType::SOA]) {
-                answers.push_back(std::make_tuple(ReturnTag::REF, node_rr_types, ns_records));
-                return boost::make_optional(answers);
-            }
-            // Add the NS and glue records if the user requested them.
-            if (query.rrTypes[RRType::NS] && ns_records.size()) {
-                matching_rrs.insert(matching_rrs.end(), ns_records.begin(), ns_records.end());
-                query_types_found.set(RRType::NS);
-            }
-            // Exact Type match
-            if (query_types_found.count())
-                answers.push_back(std::make_tuple(ReturnTag::ANS, query_types_found, matching_rrs));
-            if ((query_types_found ^ query.rrTypes).count()) {
-                answers.push_back(
-                    std::make_tuple(ReturnTag::ANS, query_types_found ^ query.rrTypes, vector<ResourceRecord>{}));
-            }
+        }
+        // If there are NS records, then get their glue records too.
+        if (node_rr_types[RRType::NS]) {
+            AddGlueRecords(ns_records);
+        }
+        // Referral case
+        if (node_rr_types[RRType::NS] && !node_rr_types[RRType::SOA]) {
+            answers.push_back(std::make_tuple(ReturnTag::REF, node_rr_types, ns_records));
             return boost::make_optional(answers);
         }
+        // Add the NS and glue records if the user requested them.
+        if (query.rrTypes[RRType::NS] && ns_records.size()) {
+            matching_rrs.insert(matching_rrs.end(), ns_records.begin(), ns_records.end());
+            query_types_found.set(RRType::NS);
+        }
+        // Exact Type match
+        if (query_types_found.count())
+            answers.push_back(std::make_tuple(ReturnTag::ANS, query_types_found, matching_rrs));
+        if ((query_types_found ^ query.rrTypes).count()) {
+            answers.push_back(
+                std::make_tuple(ReturnTag::ANS, query_types_found ^ query.rrTypes, vector<ResourceRecord>{}));
+        }
+        return boost::make_optional(answers);
     }
 }
 

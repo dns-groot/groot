@@ -1,0 +1,11 @@
+{
+	"TopNameServers":[
+		"us.illinois.net."
+	],
+	"ZoneFiles":[
+		{
+			"FileName": "foo.com.txt",
+			"NameServer": "us.illinois.net."
+		}
+	]
+}
