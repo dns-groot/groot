@@ -230,20 +230,20 @@ struct Parser {
                         mc.type_to_count["CNAME/DNAME Errors"]++;
                         Logger->warn(fmt::format(
                             "zone-file-parser.cpp (Parser()) - |{}| record exists but trying to add another"
-                            "record |{}| from line {}",
-                            z[vertexid.get()].rrs[0].toString(), RR.toString(), l));
+                            "record |{}| from line {} in file {}",
+                            z[vertexid.get()].rrs[0].toString(), RR.toString(), l, mc.file_name));
                     } else if (code == zone::RRAddCode::CNAME_OTHER) {
                         mc.type_to_count["CNAME/DNAME Errors"]++;
                         Logger->warn(fmt::format(
                             "zone-file-parser.cpp (Parser()) - CNAME record is not allowed to coexist with any other "
-                            "data type but adding another record from line {}",
-                            l));
+                            "data type but adding another record from line {} in file {}",
+                            l, mc.file_name));
                     } else if (code == zone::RRAddCode::DNAME_MULTIPLE) {
                         mc.type_to_count["CNAME/DNAME Errors"]++;
                         Logger->warn(fmt::format(
                             "zone-file-parser.cpp (Parser()) - |{}| record exists but trying to add another DNAME "
-                            "record |{}| from line {}",
-                            z[vertexid.get()].rrs[0].toString(), RR.toString(), l));
+                            "record |{}| from line {} in file {}",
+                            z[vertexid.get()].rrs[0].toString(), RR.toString(), l, mc.file_name));
                     }
                 } else {
                     mc.type_to_count["Out-of-Zone-Records"]++;
