@@ -154,6 +154,15 @@ void MetadataSanityCheck(const json &metadata, string directory)
     }
     bool atleast_one = false;
     for (auto &top : top_nameservers) {
+        if (nameservers.find(top) != nameservers.end()) {
+            atleast_one = true;
+            break;
+        }
+    }
+    if (!atleast_one) {
+        Logger->critical(fmt::format(
+            "driver.cpp (MetadataSanityCheck) - No TopNameServer is mentioned as nameserver for the zone files."));
+        exit(EXIT_FAILURE);
     }
 }
 

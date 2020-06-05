@@ -16,7 +16,7 @@ BOOST_AUTO_TEST_CASE(demo_test)
     json j;
     i >> j;
 
-    long total_rrs_parsed = driver.SetContext(metadata, (directory / "cc.il.us" / "zone_files").string());
+    long total_rrs_parsed = driver.SetContext(metadata, (directory / "cc.il.us" / "zone_files").string(), false);
 
     BOOST_TEST(140 == total_rrs_parsed);
     BOOST_TEST(70 == dt.GetNumberofLabelGraphVertices(driver));

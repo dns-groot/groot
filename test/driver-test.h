@@ -20,7 +20,7 @@ class DriverTest
 
     int GetNumberofResourceRecordsParsed(Driver &d, string file, string nameserver)
     {
-        return d.ParseZoneFileAndExtendGraphs(file, nameserver, "");
+        return d.ParseZoneFileAndExtendGraphs(file, nameserver, "", false);
     }
 
     int GetNumberofViolations(Driver &d)
