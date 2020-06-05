@@ -14,6 +14,7 @@ namespace lex = boost::spirit::lex;
 struct MiniContext {
     string file_name = "";
     bool found_SOA = false;
+    bool lint = false;
     int rrs_parsed = 0;
     std::unordered_map<string, long> type_to_count;
 };
@@ -221,29 +222,37 @@ struct Parser {
                         if (boost::algorithm::starts_with(name, "*.")) {
                             mc.type_to_count["Wildcard"]++;
                         }
-                    } else if (code == zone::RRAddCode::DUPLICATE) {
-                        mc.type_to_count["Duplicate-Records"]++;
-                        Logger->debug(fmt::format(
-                            "zone-file-parser.cpp (Parser()) - Duplicate record found on line {} in file {}", l,
-                            mc.file_name));
-                    } else if (code == zone::RRAddCode::CNAME_MULTIPLE) {
-                        mc.type_to_count["CNAME/DNAME Errors"]++;
-                        Logger->warn(fmt::format(
-                            "zone-file-parser.cpp (Parser()) - |{}| record exists but trying to add another"
-                            "record |{}| from line {} in file {}",
-                            z[vertexid.get()].rrs[0].toString(), RR.toString(), l, mc.file_name));
-                    } else if (code == zone::RRAddCode::CNAME_OTHER) {
-                        mc.type_to_count["CNAME/DNAME Errors"]++;
-                        Logger->warn(fmt::format(
-                            "zone-file-parser.cpp (Parser()) - CNAME record is not allowed to coexist with any other "
-                            "data type but adding another record from line {} in file {}",
-                            l, mc.file_name));
-                    } else if (code == zone::RRAddCode::DNAME_MULTIPLE) {
-                        mc.type_to_count["CNAME/DNAME Errors"]++;
-                        Logger->warn(fmt::format(
-                            "zone-file-parser.cpp (Parser()) - |{}| record exists but trying to add another DNAME "
-                            "record |{}| from line {} in file {}",
-                            z[vertexid.get()].rrs[0].toString(), RR.toString(), l, mc.file_name));
+                    } else {
+                        string log_line = "";
+                        if (code == zone::RRAddCode::DUPLICATE) {
+                            mc.type_to_count["Duplicate-Records"]++;
+                            log_line = fmt::format(
+                                "zone-file-parser.cpp (Parser()) - Duplicate record found on line {} in file {}", l,
+                                mc.file_name);
+                        } else if (code == zone::RRAddCode::CNAME_MULTIPLE) {
+                            mc.type_to_count["CNAME/DNAME Errors"]++;
+                            log_line = fmt::format(
+                                "zone-file-parser.cpp (Parser()) - |{}| record exists but trying to add another "
+                                "record |{}| from line {} in file {}",
+                                z[vertexid.get()].rrs[0].toString(), RR.toString(), l, mc.file_name);
+                        } else if (code == zone::RRAddCode::CNAME_OTHER) {
+                            mc.type_to_count["CNAME/DNAME Errors"]++;
+                            log_line = fmt::format(
+                                "zone-file-parser.cpp (Parser()) - CNAME record is not allowed to coexist "
+                                "with any other "
+                                "data type but adding another record from line {} in file {}",
+                                l, mc.file_name);
+                        } else if (code == zone::RRAddCode::DNAME_MULTIPLE) {
+                            mc.type_to_count["CNAME/DNAME Errors"]++;
+                            log_line = fmt::format(
+                                "zone-file-parser.cpp (Parser()) - |{}| record exists but trying to add another DNAME "
+                                "record |{}| from line {} in file {}",
+                                z[vertexid.get()].rrs[0].toString(), RR.toString(), l, mc.file_name);
+                        }
+                        if (log_line.length()) {
+                            Logger->debug(log_line);
+                            WriteToLint(log_line, mc.lint);
+                        }
                     }
                 } else {
                     mc.type_to_count["Out-of-Zone-Records"]++;
@@ -261,6 +270,16 @@ struct Parser {
         }
         // continue on
         return true;
+    }
+
+    void WriteToLint(string &log_line, bool lint)
+    {
+        if (lint) {
+            std::ofstream out("lint.txt", ios::app);
+            out << log_line;
+            out << "\n";
+            out.close();
+        }
     }
 
     int GetTypeIndex(vector<string> &current_record) const
@@ -305,7 +324,7 @@ inline string ReadFromFile(char const *infile)
     return string(std::istreambuf_iterator<char>(instream.rdbuf()), istreambuf_iterator<char>());
 }
 
-int Driver::ParseZoneFileAndExtendGraphs(string file, string nameserver, string origin)
+int Driver::ParseZoneFileAndExtendGraphs(string file, string nameserver, string origin, bool lint)
 {
 
     context_.zoneId_counter_++;
@@ -314,6 +333,7 @@ int Driver::ParseZoneFileAndExtendGraphs(string file, string nameserver, string 
 
     MiniContext mc;
     mc.file_name = file;
+    mc.lint = lint;
 
     // get the zone file input as a string.
     string str(ReadFromFile(file.c_str()));

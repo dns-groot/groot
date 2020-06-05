@@ -24,14 +24,14 @@ class Driver
     Context context_;
     Job current_job_;
     std::set<json> property_violations_;
-    int ParseZoneFileAndExtendGraphs(string file, string nameserver, string origin);
+    int ParseZoneFileAndExtendGraphs(string, string, string, bool);
     // void DumpNameServerZoneMap() const;
 
   public:
     friend class DriverTest;
     void GenerateECsAndCheckProperties();
     long GetECCountForCurrentJob() const;
-    long SetContext(const json &, string);
+    long SetContext(const json &, string, bool);
     void SetJob(const json &);
     void SetJob(const string &);
     void WriteStatsForAJob();

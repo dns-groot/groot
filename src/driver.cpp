@@ -157,7 +157,7 @@ void MetadataSanityCheck(const json &metadata, string directory)
     }
 }
 
-long Driver::SetContext(const json &metadata, string directory)
+long Driver::SetContext(const json &metadata, string directory, bool lint)
 {
     // TODO: Teardown if the context is set multiple times
 
@@ -172,7 +172,8 @@ long Driver::SetContext(const json &metadata, string directory)
         zone_json["FileName"].get_to(file_name);
         auto zone_file_path = (boost::filesystem::path{directory} / boost::filesystem::path{file_name}).string();
         rr_count += ParseZoneFileAndExtendGraphs(
-            zone_file_path, zone_json["NameServer"], zone_json.count("Origin") ? string(zone_json["Origin"]) : "");
+            zone_file_path, zone_json["NameServer"], zone_json.count("Origin") ? string(zone_json["Origin"]) : "",
+            lint);
     }
     Logger->info(fmt::format("Total number of RRs parsed across all zone files: {}", rr_count));
     string types_info = "";
