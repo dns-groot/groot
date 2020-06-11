@@ -23,6 +23,7 @@ enum TokenIds {
     ID_COMMENT = 1000, // a comment block
     ID_LPAREN,         // a left open parenthesis
     ID_RPAREN,         // a right close parenthesis
+    ID_TEXT_WORD,      // TXT rdata
     ID_WORD,           // a collection of non-space/newline characters
     ID_EOL,            // a newline token
     ID_WHITESPACE,     // some collection of whitespace
@@ -32,8 +33,9 @@ enum TokenIds {
 template <typename Lexer> struct zone_file_tokens : lex::lexer<Lexer> {
     zone_file_tokens()
     {
-        this->self.add(";[^\n]+", ID_COMMENT)("((\\\\\\()*(\\\\\\))*[^ ;\t\r\n\\(\\)]+)+", ID_WORD)("\\(", ID_LPAREN)(
-            "\\)", ID_RPAREN)("\n", ID_EOL)("[ \t]+", ID_WHITESPACE)(".", ID_OTHER);
+        this->self.add("\\\"[^\\\"]*\\\"", ID_TEXT_WORD)(";[^\n]+", ID_COMMENT)(
+            "((\\\\\\()*(\\\\\\))*[^ ;\t\r\n\\(\\)]+)+",
+            ID_WORD)("\\(", ID_LPAREN)("\\)", ID_RPAREN)("\n", ID_EOL)("[ \t]+", ID_WHITESPACE)(".", ID_OTHER);
     }
 };
 
@@ -65,6 +67,11 @@ struct Parser {
                 return false;
             }
             break;
+        case ID_TEXT_WORD: {
+            std::string tokenvalue(t.value().begin(), t.value().end());
+            current_record.push_back(std::move(tokenvalue));
+            break;
+        }
         case ID_WORD: {
             std::string tokenvalue(t.value().begin(), t.value().end());
             current_record.push_back(std::move(tokenvalue));
