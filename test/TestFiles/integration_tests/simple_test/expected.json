@@ -1,0 +1,18 @@
+[
+{
+    "Property": "Rewrites",
+    "Query": "*.a.foo.com.",
+    "Violation": {
+        "ActualRewrites": 5,
+        "MaxAllowedRewrites": 4
+    }
+},
+{
+    "Property": "Rewrites",
+    "Query": "~{ }.a.foo.com.",
+    "Violation": {
+        "ActualRewrites": 5,
+        "MaxAllowedRewrites": 4
+    }
+}
+]
