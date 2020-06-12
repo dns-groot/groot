@@ -13,7 +13,7 @@ using namespace std::chrono;
 void Main(string directory, string jobs_file, string output_file, bool lint)
 {
 
-    Logger->debug("groot.cpp - demo function called");
+    Logger->debug("groot.cpp - Main function called");
     Driver driver;
 
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
@@ -22,13 +22,13 @@ void Main(string directory, string jobs_file, string output_file, bool lint)
         (boost::filesystem::path{directory} / boost::filesystem::path{"metadata.json"}).string());
     json metadata;
     metadataFile >> metadata;
-    Logger->debug("groot.cpp (demo) - Successfully read metadata.json file");
+    Logger->debug("groot.cpp (Main) - Successfully read metadata.json file");
 
     driver.SetContext(metadata, directory, lint);
 
     high_resolution_clock::time_point t2 = high_resolution_clock::now();
     duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
-    Logger->debug("groot.cpp (demo) - Label graph and Zone graphs built");
+    Logger->debug("groot.cpp (Main) - Label graph and Zone graphs built");
     Logger->info(fmt::format("Time to build label graph and zone graphs: {}s", time_span.count()));
 
     long total_ecs = 0;
@@ -38,25 +38,25 @@ void Main(string directory, string jobs_file, string output_file, bool lint)
         json jobs;
         i >> jobs;
 
-        Logger->debug("groot.cpp (demo) - Successfully read jobs.json file");
+        Logger->debug("groot.cpp (Main) - Successfully read jobs.json file");
 
         for (auto &user_job : jobs) {
             driver.SetJob(user_job);
             Logger->info(fmt::format(
-                "groot.cpp (demo) - Started property checking for the job- {}", string(user_job["Domain"])));
+                "groot.cpp (Main) - Started property checking for the job- {}", string(user_job["Domain"])));
             driver.GenerateECsAndCheckProperties();
             total_ecs += driver.GetECCountForCurrentJob();
             driver.WriteStatsForAJob();
             Logger->info(fmt::format(
-                "groot.cpp (demo) - Finished property checking for the job- {}", string(user_job["Domain"])));
+                "groot.cpp (Main) - Finished property checking for the job- {}", string(user_job["Domain"])));
         }
     } else {
         driver.SetJob(string("."));
-        Logger->info(fmt::format("groot.cpp (demo) - Started default property checking for the job"));
+        Logger->info(fmt::format("groot.cpp (Main) - Started default property checking for the job"));
         driver.GenerateECsAndCheckProperties();
         total_ecs += driver.GetECCountForCurrentJob();
         driver.WriteStatsForAJob();
-        Logger->info(fmt::format("groot.cpp (demo) - Finished default property checking for the job"));
+        Logger->info(fmt::format("groot.cpp (Main) - Finished default property checking for the job"));
     }
     t2 = high_resolution_clock::now();
     time_span = duration_cast<duration<double>>(t2 - t1);
@@ -152,7 +152,8 @@ int main(int argc, const char **argv)
         p = args.find("--lint");
         if (p->second.asBool()) {
             fstream fs;
-            fs.open("lint.txt", ios::out);
+            fs.open("lint.json", ios::out);
+            fs << "[\n";
             fs.close();
         }
 
@@ -160,6 +161,13 @@ int main(int argc, const char **argv)
         Main(zone_directory, jobs_file, output_file, p->second.asBool());
         Logger->debug("groot.cpp (main) - Finished checking all jobs");
         spdlog::shutdown();
+
+        if (p->second.asBool()) {
+            fstream fs;
+            fs.open("lint.json", ios::app);
+            fs << "\n]";
+            fs.close();
+        }
         return 0;
     } catch (exception &e) {
         cout << "Exception:- " << e.what() << endl;

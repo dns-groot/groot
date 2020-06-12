@@ -231,17 +231,25 @@ struct Parser {
                         }
                     } else {
                         string log_line = "";
+                        json tmp;
+                        tmp["File Name"] = mc.file_name;
+                        tmp["Line Number"] = l;
+                        tmp["Current Record"] = RR.toString();
                         if (code == zone::RRAddCode::DUPLICATE) {
                             mc.type_to_count["Duplicate-Records"]++;
                             log_line = fmt::format(
                                 "zone-file-parser.cpp (Parser()) - Duplicate record found on line {} in file {}", l,
                                 mc.file_name);
+                            tmp["Violation"] = "Duplicate Record";
+
                         } else if (code == zone::RRAddCode::CNAME_MULTIPLE) {
                             mc.type_to_count["CNAME/DNAME Errors"]++;
                             log_line = fmt::format(
                                 "zone-file-parser.cpp (Parser()) - |{}| record exists but trying to add another "
                                 "record |{}| from line {} in file {}",
                                 z[vertexid.get()].rrs[0].toString(), RR.toString(), l, mc.file_name);
+                            tmp["Violation"] = "MULTIPLE CNAMEs";
+                            tmp["Previous Record"] = z[vertexid.get()].rrs[0].toString();
                         } else if (code == zone::RRAddCode::CNAME_OTHER) {
                             mc.type_to_count["CNAME/DNAME Errors"]++;
                             log_line = fmt::format(
@@ -249,16 +257,20 @@ struct Parser {
                                 "with any other "
                                 "data type but adding another record from line {} in file {}",
                                 l, mc.file_name);
+                            tmp["Violation"] = "CNAME AND OTHER TYPES";
+                            tmp["Previous Record"] = z[vertexid.get()].rrs[0].toString();
                         } else if (code == zone::RRAddCode::DNAME_MULTIPLE) {
                             mc.type_to_count["CNAME/DNAME Errors"]++;
                             log_line = fmt::format(
                                 "zone-file-parser.cpp (Parser()) - |{}| record exists but trying to add another DNAME "
                                 "record |{}| from line {} in file {}",
                                 z[vertexid.get()].rrs[0].toString(), RR.toString(), l, mc.file_name);
+                            tmp["Violation"] = "MULTIPLE DNAMEs";
+                            tmp["Previous Record"] = z[vertexid.get()].rrs[0].toString();
                         }
                         if (log_line.length()) {
                             Logger->debug(log_line);
-                            WriteToLint(log_line, mc.lint);
+                            WriteToLint(tmp, mc.lint);
                         }
                     }
                 } else {
@@ -279,12 +291,27 @@ struct Parser {
         return true;
     }
 
-    void WriteToLint(string &log_line, bool lint)
+    void WriteToLint(json &log_line, bool lint)
     {
+        int i = 0;
         if (lint) {
-            std::ofstream out("lint.txt", ios::app);
-            out << log_line;
-            out << "\n";
+            std::fstream in("lint.json", ios::in);
+            if (in.is_open()) {
+                string tp;
+
+                while (getline(in, tp)) {
+                    i++;
+                    if (i > 3)
+                        break;
+                }
+                in.close();
+            } else {
+                Logger->error("Linting enabled but unable to open the lint.txt file for reading");
+            }
+            std::ofstream out("lint.json", ios::app);
+            if (i > 3)
+                out << ",\n";
+            out << log_line.dump(4);
             out.close();
         }
     }

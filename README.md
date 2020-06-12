@@ -56,7 +56,7 @@ The `~/data` on the host system would then be accessible within the container at
     - .\vcpkg.exe integrate install 
 3. Clone the repository (with  `--recurse-submodules`) and open the solution (groot.sln) using Visual studio. Set the platform to x64 and mode to Release.
 4. Configure the project properties to use ISO C++17 Standard (std:c++17) for C++ language standard.
-5. Build the project using visual studio to generate the executable. The executable would be located at `~\groot\x64\Release\`.
+5. Set `groot` as `Set as Startup Project` using the solution explorer in the Visual Studio. Build the project using visual studio to generate the executable. The executable would be located at `~\groot\x64\Release\`.
 
 #### Installation for Ubuntu 18.04 or later
 1. Follow the instructions mentioned in the `DockerFile` to natively install in Ubuntu 18.04 or later.
@@ -77,8 +77,8 @@ $ .~\groot\x64\Release\groot.exe ~\groot\test\TestFiles\cc.il.us\zone_files --jo
 ```
 Groot outputs any violations to the `output.json` file. 
 
-### Logging
-Groot by default logs debugging messages to `log.txt` file and you may use `-v` flag to log more detailed information. Use `-s` flag to display the statistics of the zone files parsed and the execution time.
+### Flags
+User can log debugging messages to `log.txt` using `-l` and use `-v` flag to log more detailed information. Use `-s` flag to display the statistics of the zone files parsed and the execution time. To log zone file parsing issues separately in `lint.json`, use the `--lint` flag. 
 
 ### Packaging zone files data
 Groot expects all the required zone files to be available in the input directory along with a special file `metadata.json`. The `metadata.json` file has to be created by the user and has to list the file name and the name server from which that zone file was obtained. If the zone files for a domain are obtained from multiple name servers, make sure to give the files a distinct name and fill the metadata accordingly. The user also has to provide the root (top) name servers for his domain in the `metadata.json`. 
@@ -114,29 +114,31 @@ Groot expects all the required zone files to be available in the input directory
 </details>
 
 ### Inputting Jobs
-Groot can currently verify properties shown below on the zone files and expects the input list in a `json` file format. A **job** verifies properties on a domain and optionally on all its subdomains. The input `json` file can have a list of jobs.
+Groot can currently verify properties shown below on the zone files and expects the input list in a `json` file format. A **job** verifies properties on a domain and optionally on all its subdomains. The input `json` file can have a list of jobs. Groot verifies a default set of properties if no input file is provided.
 
 <details>
 <summary><kbd>CLICK</kbd> to reveal an <a href="https://github.com/dns-groot/groot/blob/master/test/TestFiles/cc.il.us/jobs.json">example job</a></summary>
 
 ```json5
-{
-   "Domain": "cc.il.us." // Name of the domain to check
-   "SubDomain": true, //Whether to check the properties on all the subdomains also
-   "Properties":[ 
-      {
-         "PropertyName": "QueryRewrite",
-         "Value": ["illinois.net." , "cc.il.us."]
-      },
-      {
-         "PropertyName": "Rewrites",
-         "Value": 1
-      },
-      {
-         "PropertyName": "RewriteBlackholing"
-      }
-   ]
-}
+[
+   {
+      "Domain": "cc.il.us." // Name of the domain to check
+      "SubDomain": true, //Whether to check the properties on all the subdomains also
+      "Properties":[ 
+         {
+            "PropertyName": "QueryRewrite",
+            "Value": ["illinois.net." , "cc.il.us."]
+         },
+         {
+            "PropertyName": "Rewrites",
+            "Value": 1
+         },
+         {
+            "PropertyName": "RewriteBlackholing"
+         }
+      ]
+   }
+]
 ```
 </details>
 

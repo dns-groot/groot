@@ -97,7 +97,7 @@ tuple<zone::RRAddCode, boost::optional<zone::Graph::VertexDescriptor>> zone::Gra
                 return {RRAddCode::DNAME_MULTIPLE, node};
             }
         } else if (rr.get_type() == RRType::CNAME || record.get_type() == RRType::CNAME) {
-            return {RRAddCode::CNAME_OTHER, {}};
+            return {RRAddCode::CNAME_OTHER, node};
         }
     }
     (*this)[node].rrs.push_back(record);
