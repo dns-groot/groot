@@ -283,15 +283,20 @@ void label::Graph::CompareParentChildDelegationRecords(
                 context.zoneId_nameserver_map.at(std::get<0>(*itp)), "child-a", "child-b");
         }
     }
-    if (j.size() || (parent.empty() && !child.empty())) {
+    // if (parent.empty() && !child.empty()) {
+    //    if (j.find("Inconsistent Pairs") == j.end()) {
+    //        j["Inconsistent Pairs"] = {};
+    //    }
+    //    json tmp;
+    //    tmp["Warning"] = "There are no NS records at the parent or parent zone file is missing";
+    //    tmp["Child NS"] = {};
+    //    for (auto c : child)
+    //        tmp["Child NS"].push_back(context.zoneId_nameserver_map.at(std::get<0>(c)));
+    //    j["Inconsistent Pairs"].push_back(tmp);
+    //}
+    if (j.size()) {
         j["Property"] = "Structural Delegation Consistency";
         j["Domain Name"] = user_input;
-        if (parent.empty() && !child.empty()) {
-            j["Warning"] = "There are no NS records at the parent or parent zone file is missing";
-            j["Child NS"] = {};
-            for (auto c : child)
-                j["Child NS"].push_back(context.zoneId_nameserver_map.at(std::get<0>(c)));
-        }
         current_job.json_queue.enqueue(j);
     }
 }

@@ -11,6 +11,11 @@ using json = nlohmann::json;
 
 enum class ReturnTag { ANS, REWRITE, REF, NX, REFUSED, NSNOTFOUND };
 
+struct NSdummy {
+};
+
+using Nameserver = boost::flyweight<std::string, boost::flyweights::tag<NSdummy>, boost::flyweights::no_tracking>;
+
 namespace zone
 {
 
@@ -49,6 +54,7 @@ class Graph : public boost::adjacency_list<boost::vecS, boost::vecS, boost::dire
 
     void AddGlueRecords(vector<ResourceRecord> &) const;
     VertexDescriptor AddNodes(VertexDescriptor, const vector<NodeLabel> &, const int &);
+    void CheckGlueRecordsPresence(VertexDescriptor, const Nameserver &);
     void ConstructChildLabelsToVertexDescriptorMap(const zone::Graph::VertexDescriptor);
     zone::Graph::VertexDescriptor GetAncestor(zone::Graph::VertexDescriptor, const vector<NodeLabel> &, int &) const;
     zone::Graph::VertexDescriptor GetAncestor(
@@ -67,6 +73,7 @@ class Graph : public boost::adjacency_list<boost::vecS, boost::vecS, boost::dire
     const vector<NodeLabel> &get_origin() const;
 
     tuple<RRAddCode, boost::optional<zone::Graph::VertexDescriptor>> AddResourceRecord(const ResourceRecord &);
+    void CheckGlueRecordsPresence(const Nameserver &);
     bool CheckZoneMembership(const ResourceRecord &, const string &);
     vector<ResourceRecord> LookUpGlueRecords(const vector<ResourceRecord> &) const;
     boost::optional<vector<zone::LookUpAnswer>> QueryLookUpAtZone(const EC &, bool &) const;

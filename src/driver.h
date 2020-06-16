@@ -33,7 +33,7 @@ class Driver
     long GetECCountForCurrentJob() const;
     long SetContext(const json &, string, bool);
     void SetJob(const json &);
-    void SetJob(const string &);
+    void SetJob(string &);
     void WriteStatsForAJob();
     void WriteViolationsToFile(string) const;
 };

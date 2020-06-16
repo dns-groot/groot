@@ -63,6 +63,30 @@ zone::Graph::VertexDescriptor zone::Graph::AddNodes(
     return closest_encloser;
 }
 
+void zone::Graph::CheckGlueRecordsPresence(zone::Graph::VertexDescriptor start, const Nameserver &ns)
+{
+    for (auto &rr : (*this)[start].rrs) {
+        if (rr.get_type() == RRType::NS) {
+            vector<ResourceRecord> tmp = {rr};
+            if (RequireGlueRecords(tmp)) {
+                AddGlueRecords(tmp);
+                if (tmp.size() == 1) {
+                    // missing the necessary glue record.
+                    json j;
+                    j["Server"] = ns.get();
+                    j["Zone"] = LabelUtils::LabelsToString(origin_);
+                    j["Violation"] = "Missing Glue Record";
+                    j["Resource Record"] = rr.toString();
+                    LintUtils::WriteIssueToFile(j, true);
+                }
+            }
+        }
+    }
+    for (VertexDescriptor v : boost::make_iterator_range(adjacent_vertices(start, *this))) {
+        CheckGlueRecordsPresence(v, ns);
+    }
+}
+
 tuple<zone::RRAddCode, boost::optional<zone::Graph::VertexDescriptor>> zone::Graph::AddResourceRecord(
     const ResourceRecord &record)
 {
@@ -105,6 +129,11 @@ tuple<zone::RRAddCode, boost::optional<zone::Graph::VertexDescriptor>> zone::Gra
         origin_ = record.get_name();
     }
     return {RRAddCode::SUCCESS, node};
+}
+
+void zone::Graph::CheckGlueRecordsPresence(const Nameserver &ns)
+{
+    CheckGlueRecordsPresence(root_, ns);
 }
 
 bool zone::Graph::CheckZoneMembership(const ResourceRecord &record, const string &filename)

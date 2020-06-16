@@ -18,11 +18,7 @@ struct Vertex {
     std::string ns;
     EC query;
     boost::optional<vector<zone::LookUpAnswer>> answer;
-    void check()
-    {
-        cout << "Inside Vertex --> " << &query << endl;
-    }
-
+   
   private:
     friend class boost::serialization::access;
     template <typename Archive> void serialize(Archive &ar, const unsigned int version)

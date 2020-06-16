@@ -3,6 +3,7 @@
 #include "structural-task.h"
 #include <boost/accumulators/accumulators.hpp>
 #include <boost/accumulators/statistics.hpp>
+#include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 
 using namespace boost::accumulators;
@@ -119,7 +120,9 @@ void MetadataSanityCheck(const json &metadata, string directory)
     }
     std::unordered_set<string> top_nameservers;
     for (auto &server : metadata["TopNameServers"]) {
-        top_nameservers.insert(string(server));
+        string s = string(server);
+        boost::to_lower(s);
+        top_nameservers.insert(s);
     }
     if (metadata.count("ZoneFiles") != 1) {
         Logger->critical(fmt::format("driver.cpp (MetadataSanityCheck) - Metadata.json does not have the \"ZoneFiles\" "
@@ -142,7 +145,9 @@ void MetadataSanityCheck(const json &metadata, string directory)
                 zone_json.dump(4)));
             exit(EXIT_FAILURE);
         }
-        nameservers.insert(string(zone_json["NameServer"]));
+        string ns = string(zone_json["NameServer"]);
+        boost::to_lower(ns);
+        nameservers.insert(ns);
         string file_name;
         zone_json["FileName"].get_to(file_name);
         auto zone_file_path = (boost::filesystem::path{directory} / boost::filesystem::path{file_name}).string();
@@ -173,16 +178,20 @@ long Driver::SetContext(const json &metadata, string directory, bool lint)
     MetadataSanityCheck(metadata, directory);
 
     for (auto &server : metadata["TopNameServers"]) {
-        context_.top_nameservers.push_back(server);
+        string s = string(server);
+        boost::to_lower(s);
+        context_.top_nameservers.push_back(s);
     }
     long rr_count = 0;
     for (auto &zone_json : metadata["ZoneFiles"]) {
         string file_name;
         zone_json["FileName"].get_to(file_name);
         auto zone_file_path = (boost::filesystem::path{directory} / boost::filesystem::path{file_name}).string();
-        rr_count += ParseZoneFileAndExtendGraphs(
-            zone_file_path, zone_json["NameServer"], zone_json.count("Origin") ? string(zone_json["Origin"]) : "",
-            lint);
+        string ns = string(zone_json["NameServer"]);
+        boost::to_lower(ns);
+        string origin = zone_json.count("Origin") ? string(zone_json["Origin"]) : "";
+        boost::to_lower(origin);
+        rr_count += ParseZoneFileAndExtendGraphs(zone_file_path, ns, origin, lint);
     }
     Logger->info(fmt::format("Total number of RRs parsed across all zone files: {}", rr_count));
     string types_info = "";
@@ -192,15 +201,22 @@ long Driver::SetContext(const json &metadata, string directory, bool lint)
     Logger->info(fmt::format("RR Stats: {}", types_info));
     Logger->info(
         fmt::format("Label Graph: vertices = {}, edges = {}", num_vertices(label_graph_), num_edges(label_graph_)));
+    if (lint) {
+        for (auto &[id, z] : context_.zoneId_to_zone) {
+            z.CheckGlueRecordsPresence(context_.zoneId_nameserver_map.at(id));
+        }
+    }
     return rr_count;
 }
 
 void Driver::SetJob(const json &user_job)
 {
+    string d = string(user_job["Domain"]);
+    boost::to_lower(d);
     current_job_.stats.ec_count = 0;
     current_job_.stats.interpretation_edges.clear();
     current_job_.stats.interpretation_vertices.clear();
-    current_job_.user_input_domain = string(user_job["Domain"]);
+    current_job_.user_input_domain = d;
     current_job_.check_subdomains = user_job["SubDomain"];
     current_job_.path_functions.clear();
     current_job_.node_functions.clear();
@@ -281,6 +297,7 @@ void Driver::SetJob(const json &user_job)
         } else if (name == "QueryRewrite") {
             vector<vector<NodeLabel>> allowed_domains;
             for (string v : property["Value"]) {
+                boost::to_lower(v);
                 allowed_domains.push_back(LabelUtils::StringToLabels(v));
             }
             if (allowed_domains.size() > 0) {
@@ -298,6 +315,7 @@ void Driver::SetJob(const json &user_job)
         } else if (name == "NameserverContact") {
             vector<vector<NodeLabel>> allowed_domains;
             for (string v : property["Value"]) {
+                boost::to_lower(v);
                 allowed_domains.push_back(LabelUtils::StringToLabels(v));
             }
             if (allowed_domains.size() > 0) {
@@ -318,6 +336,7 @@ void Driver::SetJob(const json &user_job)
         } else if (name == "AllAliases") {
             vector<vector<NodeLabel>> canonical_names;
             for (string v : property["Value"]) {
+                boost::to_lower(v);
                 canonical_names.push_back(LabelUtils::StringToLabels(v));
             }
             if (canonical_names.size() > 0) {
@@ -346,8 +365,9 @@ void Driver::SetJob(const json &user_job)
     }
 }
 
-void Driver::SetJob(const string &domain_name)
+void Driver::SetJob(string &domain_name)
 {
+    boost::to_lower(domain_name);
     current_job_.stats.ec_count = 0;
     current_job_.stats.interpretation_edges.clear();
     current_job_.stats.interpretation_vertices.clear();

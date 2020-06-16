@@ -78,7 +78,7 @@ $ .~\groot\x64\Release\groot.exe ~\groot\test\TestFiles\cc.il.us\zone_files --jo
 Groot outputs any violations to the `output.json` file. 
 
 ### Flags
-User can log debugging messages to `log.txt` using `-l` and use `-v` flag to log more detailed information. Use `-s` flag to display the statistics of the zone files parsed and the execution time. To log zone file parsing issues separately in `lint.json`, use the `--lint` flag. 
+User can log debugging messages to `log.txt` using `-l` and use `-v` flag to log more detailed information. Use `-s` flag to display the statistics of the zone files parsed and the execution time. To log zone file issues (missing glue records, multiple CNAME/DNAME records, duplicate records) separately in `lint.json`, use the `--lint` flag. 
 
 ### Packaging zone files data
 Groot expects all the required zone files to be available in the input directory along with a special file `metadata.json`. The `metadata.json` file has to be created by the user and has to list the file name and the name server from which that zone file was obtained. If the zone files for a domain are obtained from multiple name servers, make sure to give the files a distinct name and fill the metadata accordingly. The user also has to provide the root (top) name servers for his domain in the `metadata.json`. 

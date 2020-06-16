@@ -159,3 +159,28 @@ CommonSymDiff RRUtils::CompareRRs(vector<ResourceRecord> res_a, vector<ResourceR
     }
     return std::make_tuple(common, res_a, res_b);
 }
+
+void LintUtils::WriteIssueToFile(json &log_line, bool lint)
+{
+    int i = 0;
+    if (lint) {
+        std::fstream in("lint.json", ios::in);
+        if (in.is_open()) {
+            string tp;
+
+            while (getline(in, tp)) {
+                i++;
+                if (i > 3)
+                    break;
+            }
+            in.close();
+        } else {
+            Logger->error("Linting enabled but unable to open the lint.txt file for reading");
+        }
+        std::ofstream out("lint.json", ios::app);
+        if (i > 3)
+            out << ",\n";
+        out << log_line.dump(4);
+        out.close();
+    }
+}

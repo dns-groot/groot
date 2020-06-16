@@ -36,7 +36,7 @@ BOOST_AUTO_TEST_CASE(demo_test)
         total_ecs += driver.GetECCountForCurrentJob();
     }
     BOOST_TEST(176 == total_ecs);
-    BOOST_TEST(20 == dt.GetNumberofViolations(driver));
+    BOOST_TEST(19 == dt.GetNumberofViolations(driver));
 
     EC test_ec;
     test_ec.name = LabelUtils::StringToLabels("ds3.trial.cc.il.us.");

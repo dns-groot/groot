@@ -31,4 +31,9 @@ class RRUtils
     static CommonSymDiff CompareRRs(vector<ResourceRecord>, vector<ResourceRecord>);
 };
 
+class LintUtils
+{
+  public:
+    static void WriteIssueToFile(json &, bool);
+};
 #endif
