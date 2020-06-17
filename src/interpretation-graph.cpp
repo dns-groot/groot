@@ -87,23 +87,34 @@ void interpretation::Graph::CheckCnameDnameAtSameNameserver(
     // Logger->debug(fmt::format("interpretation-graph (CheckCnameDnameAtSameNameserver) Query:{} New query:{}",
     // (*this)[current_node].query.ToString(), newQuery.ToString())); Search for relevant zone at the same name server
     // first
-    boost::optional<int> start = GetRelevantZone((*this)[current_node].ns, newQuery, context);
-    if (start) {
-        // Logger->debug(fmt::format("interpretation-graph (CheckCnameDnameAtSameNameserver) Found relevant zone with id
-        // {}", start.get()));
-        boost::optional<VertexDescriptor> node = InsertNode((*this)[current_node].ns, newQuery, current_node, {});
-        // If there was no same query earlier to this NS then continue the querying process.
-        if (node) {
-            // Logger->debug(fmt::format("interpretation-graph (CheckCnameDnameAtSameNameserver) Inserted new node with
-            // vd {}", node.get()));
-            QueryResolver(context.zoneId_to_zone.find(start.get())->second, node.get(), context);
+    auto [valid, violation_label] = LabelUtils::LengthCheck(newQuery.name, 0);
+    if (valid) {
+        boost::optional<int> start = GetRelevantZone((*this)[current_node].ns, newQuery, context);
+        if (start) {
+            // Logger->debug(fmt::format("interpretation-graph (CheckCnameDnameAtSameNameserver) Found relevant zone
+            // with id
+            // {}", start.get()));
+            boost::optional<VertexDescriptor> node = InsertNode((*this)[current_node].ns, newQuery, current_node, {});
+            // If there was no same query earlier to this NS then continue the querying process.
+            if (node) {
+                // Logger->debug(fmt::format("interpretation-graph (CheckCnameDnameAtSameNameserver) Inserted new node
+                // with vd {}", node.get()));
+                QueryResolver(context.zoneId_to_zone.find(start.get())->second, node.get(), context);
+            }
+        } else {
+            // Start from the top Zone file
+            // Logger->debug(fmt::format("interpretation-graph (CheckCnameDnameAtSameNameserver) Did not find a relevant
+            // zone"));
+            StartFromTopNameservers(current_node, newQuery, context);
         }
     } else {
-        // Start from the top Zone file
-        // Logger->debug(fmt::format("interpretation-graph (CheckCnameDnameAtSameNameserver) Did not find a relevant
-        // zone"));
-        StartFromTopNameservers(current_node, newQuery, context);
-    }
+        boost::optional<VertexDescriptor> node = InsertNode((*this)[current_node].ns, newQuery, current_node, {});
+        if (node) {
+            vector<zone::LookUpAnswer> answers = {};
+            answers.push_back(std::make_tuple(ReturnTag::YX, newQuery.rrTypes, vector<ResourceRecord>{}));
+            (*this)[node.get()].answer = std::move(answers);
+        }
+    }  
 }
 
 boost::optional<interpretation::Graph::VertexDescriptor> interpretation::Graph::InsertNode(

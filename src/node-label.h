@@ -28,7 +28,7 @@ using json = nlohmann::json;
 
 #define kHashMapThreshold 500
 #define kMaxLabelLength 63
-#define kMaxDomainLength 255
+#define kMaxDomainLength 253
 
 struct Empty {
 };

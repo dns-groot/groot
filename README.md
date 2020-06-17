@@ -312,6 +312,18 @@ Input `json` format:
 ```
 </details>
 
+<details>
+<summary>DNAME Substitution Check</summary>
+   
+The query should not  overflow the legal size for a domain name after DNAME rewrite. Records with CNAME target domain overflowing the legal size are ignored by the tool and are reported as issues during parsing itself.   
+Input `json` format:
+```json5
+      {
+         "PropertyName": "DNAMESubstitutionCheck"
+      }
+```
+</details>
+
 Groot, by default, checks for cyclic zone dependency and other loops while verifying any of the above properties. 
 
 [docker-hub]:         https://hub.docker.com/r/sivakesava/groot

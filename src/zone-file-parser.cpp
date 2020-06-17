@@ -221,63 +221,102 @@ struct Parser {
                 boost::to_lower(name);
                 mc.rrs_parsed++;
                 ResourceRecord RR(name, type, class_, ttl, rdata);
-                if (z.CheckZoneMembership(RR, mc.file_name)) {
-                    auto [code, vertexid] = z.AddResourceRecord(RR);
-                    if (code == zone::RRAddCode::SUCCESS) {
-                        label_graph.AddResourceRecord(RR, z.get_id(), vertexid.get());
-                        mc.type_to_count[type]++;
-                        if (boost::algorithm::starts_with(name, "*.")) {
-                            mc.type_to_count["Wildcard"]++;
-                        }
+                auto [valid, violation_label] = LabelUtils::LengthCheck(RR.get_name(), 0);
+                if (!valid) {
+                    if (violation_label.length() > 0) {
+                        mc.type_to_count["Label Length Exceeded"]++;
+                        LintUtils::WriteRRIssueToFile(
+                            mc.lint, mc.file_name, l, RR.toString(),
+                            violation_label + " - length exceedes max length (63)", "");
                     } else {
-                        string log_line = "";
-                        json tmp;
-                        tmp["File Name"] = mc.file_name;
-                        tmp["Line Number"] = l;
-                        tmp["Current Record"] = RR.toString();
-                        if (code == zone::RRAddCode::DUPLICATE) {
-                            mc.type_to_count["Duplicate-Records"]++;
-                            log_line = fmt::format(
-                                "zone-file-parser.cpp (Parser()) - Duplicate record found on line {} in file {}", l,
-                                mc.file_name);
-                            tmp["Violation"] = "Duplicate Record";
-
-                        } else if (code == zone::RRAddCode::CNAME_MULTIPLE) {
-                            mc.type_to_count["CNAME/DNAME Errors"]++;
-                            log_line = fmt::format(
-                                "zone-file-parser.cpp (Parser()) - |{}| record exists but trying to add another "
-                                "record |{}| from line {} in file {}",
-                                z[vertexid.get()].rrs[0].toString(), RR.toString(), l, mc.file_name);
-                            tmp["Violation"] = "MULTIPLE CNAMEs";
-                            tmp["Previous Record"] = z[vertexid.get()].rrs[0].toString();
-                        } else if (code == zone::RRAddCode::CNAME_OTHER) {
-                            mc.type_to_count["CNAME/DNAME Errors"]++;
-                            log_line = fmt::format(
-                                "zone-file-parser.cpp (Parser()) - CNAME record is not allowed to coexist "
-                                "with any other "
-                                "data type but adding another record from line {} in file {}",
-                                l, mc.file_name);
-                            tmp["Violation"] = "CNAME AND OTHER TYPES";
-                            tmp["Previous Record"] = z[vertexid.get()].rrs[0].toString();
-                        } else if (code == zone::RRAddCode::DNAME_MULTIPLE) {
-                            mc.type_to_count["CNAME/DNAME Errors"]++;
-                            log_line = fmt::format(
-                                "zone-file-parser.cpp (Parser()) - |{}| record exists but trying to add another DNAME "
-                                "record |{}| from line {} in file {}",
-                                z[vertexid.get()].rrs[0].toString(), RR.toString(), l, mc.file_name);
-                            tmp["Violation"] = "MULTIPLE DNAMEs";
-                            tmp["Previous Record"] = z[vertexid.get()].rrs[0].toString();
-                        }
-                        if (log_line.length()) {
-                            Logger->debug(log_line);
-                            LintUtils::WriteIssueToFile(tmp, mc.lint);
-                        }
+                        mc.type_to_count["Domain Length Exceeded"]++;
+                        LintUtils::WriteRRIssueToFile(
+                            mc.lint, mc.file_name, l, RR.toString(), "Domain length exceedes max length (255)", "");
                     }
                 } else {
-                    mc.type_to_count["Out-of-Zone-Records"]++;
-                    Logger->debug(fmt::format(
-                        "zone-file-parser.cpp (Parser()) - Ignoring out of zone record on line {} in file {}", l,
-                        mc.file_name));
+                    if (RR.get_type() == RRType::NS || RR.get_type() == RRType::CNAME ||
+                        RR.get_type() == RRType::DNAME) {
+                        std::tie( valid, violation_label ) =
+                            LabelUtils::LengthCheck(LabelUtils::StringToLabels(RR.get_rdata()), 0);
+                        if (!valid) {
+                            if (violation_label.length() > 0) {
+                                mc.type_to_count["Label Length Exceeded"]++;
+                                LintUtils::WriteRRIssueToFile(
+                                    mc.lint, mc.file_name, l, RR.toString(), violation_label + " - length exceedes 63",
+                                    "");
+                            } else {
+                                mc.type_to_count["Domain Length Exceeded"]++;
+                                LintUtils::WriteRRIssueToFile(
+                                    mc.lint, mc.file_name, l, RR.toString(),
+                                    "Target domain length exceedes max length (255)", "");
+                            }
+                        }
+                    } else {
+                        valid = true;
+                    }
+                    if (valid) {
+                        if (z.CheckZoneMembership(RR, mc.file_name)) {
+                            auto [code, vertexid] = z.AddResourceRecord(RR);
+                            if (code == zone::RRAddCode::SUCCESS) {
+                                label_graph.AddResourceRecord(RR, z.get_id(), vertexid.get());
+                                mc.type_to_count[type]++;
+                                if (boost::algorithm::starts_with(name, "*.")) {
+                                    mc.type_to_count["Wildcard"]++;
+                                }
+                            } else {
+                                string log_line = "";
+                                if (code == zone::RRAddCode::DUPLICATE) {
+                                    mc.type_to_count["Duplicate-Records"]++;
+                                    log_line = fmt::format(
+                                        "zone-file-parser.cpp (Parser()) - Duplicate record found on line {} in file "
+                                        "{}",
+                                        l, mc.file_name);
+                                    LintUtils::WriteRRIssueToFile(
+                                        mc.lint, mc.file_name, l, RR.toString(), "Duplicate Record", "");
+                                } else if (code == zone::RRAddCode::CNAME_MULTIPLE) {
+                                    mc.type_to_count["CNAME/DNAME Errors"]++;
+                                    log_line = fmt::format(
+                                        "zone-file-parser.cpp (Parser()) - |{}| record exists but trying to add "
+                                        "another "
+                                        "record |{}| from line {} in file {}",
+                                        z[vertexid.get()].rrs[0].toString(), RR.toString(), l, mc.file_name);
+                                    LintUtils::WriteRRIssueToFile(
+                                        mc.lint, mc.file_name, l, RR.toString(), "MULTIPLE CNAMEs",
+                                        z[vertexid.get()].rrs[0].toString());
+                                } else if (code == zone::RRAddCode::CNAME_OTHER) {
+                                    mc.type_to_count["CNAME/DNAME Errors"]++;
+                                    log_line = fmt::format(
+                                        "zone-file-parser.cpp (Parser()) - CNAME record is not allowed to coexist "
+                                        "with any other "
+                                        "data type but adding another record from line {} in file {}",
+                                        l, mc.file_name);
+                                    LintUtils::WriteRRIssueToFile(
+                                        mc.lint, mc.file_name, l, RR.toString(), "CNAME AND OTHER TYPES",
+                                        z[vertexid.get()].rrs[0].toString());
+                                } else if (code == zone::RRAddCode::DNAME_MULTIPLE) {
+                                    mc.type_to_count["CNAME/DNAME Errors"]++;
+                                    log_line = fmt::format(
+                                        "zone-file-parser.cpp (Parser()) - |{}| record exists but trying to add "
+                                        "another DNAME "
+                                        "record |{}| from line {} in file {}",
+                                        z[vertexid.get()].rrs[0].toString(), RR.toString(), l, mc.file_name);
+                                    LintUtils::WriteRRIssueToFile(
+                                        mc.lint, mc.file_name, l, RR.toString(), "MULTIPLE DNAMEs",
+                                        z[vertexid.get()].rrs[0].toString());
+                                }
+                                if (log_line.length()) {
+                                    Logger->debug(log_line);
+                                }
+                            }
+                        } else {
+                            mc.type_to_count["Out-of-Zone-Records"]++;
+                            Logger->debug(fmt::format(
+                                "zone-file-parser.cpp (Parser()) - Ignoring out of zone record on line {} in file {}",
+                                l, mc.file_name));
+                            LintUtils::WriteRRIssueToFile(
+                                mc.lint, mc.file_name, l, RR.toString(), "OUT OF ZONE RECORD", "");
+                        }
+                    }
                 }
                 current_record.clear();
                 Logger->trace(

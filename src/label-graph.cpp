@@ -547,20 +547,10 @@ void label::Graph::GenerateECs(Job &current_job, const Context &context)
 {
     // Given an user input for domain and query types, the function searches for relevant node
     // The search is relevant even for subdomain = False as we want to know the exact EC
-    if (current_job.user_input_domain.length() > kMaxDomainLength) {
-        Logger->warn(fmt::format(
-            "label-graph.cpp (GenerateECs) - Userinput, {}, exceedes the valid domain length",
-            current_job.user_input_domain));
-        return;
-    }
+
     vector<NodeLabel> labels = LabelUtils::StringToLabels(current_job.user_input_domain);
-    for (NodeLabel &l : labels) {
-        if (l.get().length() > kMaxLabelLength) {
-            Logger->warn(fmt::format(
-                "label-graph.cpp (GenerateECs) - Userinput, {}, has a label, {}, exceedeing the valid label length",
-                current_job.user_input_domain, l.get()));
-            return;
-        }
+    if (!std::get<0>(LabelUtils::LengthCheck(labels, 2))) {
+        return;
     }
     vector<ClosestNode> closest_enclosers = ClosestEnclosers(labels);
     if (closest_enclosers.size()) {

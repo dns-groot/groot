@@ -9,7 +9,7 @@
 using namespace std;
 using json = nlohmann::json;
 
-enum class ReturnTag { ANS, REWRITE, REF, NX, REFUSED, NSNOTFOUND };
+enum class ReturnTag { ANS, REWRITE, REF, NX, REFUSED, NSNOTFOUND, YX };
 
 struct NSdummy {
 };

@@ -163,6 +163,10 @@ class Graph : public boost::adjacency_list<boost::vecS, boost::vecS, boost::bidi
             const interpretation::Graph &,
             const Path &,
             moodycamel::ConcurrentQueue<json> &);
+        static void DNAMESubstitutionExceedesLength(
+            const interpretation::Graph &,
+            const Path &,
+            moodycamel::ConcurrentQueue<json> &);
         static void NameServerContact(
             const interpretation::Graph &,
             const Path &,

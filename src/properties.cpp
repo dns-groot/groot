@@ -104,7 +104,9 @@ void interpretation::Graph::Properties::CheckResponseValue(
                 if (rdatas != values) {
                     PrettyPrintResponseValue(rdatas, values, graph, vd, tmp);
                 }
-            } else if (std::get<0>(graph[vd].answer.get()[0]) == ReturnTag::NX) {
+            } else if (
+                std::get<0>(graph[vd].answer.get()[0]) == ReturnTag::NX ||
+                std::get<0>(graph[vd].answer.get()[0]) == ReturnTag::YX) {
                 PrettyPrintResponseValue(set<string>{}, values, graph, vd, tmp);
             } else if (
                 std::get<0>(graph[vd].answer.get()[0]) == ReturnTag::NSNOTFOUND ||
@@ -206,13 +208,13 @@ void interpretation::Graph::Properties::ZeroTTL(
       The set of end nodes is given and checks if the response contains resource records with zero TTL
       for the given types.
     */
-    for (auto& vd : end_nodes) {
+    for (auto &vd : end_nodes) {
         if ((graph[vd].query.rrTypes & typesReq).count() > 0 && graph[vd].ns != "") {
             boost::optional<vector<zone::LookUpAnswer>> answer = graph[vd].answer;
             if (answer) {
                 if (std::get<0>(answer.get()[0]) == ReturnTag::REFUSED ||
                     std::get<0>(answer.get()[0]) == ReturnTag::NSNOTFOUND) {
-                    
+
                 } else {
                     auto &rrs = std::get<2>(answer.get()[0]);
                     for (auto &r : rrs) {
@@ -396,6 +398,24 @@ void interpretation::Graph::Properties::CheckLameDelegation(
     }
 }
 
+void interpretation::Graph::Properties::DNAMESubstitutionExceedesLength(
+    const interpretation::Graph &graph,
+    const Path &p,
+    moodycamel::ConcurrentQueue<json> &json_queue)
+{
+    auto &ans = graph[p[p.size() - 1]].answer;
+    if (ans) {
+        if (std::get<0>(ans.get()[0]) == ReturnTag::YX) {
+            json tmp;
+            tmp["Property"] = "DNAME Substitution exceeds length";
+            tmp["Query"] = graph[p[0]].query.ToString();
+            tmp["Violation"]["RewriteTarget"] = graph[p[p.size() - 1]].query.ToString();
+            tmp["Violation"]["Nameserver"] = graph[p[p.size() - 1]].ns;
+            json_queue.enqueue(tmp);
+        }
+    }
+}
+
 void interpretation::Graph::Properties::NameServerContact(
     const interpretation::Graph &graph,
     const Path &p,
@@ -472,7 +492,7 @@ void interpretation::Graph::Properties::NumberOfRewrites(
             }
         }
     }
-    
+
     if (rewrites > num_rewrites) {
         json tmp;
         tmp["Property"] = "Rewrites";

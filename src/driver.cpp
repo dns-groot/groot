@@ -361,6 +361,8 @@ void Driver::SetJob(const json &user_job)
             current_job_.node_functions.push_back(la);
         } else if (name == "StructuralDelegationConsistency") {
             current_job_.check_structural_delegations = true;
+        } else if (name == "DNAMESubstitutionCheck") {
+            current_job_.path_functions.push_back(interpretation::Graph::Properties::DNAMESubstitutionExceedesLength);
         }
     }
 }

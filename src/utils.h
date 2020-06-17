@@ -10,6 +10,7 @@ class LabelUtils
   public:
     static string LabelsToString(vector<NodeLabel>);
     static string LabelsToString(vector<vector<NodeLabel>>);
+    static tuple<bool, string> LengthCheck(vector<NodeLabel>, int);
     static vector<NodeLabel> StringToLabels(string);
     static bool SubDomainCheck(const vector<NodeLabel> &, const vector<NodeLabel> &);
     static bool SubDomainCheck(const vector<vector<NodeLabel>> &, const vector<NodeLabel> &);
@@ -35,5 +36,6 @@ class LintUtils
 {
   public:
     static void WriteIssueToFile(json &, bool);
+    static void WriteRRIssueToFile(bool, string, size_t, string, string, string);
 };
 #endif
