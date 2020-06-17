@@ -1,0 +1,15 @@
+[
+{
+    "Current Record": "finally.foo.com.   CNAME   finally1.foo.com.",
+    "File Name": "TestFiles\\integration_tests\\simple_test\\zone_files\\foo.com.txt",
+    "Line Number": 14,
+    "Previous Record": "finally.foo.com.   A   1.2.3.4",
+    "Violation": "CNAME AND OTHER TYPES"
+},
+{
+    "Resource Record": "foo.com.   NS   ns3.foo.com.",
+    "Server": "us.illinois.net.",
+    "Violation": "Missing Glue Record",
+    "Zone": "foo.com."
+}
+]

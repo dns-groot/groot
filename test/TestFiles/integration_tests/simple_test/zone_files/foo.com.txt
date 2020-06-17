@@ -2,6 +2,7 @@ foo.com.				      14400 IN SOA	us.illinois.net. us-domain.illinois.net. 20180830
 
 foo.com.                    14400 IN NS     ns1.foo.com.
 foo.com.                    14400 IN NS	    ns2.foo.com.
+foo.com.                    14400 IN NS	    ns3.foo.com.
 ns1.foo.com.                14400 IN A	    66.158.49.3
 ns2.foo.com.                14400 IN A	    66.158.49.4
 a.foo.com.                  14400 IN DNAME	b.foo.com.
@@ -10,3 +11,4 @@ c.foo.com.                  14400 IN DNAME	d.foo.com.
 d.foo.com.                  14400 IN DNAME	e.foo.com.
 *.e.foo.com.                14400 IN CNAME	finally.foo.com.
 finally.foo.com.            14400 IN A  	1.2.3.4
+finally.foo.com.            14400 IN CNAME  finally1.foo.com. ;ignored

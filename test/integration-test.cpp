@@ -12,7 +12,7 @@ BOOST_AUTO_TEST_SUITE(IntegrationTestSuite)
 BOOST_AUTO_TEST_CASE(integration_test)
 {
     Driver driver;
-    DriverTest dt;
+    //DriverTest dt;
     fs::path directory("TestFiles");
     auto test_directory = directory / "integration_tests";
 
@@ -24,8 +24,9 @@ BOOST_AUTO_TEST_CASE(integration_test)
             auto zone_path = test_directory / "zone_files";
             auto metadata_path = zone_path / "metadata.json";
             auto output_path = test_directory / "output.json";
-            auto expected_path = test_directory / "expected.json";
+            auto expected_path = test_directory / "output_expected.json";
             auto jobs_path = test_directory / "jobs.json";
+            auto lint_expected_path = test_directory / "lint_expected.json";
 
             // read in the metadata file
             std::ifstream metadataFile(metadata_path.string());
@@ -37,7 +38,16 @@ BOOST_AUTO_TEST_CASE(integration_test)
             json j;
             i >> j;
 
-            driver.SetContext(metadata, zone_path.string(), false);
+            fstream fs;
+            fs.open("lint.json", ios::out);
+            fs << "[\n";
+            fs.close();
+
+            driver.SetContext(metadata, zone_path.string(), true);
+
+            fs.open("lint.json", ios::app);
+            fs << "\n]";
+            fs.close();
 
             for (auto &user_job : j) {
                 driver.SetJob(user_job);
@@ -54,6 +64,15 @@ BOOST_AUTO_TEST_CASE(integration_test)
             std::string s2((std::istreambuf_iterator<char>(expected)), std::istreambuf_iterator<char>());
 
             BOOST_CHECK_EQUAL(s1, s2);
+
+            // compare the actual lint output with the expected lint output
+            std::ifstream actual_lint("lint.json");
+            std::string s3((std::istreambuf_iterator<char>(actual)), std::istreambuf_iterator<char>());
+
+            std::ifstream expected_lint(lint_expected_path.string());
+            std::string s4((std::istreambuf_iterator<char>(expected)), std::istreambuf_iterator<char>());
+
+            BOOST_CHECK_EQUAL(s3, s4);
         }
     }
 }
