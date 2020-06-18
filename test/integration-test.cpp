@@ -65,14 +65,14 @@ BOOST_AUTO_TEST_CASE(integration_test)
 
             BOOST_CHECK_EQUAL(s1, s2);
 
-            // compare the actual lint output with the expected lint output
             std::ifstream actual_lint("lint.json");
-            std::string s3((std::istreambuf_iterator<char>(actual_lint)), std::istreambuf_iterator<char>());
+            json lint;
+            actual_lint >> lint;
+           
+            BOOST_CHECK_EQUAL(lint[0]["Violation"], "CNAME AND OTHER TYPES");
+            BOOST_CHECK_EQUAL(lint[1]["Violation"], "Missing Glue Record");
+            BOOST_CHECK_EQUAL(lint.size(), 2);
 
-            std::ifstream expected_lint(lint_expected_path.string());
-            std::string s4((std::istreambuf_iterator<char>(expected_lint)), std::istreambuf_iterator<char>());
-
-            BOOST_CHECK_EQUAL(s3, s4);
             actual_lint.close();
             fs::remove("lint.json");
         }
