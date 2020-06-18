@@ -51,7 +51,8 @@ void Main(string directory, string jobs_file, string output_file, bool lint)
                 "groot.cpp (Main) - Finished property checking for the job- {}", string(user_job["Domain"])));
         }
     } else {
-        driver.SetJob(string("."));
+        string x = ".";
+        driver.SetJob(x);
         Logger->info(fmt::format("groot.cpp (Main) - Started default property checking for the job"));
         driver.GenerateECsAndCheckProperties();
         total_ecs += driver.GetECCountForCurrentJob();

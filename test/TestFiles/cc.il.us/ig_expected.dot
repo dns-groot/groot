@@ -1,0 +1,26 @@
+digraph G {
+0[label="NS: \n Q:ds3.trial.cc.il.us. T:A  \n A:"] [shape=diamond];
+1[label="NS: us.illinois.net.\n Q:ds3.trial.cc.il.us. T:A  \n A:REWRITE"];
+2[label="NS: us.illinois.net.\n Q:ds3.richland.cc.il.us. T:A  \n A:REF"];
+3[label="NS: \n Q:ns1.illinois.net. T:A AAAA  \n A:"] [shape=diamond];
+4[label="NS: us.illinois.net.\n Q:ns1.illinois.net. T:A AAAA  \n A:REFUSED"];
+5[label="NS: ns1.illinois.net.\n Q:ds3.richland.cc.il.us. T:A  \n A:NS Not Found"];
+6[label="NS: ns1.richland.cc.il.us.\n Q:ds3.richland.cc.il.us. T:A  \n A:REWRITE"];
+7[label="NS: ns1.richland.cc.il.us.\n Q:gw1.richland.cc.il.us. T:A  \n A:ANS"];
+8[label="NS: \n Q:ns1.richland.edu. T:A AAAA  \n A:"] [shape=diamond];
+9[label="NS: us.illinois.net.\n Q:ns1.richland.edu. T:A AAAA  \n A:REFUSED"];
+10[label="NS: ns1.richland.edu.\n Q:ds3.richland.cc.il.us. T:A  \n A:NS Not Found"];
+11[label="NS: \n Q:ns2.illinois.net. T:A AAAA  \n A:"] [shape=diamond];
+12[label="NS: us.illinois.net.\n Q:ns2.illinois.net. T:A AAAA  \n A:REFUSED"];
+13[label="NS: ns2.illinois.net.\n Q:ds3.richland.cc.il.us. T:A  \n A:NS Not Found"];
+0->1 [color=black];
+1->2 [color=black];
+3->4 [color=black];
+2->5 [color=red];
+2->6 [color=black];
+6->7 [color=black];
+8->9 [color=black];
+2->10 [color=red];
+11->12 [color=black];
+2->13 [color=red];
+}

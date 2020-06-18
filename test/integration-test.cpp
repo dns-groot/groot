@@ -1,8 +1,8 @@
 #include "driver-test.h"
-#include <boost/test/unit_test.hpp>
 #include <boost/filesystem.hpp>
-#include <iterator>
+#include <boost/test/unit_test.hpp>
 #include <iostream>
+#include <iterator>
 #include <vector>
 
 namespace fs = boost::filesystem;
@@ -12,7 +12,7 @@ BOOST_AUTO_TEST_SUITE(IntegrationTestSuite)
 BOOST_AUTO_TEST_CASE(integration_test)
 {
     Driver driver;
-    //DriverTest dt;
+    // DriverTest dt;
     fs::path directory("TestFiles");
     auto test_directory = directory / "integration_tests";
 
@@ -67,12 +67,14 @@ BOOST_AUTO_TEST_CASE(integration_test)
 
             // compare the actual lint output with the expected lint output
             std::ifstream actual_lint("lint.json");
-            std::string s3((std::istreambuf_iterator<char>(actual)), std::istreambuf_iterator<char>());
+            std::string s3((std::istreambuf_iterator<char>(actual_lint)), std::istreambuf_iterator<char>());
 
             std::ifstream expected_lint(lint_expected_path.string());
-            std::string s4((std::istreambuf_iterator<char>(expected)), std::istreambuf_iterator<char>());
+            std::string s4((std::istreambuf_iterator<char>(expected_lint)), std::istreambuf_iterator<char>());
 
             BOOST_CHECK_EQUAL(s3, s4);
+            actual_lint.close();
+            fs::remove("lint.json");
         }
     }
 }

@@ -154,7 +154,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="demo-test.cpp" />
+    <ClCompile Include="main-example-test.cpp" />
     <ClCompile Include="ec-test.cpp" />
     <ClCompile Include="integration-test.cpp" />
     <ClCompile Include="label-graph-test.cpp" />

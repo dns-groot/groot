@@ -456,7 +456,9 @@ void label::Graph::SubDomainECGeneration(
     for (NodeLabel &l : parent_domain_name) {
         len += l.get().length() + 1;
     }
-    if (len == kMaxDomainLength) {
+    if (len == kMaxDomainLength || len == (*this)[start].len) {
+        //return if length exceedes or DNAME loop detected 
+        //mostly likely turns out as cyclic zone dependecy so no need to report here
         return;
     }
     NodeLabel node_labels = (*this)[start].name;
