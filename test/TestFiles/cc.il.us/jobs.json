@@ -71,6 +71,12 @@
 			},
 			{
 				"PropertyName": "StructuralDelegationConsistency"
+			},
+			{
+				"PropertyName": "ZeroTTL"
+			},
+			{
+				"PropertyName": "DNAMESubstitutionCheck"
 			}
 		]
 	}
