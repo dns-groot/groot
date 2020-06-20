@@ -59,4 +59,16 @@ BOOST_AUTO_TEST_CASE(subdomain_check)
     BOOST_TEST(!CheckSubdomain("a.b.c", "a.c.c"));
 }
 
+BOOST_AUTO_TEST_CASE(flyweight_test)
+{
+    string s = "test";
+    
+    NodeLabel nl;
+    nl.set(s);
+    BOOST_CHECK_EQUAL(nl.get(), s);
+
+    NodeLabel nl1(s);
+    BOOST_ASSERT(nl == nl1);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

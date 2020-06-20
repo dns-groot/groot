@@ -79,4 +79,32 @@ BOOST_AUTO_TEST_CASE(integration_test)
     }
 }
 
+BOOST_AUTO_TEST_CASE(label_graph_dot)
+{
+    Driver driver;
+    DriverTest dt;
+    boost::filesystem::path directory("TestFiles");
+    std::ifstream metadataFile((directory / "cc.il.us" / "zone_files" / "metadata.json").string());
+    json metadata;
+    metadataFile >> metadata;
+
+    long total_rrs_parsed = driver.SetContext(metadata, (directory / "cc.il.us" / "zone_files").string(), false);
+
+    auto expected_path = directory / "cc.il.us" / "label_graph_expected.dot";
+    auto actual_path = directory / "cc.il.us" / "label_graph_actual.dot";
+
+    dt.GenerateLabelGraphDotFile(driver, actual_path.string());
+
+    std::ifstream actual(actual_path.string());
+    std::string s1((std::istreambuf_iterator<char>(actual)), std::istreambuf_iterator<char>());
+
+    std::ifstream expected(expected_path.string());
+    std::string s2((std::istreambuf_iterator<char>(expected)), std::istreambuf_iterator<char>());
+
+    BOOST_CHECK_EQUAL(s1, s2);
+    actual.close();
+    boost::filesystem::remove(actual_path);
+}
+
+
 BOOST_AUTO_TEST_SUITE_END()

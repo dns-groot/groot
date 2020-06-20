@@ -42,6 +42,11 @@ class DriverTest
     {
         return interpretation::Graph(ec, d.context_);
     }
+
+    void GenerateLabelGraphDotFile(Driver &d, string filepath)
+    {
+        d.label_graph_.GenerateDotFile(filepath);
+    }
 };
 
 #endif
