@@ -34,7 +34,7 @@ template <typename Lexer> struct zone_file_tokens : lex::lexer<Lexer> {
     zone_file_tokens()
     {
         this->self.add("\\\"[^\\\"]*\\\"", ID_TEXT_WORD)(";[^\n]+", ID_COMMENT)(
-            "((\\\\\\()*(\\\\\\))*[^ ;\t\r\n\\(\\)]+)+",
+            "((\\\\\\()*(\\\\\\))*[^ ;\t\r\n\\(\\)\\\"]+)+",
             ID_WORD)("\\(", ID_LPAREN)("\\)", ID_RPAREN)("\n", ID_EOL)("[ \t]+", ID_WHITESPACE)(".", ID_OTHER);
     }
 };
