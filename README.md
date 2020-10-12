@@ -1,4 +1,4 @@
-Groot 
+GRoot 
 ==========
 <!---
 [![](https://img.shields.io/docker/cloud/build/sivakesava/groot.svg?logo=docker&style=popout&label=Docker+Image)][docker-hub]
@@ -15,7 +15,17 @@ Groot
 [![codecov](https://codecov.io/gh/dns-groot/groot/branch/master/graph/badge.svg?style=popout)](https://codecov.io/gh/dns-groot/groot)
 
 
-Groot is a static verification tool for DNS. Groot consumes a collection of zone files along with a collection of user-defined properties and systematically checks if any input to DNS can lead to violation of the properties.
+GRoot is a static verification tool for DNS. GRoot consumes a collection of zone files along with a collection of user-defined properties and systematically checks if any input to DNS can lead to violation of the properties.
+
+---
+
+[**Installation**](#installation)
+&nbsp; &nbsp; &vert; &nbsp; &nbsp;
+[Citing GRoot](#citing-groot)
+&nbsp;&middot;&nbsp;
+[License (MIT)](LICENSE)
+
+---
 
 ## Installation
 
@@ -23,7 +33,7 @@ Groot is a static verification tool for DNS. Groot consumes a collection of zone
 
 _**Note:** The docker image may consume  ~&hairsp;1.2&hairsp;GB of disk space._
 
-We recommend running Groot within a docker container,
+We recommend running GRoot within a docker container,
 since they have negligible performance overhead.
 (See [this report](http://domino.research.ibm.com/library/cyberdig.nsf/papers/0929052195DD819C85257D2300681E7B/$File/rc25482.pdf))
 
@@ -38,7 +48,7 @@ since they have negligible performance overhead.
 docker build -t dnsgt/groot github.com/dns-groot/groot
 ```
 Docker containers are isolated from the host system.
-Therefore, to run Groot on zones files residing on the host system,
+Therefore, to run GRoot on zones files residing on the host system,
 you must first [bind mount] them while running the container:
 
 ```bash
@@ -69,7 +79,7 @@ The `~/data` on the host system would then be accessible within the container at
 </details>
 
 ## Property Verification
-Check for any violations of the input properties by invoking Groot as:
+Check for any violations of the input properties by invoking GRoot as:
 
 For docker (Ubuntu):
 ```bash
@@ -79,13 +89,13 @@ For Windows:
 ```bash
 $ .~\groot\x64\Release\groot.exe ~\groot\test\TestFiles\cc.il.us\zone_files --jobs=~\groot\test\TestFiles\cc.il.us\jobs.json --output=output.json
 ```
-Groot outputs any violations to the `output.json` file. 
+GRoot outputs any violations to the `output.json` file. 
 
 ### Flags
 User can log debugging messages to `log.txt` using `-l` and use `-v` flag to log more detailed information. Use `-s` flag to display the statistics of the zone files parsed and the execution time. To log zone file issues (missing glue records, multiple CNAME/DNAME records, duplicate records) separately in `lint.json`, use the `--lint` flag. 
 
 ### Packaging zone files data
-Groot expects all the required zone files to be available in the input directory along with a special file `metadata.json`. The `metadata.json` file has to be created by the user and has to list the file name and the name server from which that zone file was obtained. If the zone files for a domain are obtained from multiple name servers, make sure to give the files a distinct name and fill the metadata accordingly. The user also has to provide the root (top) name servers for his domain in the `metadata.json`. 
+GRoot expects all the required zone files to be available in the input directory along with a special file `metadata.json`. The `metadata.json` file has to be created by the user and has to list the file name and the name server from which that zone file was obtained. If the zone files for a domain are obtained from multiple name servers, make sure to give the files a distinct name and fill the metadata accordingly. The user also has to provide the root (top) name servers for his domain in the `metadata.json`. 
 
 <details>
 
@@ -118,7 +128,7 @@ Groot expects all the required zone files to be available in the input directory
 </details>
 
 ### Inputting Jobs
-Groot can currently verify properties shown below on the zone files and expects the input list in a `json` file format. A **job** verifies properties on a domain and optionally on all its subdomains. The input `json` file can have a list of jobs. Groot verifies a default set of properties if no input file is provided.
+GRoot can currently verify properties shown below on the zone files and expects the input list in a `json` file format. A **job** verifies properties on a domain and optionally on all its subdomains. The input `json` file can have a list of jobs. GRoot verifies a default set of properties if no input file is provided.
 
 <details>
 <summary><kbd>CLICK</kbd> to reveal an <a href="https://github.com/dns-groot/groot/blob/master/test/TestFiles/cc.il.us/jobs.json">example job</a></summary>
@@ -328,7 +338,29 @@ Input `json` format:
 ```
 </details>
 
-Groot, by default, checks for cyclic zone dependency and other loops while verifying any of the above properties. 
+GRoot, by default, checks for cyclic zone dependency and other loops while verifying any of the above properties. 
+
+## Citing GRoot
+
+```
+@inproceedings{10.1145/3387514.3405871,
+    author = {Kakarla, Siva Kesava Reddy and Beckett, Ryan and Arzani, Behnaz and Millstein, Todd and Varghese, George},
+    title = {GRoot: Proactive Verification of DNS Configurations},
+    year = {2020},
+    isbn = {9781450379557},
+    publisher = {Association for Computing Machinery},
+    address = {New York, NY, USA},
+    url = {https://doi.org/10.1145/3387514.3405871},
+    doi = {10.1145/3387514.3405871},
+    booktitle = {Proceedings of the Annual Conference of the ACM Special Interest Group on Data Communication on the 
+                 Applications, Technologies, Architectures, and Protocols for Computer Communication},
+    pages = {310–328},
+    numpages = {19},
+    keywords = {Static Analysis, Verification, DNS, Formal Methods},
+    location = {Virtual Event, USA},
+    series = {SIGCOMM ’20}
+}
+```
 
 [docker-hub]:         https://hub.docker.com/r/sivakesava/groot
 [bind mount]:         https://docs.docker.com/storage/bind-mounts
