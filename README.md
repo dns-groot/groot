@@ -21,11 +21,19 @@ GRoot is a static verification tool for DNS. GRoot consumes a collection of zone
 
 [**Installation**](#installation)
 &nbsp; &nbsp; &vert; &nbsp; &nbsp;
+[Property Verification](#property-verification)
+&nbsp;&middot;&nbsp;
+[Available Properties](#available-properties)
+&nbsp; &nbsp; &vert; &nbsp; &nbsp;
 [Citing GRoot](#citing-groot)
 &nbsp;&middot;&nbsp;
 [License (MIT)](LICENSE)
 
 ---
+
+:page_with_curl: [SIGCOMM 2020](https://conferences.sigcomm.org/sigcomm/2020/) -- [GRoot: Proactive Verification of DNS Configurations](https://doi.org/10.1145/3387514.3405871)
+
+:trophy: [Best Student Paper Award](http://www.sigcomm.org/awards/student-award-recipients)
 
 ## Installation
 
