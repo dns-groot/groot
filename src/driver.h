@@ -30,8 +30,9 @@ class Driver
   public:
     friend class DriverTest;
     void GenerateECsAndCheckProperties();
+    void GenerateAndOutputECs();
     long GetECCountForCurrentJob() const;
-    long SetContext(const json &, string, bool);
+    long SetContext(const json &, string, bool = false);
     void SetJob(const json &);
     void SetJob(string &);
     void WriteStatsForAJob();

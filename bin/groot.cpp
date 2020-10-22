@@ -66,6 +66,30 @@ void Main(string directory, string jobs_file, string output_file, bool lint)
     driver.WriteViolationsToFile(output_file);
 }
 
+void OutputECs(string directory)
+{
+    Logger->debug("groot.cpp - OutputECs function called");
+    Driver driver;
+
+    high_resolution_clock::time_point t1 = high_resolution_clock::now();
+
+    std::ifstream metadataFile(
+        (boost::filesystem::path{directory} / boost::filesystem::path{"metadata.json"}).string());
+    json metadata;
+    metadataFile >> metadata;
+    Logger->debug("groot.cpp (OutputECs) - Successfully read metadata.json file");
+
+    driver.SetContext(metadata, directory);
+
+    high_resolution_clock::time_point t2 = high_resolution_clock::now();
+    duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
+    Logger->debug("groot.cpp (OutputECs) - Label graph and Zone graphs built");
+    Logger->info(fmt::format("Time to build label graph and zone graphs: {}s", time_span.count()));
+
+    long total_ecs = 0;
+    driver.GenerateAndOutputECs();
+}
+
 static const char USAGE[] =
     R"(groot 1.0
    
@@ -74,10 +98,11 @@ a collection of zone files along with a collection of user-
 defined properties and systematically checks if any input to
 DNS can lead to a property violation for the properties.
 
-Usage: groot <zone_directory> [--jobs=<jobs_file_as_json>] [-hlsv] [--lint] [--output=<output_file>]
+Usage: groot <zone_directory> [--jobs=<jobs_file_as_json>] [-ehlsv] [--lint] [--output=<output_file>]
 
 Options:
   -h --help     Show this help screen.
+  -e --ecs      Output ECs to "ECs.txt"
   -l --log      Generate the log file - "log.txt". 
   -s --stats    Print statistics about the current run. 
   -v --verbose  Print more information to the log file. 
@@ -158,9 +183,13 @@ int main(int argc, const char **argv)
             fs.close();
         }
 
-        // TODO: validate that the directory and property files exist
-        Main(zone_directory, jobs_file, output_file, p->second.asBool());
-        Logger->debug("groot.cpp (main) - Finished checking all jobs");
+        if (args.find("--ecs")->second.asBool()) {
+            OutputECs(zone_directory);
+        } else {
+            // TODO: validate that the directory and property files exist
+            Main(zone_directory, jobs_file, output_file, p->second.asBool());
+            Logger->debug("groot.cpp (main) - Finished checking all jobs");
+        }
         spdlog::shutdown();
 
         if (p->second.asBool()) {

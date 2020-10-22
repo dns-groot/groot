@@ -13,6 +13,19 @@ string EC::ToString() const
     return q;
 }
 
+string EC::ToConcreteString() const
+{
+    string q = "";
+    if (excluded) {
+        q += "a.";
+    } else {
+        q += "";
+    }
+    if (name.size())
+        q += LabelUtils::LabelsToString(name);
+    return q;
+}
+
 bool EC::operator==(const EC &q) const
 {
     if (name != q.name) {

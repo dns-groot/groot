@@ -106,6 +106,36 @@ void Driver::GenerateECsAndCheckProperties()
     stats_collector.join();
 }
 
+void Driver::GenerateAndOutputECs()
+{
+    current_job_.finished_ec_generation = false;
+
+    std::ofstream ofs;
+    ofs.open("ECs.txt", std::ofstream::out);
+
+    // EC producer thread (internally calls other threads depending on the closest enclosers)
+    std::thread label_graph_ec_generator = thread([&]() { label_graph_.GenerateECs(current_job_, context_); });
+
+    std::thread ec_consumer = thread([this, &ofs]() {
+        bool itemsLeft;
+        unique_ptr<Task> item;
+        do {
+            itemsLeft = !current_job_.finished_ec_generation;
+            while (current_job_.ec_queue.try_dequeue(item)) {
+                itemsLeft = true;
+                if (dynamic_cast<ECTask *>(item.get()) != nullptr) {
+                    auto ec_task = dynamic_cast<ECTask *>(item.get());
+                    ofs << ec_task->ec_.ToConcreteString() << "\n";
+                }
+            }
+        } while (itemsLeft);
+    });
+    label_graph_ec_generator.join();
+    current_job_.finished_ec_generation = true;
+    ec_consumer.join();
+    ofs.close();
+}
+
 long Driver::GetECCountForCurrentJob() const
 {
     return current_job_.stats.ec_count;

@@ -22,6 +22,7 @@ class EC
     bool nonExistent = false;
 
     string ToString() const;
+    string ToConcreteString() const;
     bool operator==(const EC &) const;
 };
 
