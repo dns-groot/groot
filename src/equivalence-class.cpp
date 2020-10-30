@@ -21,7 +21,7 @@ string EC::ToConcreteString() const
     } else {
         q += "";
     }
-    if (name.size())
+    if (name.size() || q.empty())
         q += LabelUtils::LabelsToString(name);
     return q;
 }

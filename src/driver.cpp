@@ -109,7 +109,7 @@ void Driver::GenerateECsAndCheckProperties()
 void Driver::GenerateAndOutputECs()
 {
     current_job_.finished_ec_generation = false;
-
+    current_job_.check_subdomains = true;
     std::ofstream ofs;
     ofs.open("ECs.txt", std::ofstream::out);
 
@@ -126,6 +126,7 @@ void Driver::GenerateAndOutputECs()
                 if (dynamic_cast<ECTask *>(item.get()) != nullptr) {
                     auto ec_task = dynamic_cast<ECTask *>(item.get());
                     ofs << ec_task->ec_.ToConcreteString() << "\n";
+                    cout << ec_task->ec_.ToConcreteString() << std::endl;
                 }
             }
         } while (itemsLeft);
