@@ -35,8 +35,8 @@ GRoot is a static verification tool for DNS. GRoot consumes a collection of zone
 
 :trophy: [Best Student Paper Award](http://www.sigcomm.org/awards/student-award-recipients)
 
-### Note
-We have updated the paper to handle empty non-terminals as per the RFCs properly. The updated paper is available [here](https://sivakesava1.github.io/assets/pdf/sigcomm20_groot.pdf). For more details, please check the GitHub issue [#11](https://github.com/dns-groot/groot/issues/11).
+### Note 
+We have updated the paper to handle empty non-terminals as per the RFCs properly. **[The updated paper is available here](https://sivakesava1.github.io/assets/pdf/sigcomm20_groot.pdf).** For more details, please check the GitHub issue [#11](https://github.com/dns-groot/groot/issues/11).
 
 ## Installation
 
