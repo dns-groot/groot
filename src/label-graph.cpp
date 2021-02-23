@@ -456,7 +456,7 @@ void label::Graph::SubDomainECGeneration(
     for (NodeLabel &l : parent_domain_name) {
         len += l.get().length() + 1;
     }
-    if (len == kMaxDomainLength || len == (*this)[start].len) {
+    if (len >= kMaxDomainLength || len == (*this)[start].len) {
         //return if length exceedes or DNAME loop detected 
         //mostly likely turns out as cyclic zone dependecy so no need to report here
         return;
@@ -477,6 +477,9 @@ void label::Graph::SubDomainECGeneration(
     size_t nodeLen = 0;
     for (NodeLabel &l : name) {
         nodeLen += l.get().length() + 1;
+    }
+    if (nodeLen >= kMaxDomainLength) {
+        return;
     }
     (*this)[start].len = static_cast<int16_t>(nodeLen);
     std::vector<NodeLabel> children_labels;
