@@ -228,16 +228,18 @@ vector<tuple<ResourceRecord, vector<ResourceRecord>>> interpretation::Graph::Mat
     for (int i = 0; i < records.size(); i++) {
         if (records[i].get_type() == RRType::NS) {
             vector<ResourceRecord> matched;
+            bool pushed = false;
             for (int j = i + 1; j < records.size(); j++) {
                 if (records[j].get_type() == RRType::A || records[j].get_type() == RRType::AAAA) {
                     matched.push_back(records[j]);
                 } else {
                     pairs.push_back(std::make_tuple(std::move(records[i]), std::move(matched)));
+                    pushed = true;
                     i = j - 1;
                     break;
                 }
             }
-            if (matched.size()) {
+            if (!pushed) {
                 pairs.push_back(std::make_tuple(std::move(records[i]), std::move(matched)));
             }
         }
