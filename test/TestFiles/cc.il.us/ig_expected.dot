@@ -13,6 +13,9 @@ digraph G {
 11[label="NS: \n Q:ns2.illinois.net. T:A AAAA  \n A:"] [shape=diamond];
 12[label="NS: us.illinois.net.\n Q:ns2.illinois.net. T:A AAAA  \n A:REFUSED"];
 13[label="NS: ns2.illinois.net.\n Q:ds3.richland.cc.il.us. T:A  \n A:NS Not Found"];
+14[label="NS: \n Q:ns2.richland.edu. T:A AAAA  \n A:"] [shape=diamond];
+15[label="NS: us.illinois.net.\n Q:ns2.richland.edu. T:A AAAA  \n A:REFUSED"];
+16[label="NS: ns2.richland.edu.\n Q:ds3.richland.cc.il.us. T:A  \n A:NS Not Found"];
 0->1 [color=black];
 1->2 [color=black];
 3->4 [color=black];
@@ -23,4 +26,6 @@ digraph G {
 2->10 [color=red];
 11->12 [color=black];
 2->13 [color=red];
+14->15 [color=black];
+2->16 [color=red];
 }
