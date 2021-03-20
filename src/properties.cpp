@@ -266,6 +266,53 @@ void interpretation::Graph::Properties::AllAliases(
     }
 }
 
+void interpretation::Graph::Properties::InfiniteDName(
+    const interpretation::Graph &graph,
+    const Path &p,
+    moodycamel::ConcurrentQueue<json> &json_queue)
+{
+    std::unordered_map<const ResourceRecord, tuple<uint32_t, string>, rrHash> DMap;
+    /*
+      If there is a node with answer tag as REWRITE then there should be a node with query name in the input
+    */
+    for (int i = 0; i < p.size(); i++) {
+        if (graph[p[i]].answer && std::get<0>(graph[p[i]].answer.get()[0]) == ReturnTag::REWRITE) {
+            // Rewrite happened at this node and it can be CNAME or DNAME
+            vector<zone::LookUpAnswer> answers = graph[p[i]].answer.get();
+            for (zone::LookUpAnswer ans : answers) {
+                auto RRList = std::get<2>(ans);
+                for (const ResourceRecord rr : RRList) {
+                    if (DMap.find(rr) != DMap.end()) {
+                        if (graph[p[i]].query.name.size() >= std::get<0>(DMap[rr])) {
+                            json tmp;
+                            tmp["Property"] = "Infinite DName Recursion";
+                            tmp["Query1"] = std::get<1>(DMap[rr]);
+                            tmp["Query2"] = graph[p[i]].query.ToString();
+                            int j = 1;
+                            for (const auto &[key, value] : DMap) {
+                                ResourceRecord r = key;
+                                string seq = "RR" + to_string(j);
+                                string entry = r.toString();
+                                tmp["RRsUsed"][seq] = entry;
+                                j++;
+                            }
+                            json_queue.enqueue(tmp);
+                            return;
+                        }
+                        uint32_t size = graph[p[i]].query.name.size();
+                        string name = graph[p[i]].query.ToString();
+                        DMap[rr] = std::make_tuple(size, name);
+                    }
+                    uint32_t size = graph[p[i]].query.name.size();
+                    string name = graph[p[i]].query.ToString();
+                    tuple<uint32_t, string> tups = std::make_tuple(size, name);
+                    DMap.insert(std::pair < ResourceRecord, tuple<uint32_t, string>>(rr, tups));
+                }
+            }
+        }
+    }
+}
+
 void interpretation::Graph::Properties::CheckDelegationConsistency(
     const interpretation::Graph &graph,
     const Path &p,
