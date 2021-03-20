@@ -1,0 +1,29 @@
+[
+	{
+		"Domain": "a.very.bad.choice.com.",
+		"SubDomain": false,
+		"Properties": [
+			{
+				"PropertyName": "InfiniteDNameRec"
+			}
+		]
+	},
+	{
+		"Domain": "a.very.good.choice.com.",
+		"SubDomain": false,
+		"Properties": [
+			{
+				"PropertyName": "InfiniteDNameRec"
+			}
+		]
+	},
+	{
+		"Domain": "a.kinda.bad.choice.com.",
+		"SubDomain": false,
+		"Properties": [
+			{
+				"PropertyName": "InfiniteDNameRec"
+			}
+		]
+	}
+]

@@ -1,0 +1,4 @@
+bad.choice.com.        		14400   IN  SOA	    dasd.sda.net
+some.bad.choice.com.		14400	IN  A	    12.23.4.2
+very.bad.choice.com.    	14400   IN  DNAME   very.very.bad.choice.com.
+kinda.bad.choice.com.           14400   IN  DNAME   not.good.choice.com.

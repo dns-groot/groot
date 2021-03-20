@@ -288,6 +288,12 @@ void Driver::SetJob(const json &user_job)
                 interpretation::Graph::Properties::CheckDelegationConsistency(graph, p, json_queue);
             };
             current_job_.path_functions.push_back(l);
+        } else if (name == "InfiniteDNameRec") {
+            auto l = [&](const interpretation::Graph &graph, const interpretation::Graph::Path &p,
+                         moodycamel::ConcurrentQueue<json> &json_queue) {
+                interpretation::Graph::Properties::InfiniteDName(graph, p, json_queue);
+            };
+            current_job_.path_functions.push_back(l);
         } else if (name == "LameDelegation") {
             auto l = [&](const interpretation::Graph &graph, const interpretation::Graph::Path &p,
                          moodycamel::ConcurrentQueue<json> &json_queue) {

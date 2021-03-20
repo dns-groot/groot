@@ -1,0 +1,11 @@
+{
+	"TopNameServers":[
+		"inf.net."
+	],
+	"ZoneFiles":[
+		{
+			"FileName": "inf.net.txt",
+			"NameServer": "inf.net."
+		}
+	]
+}

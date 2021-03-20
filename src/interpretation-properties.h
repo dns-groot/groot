@@ -159,6 +159,10 @@ class Graph : public boost::adjacency_list<boost::vecS, boost::vecS, boost::bidi
             const interpretation::Graph &,
             const Path &,
             moodycamel::ConcurrentQueue<json> &);
+        static void InfiniteDName(
+            const interpretation::Graph &,
+            const Path &,
+            moodycamel::ConcurrentQueue<json> &);
         static void CheckLameDelegation(
             const interpretation::Graph &,
             const Path &,
