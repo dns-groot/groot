@@ -1,0 +1,19 @@
+{
+	"TopNameServers":[
+		"start.com."
+	],
+	"ZoneFiles":[
+		{
+			"FileName": "start.com.txt",
+			"NameServer": "start.com."
+		},
+		{
+			"FileName": "NS1.com.txt",
+			"NameServer": "NS1.com."
+		},
+		{
+			"FileName": "NS2.com.txt",
+			"NameServer": "NS2.com."
+		}
+	]
+}

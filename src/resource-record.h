@@ -41,4 +41,20 @@ class ResourceRecord
     }
 };
 
+class rrHash
+{
+  public:
+    size_t operator()(const ResourceRecord &l1) const
+    {
+        vector<NodeLabel> labels = l1.get_name();
+        int hash = 0;
+        int err = 1;
+        for (NodeLabel n : labels) {
+            hash = hash + n.get().size() * err;
+            err++;
+        }
+        return hash % 32;
+    }
+};
+
 #endif

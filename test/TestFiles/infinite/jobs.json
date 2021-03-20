@@ -1,0 +1,11 @@
+[
+	{
+		"Domain": "d.c.b.a.com.",
+		"SubDomain": false,
+		"Properties":[
+				{
+					"PropertyName": "InfiniteDNameRec"
+				}
+		]
+	}
+]

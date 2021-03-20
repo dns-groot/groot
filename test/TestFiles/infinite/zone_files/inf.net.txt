@@ -1,0 +1,5 @@
+com.           		14400   IN  SOA	    yes.yes
+a.com.         		14400   IN  A       1.2.3.4
+b.a.com.       		14400   IN  DNAME   c.b.a.com.
+
+

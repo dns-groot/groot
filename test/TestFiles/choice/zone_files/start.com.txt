@@ -1,0 +1,8 @@
+com.           	               14400   IN  SOA	   yes.yes
+bad.choice.com.                14400   IN  NS      NS1.com.
+good.choice.com.               14400   IN  NS      NS2.com.
+NS1.com.                       14400   IN  A       1.1.1.2
+NS2.com.	               14400   IN  A       1.1.1.3
+
+
+

@@ -1,0 +1,4 @@
+good.choice.com.        	14400   IN  SOA	    sda.edu
+a.good.choice.com.              14400   IN  A       1.1.1.1
+very.good.choice.com.           14400   IN  DNAME   good.choice.com.
+not.good.choice.com.            14400   IN  DNAME   really.kinda.bad.choice.com.
