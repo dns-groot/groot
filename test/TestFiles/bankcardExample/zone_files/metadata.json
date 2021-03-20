@@ -1,0 +1,32 @@
+{
+	"TopNameServers":[
+		"a.gtld-servers.net."
+	],
+	"ZoneFiles":[
+		{
+			"FileName": "a.gtld-servers.net.txt",
+			"NameServer": "a.gtld-servers.net.",
+			"Origin": "com."
+		},
+		{
+			"FileName": "ns1.fnni.com.1.txt",
+			"NameServer": "ns1.fnni.com.",
+			"Origin": "mybankcard.com."
+		},
+		{
+			"FileName": "ns1.fnni.com.2.txt",
+			"NameServer": "ns1.fnni.com.",
+			"Origin": "bankcard.com."
+		},
+		{
+			"FileName": "ns2.fnni.net.1.txt",
+			"NameServer": "ns2.fnni.net.",
+			"Origin": "mybankcard.com."
+		},
+		{
+			"FileName": "ns2.fnni.net.2.txt",
+			"NameServer": "ns2.fnni.net.",
+			"Origin": "bankcard.com."
+		}
+	]
+}
