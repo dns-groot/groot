@@ -1,0 +1,7 @@
+$ORIGIN bankcard.com.
+
+bankcard.com.   14400   IN  SOA	    ns2.fnni.net.
+www.bankcard.com.   14400   IN  AAAA 	74d7::b94d:d07 
+www.bankcard.com.   14400   IN  A 	    204.58.233.75
+email.bankcard.com. 14400   IN  A 	    66.161.21.26
+*.bankcard.com.     14400   IN  CNAME 	www.bankcard.com.

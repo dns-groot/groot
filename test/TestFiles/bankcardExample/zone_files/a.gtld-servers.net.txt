@@ -1,0 +1,5 @@
+$ORIGIN com.
+com.     14400   IN  SOA	    a.gtld-servers.net.
+mybankcard.com.     14400   IN  NS      ns1.fnni.com.
+mybankcard.com.     14400   IN  NS      ns2.fnni.net.
+ns1.fnni.com. 	    14400   IN  A       216.205.207.204

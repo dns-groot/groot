@@ -1,0 +1,6 @@
+$ORIGIN mybankcard.com.
+
+mybankcard.com. 14400   IN SOA	    ns2.fnni.net.
+mybankcard.com. 14400   IN NS 	    ns1.fnni.com.
+mybankcard.com. 14400   IN NS 	    ns2.fnni.net.
+mybankcard.com. 14400   IN DNAME    bankcard.com.
