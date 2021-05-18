@@ -84,4 +84,19 @@ BOOST_AUTO_TEST_CASE(example_test_default_jobs)
     BOOST_TEST(58 == dt.GetNumberofViolations(driver));
 }
 
+BOOST_AUTO_TEST_CASE(label_graph_dname_loop_parent)
+{
+    Driver driver;
+    boost::filesystem::path directory("TestFiles");
+    std::ifstream metadataFile((directory / "dname_loop_parent" / "zone_files" / "metadata.json").string());
+    json metadata;
+    metadataFile >> metadata;
+
+    long total_rrs_parsed = driver.SetContext(metadata, (directory / "dname_loop_parent" / "zone_files").string(), false);
+    BOOST_TEST(3 == total_rrs_parsed);
+
+    driver.GenerateAndOutputECs();
+    BOOST_CHECK_EQUAL(126, driver.GetECCountForCurrentJob());
+}
+
 BOOST_AUTO_TEST_SUITE_END()

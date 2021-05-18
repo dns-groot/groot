@@ -1,0 +1,5 @@
+parent.com.           		14400   IN  SOA	    ns1.outside.edu. root.campus.edu. 3 6048 86400 2419200 6048
+parent.com.         		14400   IN  A       1.2.3.4
+dname.parent.com.       	14400   IN  DNAME   parent.com.
+
+

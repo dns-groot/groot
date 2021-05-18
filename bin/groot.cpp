@@ -86,7 +86,6 @@ void OutputECs(string directory)
     Logger->debug("groot.cpp (OutputECs) - Label graph and Zone graphs built");
     Logger->info(fmt::format("Time to build label graph and zone graphs: {}s", time_span.count()));
 
-    long total_ecs = 0;
     driver.GenerateAndOutputECs();
 }
 
