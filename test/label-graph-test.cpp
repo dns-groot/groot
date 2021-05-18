@@ -85,9 +85,52 @@ BOOST_AUTO_TEST_CASE(label_graph_dnames)
     labelGraph.AddResourceRecord(r3, 0, id3.get());
 
     auto enclosers = labelGraph.ClosestEnclosers("a.foo.com");
+    BOOST_CHECK_EQUAL(2, enclosers.size());
     auto x = labelGraph[enclosers[0].first];
     BOOST_CHECK_EQUAL("foo", x.name.get());
     BOOST_CHECK_EQUAL(2, x.rrtypes_available.count());
+    BOOST_CHECK_EQUAL("bar", labelGraph[enclosers[1].first].name.get());
+}
+
+BOOST_AUTO_TEST_CASE(label_graph_duplicate_dnames)
+{
+    label::Graph labelGraph;
+    zone::Graph zoneGraphA(0);
+    zone::Graph zoneGraphB(1);
+
+    ResourceRecord r1("foo.com", "A", 1, 10, "1.2.3.4");
+    auto [code1, id1] = zoneGraphA.AddResourceRecord(r1);
+    labelGraph.AddResourceRecord(r1, 0, id1.get());
+
+    ResourceRecord r2("bar.foo.com", "TXT", 1, 10, "Test Duplicate DNAME Records");
+    auto [code2, id2] = zoneGraphA.AddResourceRecord(r2);
+    labelGraph.AddResourceRecord(r2, 0, id2.get());
+
+    ResourceRecord r3("bar.foo.com", "DNAME", 1, 10, "foo.com");
+    auto [code3, id3] = zoneGraphA.AddResourceRecord(r3);
+    labelGraph.AddResourceRecord(r3, 0, id3.get());
+
+    ResourceRecord r4("bar.foo.com", "DNAME", 1, 10, "foo.com");
+    auto [code4, id4] = zoneGraphB.AddResourceRecord(r4);
+    labelGraph.AddResourceRecord(r4, 0, id4.get());
+
+    BOOST_CHECK_EQUAL(4, num_edges(labelGraph));
+
+    ResourceRecord r5("baz.foo.com", "TXT", 1, 10, "Test Child DNAME Record");
+    auto [code5, id5] = zoneGraphA.AddResourceRecord(r5);
+    labelGraph.AddResourceRecord(r5, 0, id5.get());
+
+    // There is already an edge from foo to baz (parent-child) because of above TXT record.
+    // The following DNAME edge should not be skipped. Only duplicate DNAME edges should not be added.
+    ResourceRecord r6("foo.com", "DNAME", 1, 10, "baz.foo.com");
+    auto [code6, id6] = zoneGraphA.AddResourceRecord(r6);
+    labelGraph.AddResourceRecord(r6, 0, id6.get());
+
+    ResourceRecord r7("foo.com", "DNAME", 1, 10, "baz.foo.com");
+    auto [code7, id7] = zoneGraphB.AddResourceRecord(r7);
+    labelGraph.AddResourceRecord(r7, 0, id7.get());
+
+    BOOST_CHECK_EQUAL(6, num_edges(labelGraph));
 }
 
 BOOST_AUTO_TEST_CASE(label_graph_examples)

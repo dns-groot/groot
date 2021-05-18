@@ -127,15 +127,24 @@ void label::Graph::AddResourceRecord(
                 ConstructChildLabelsToVertexDescriptorMap(v);
             }
             VertexDescriptor second_node = AddNodes(closest_encloser, labels, index);
-            EdgeDescriptor e;
-            bool b;
-            boost::tie(e, b) = boost::add_edge(main_node, second_node, *this);
-            if (!b) {
-                Logger->critical(
-                    fmt::format("label-graph.cpp (AddResourceRecord) - Unable to add edge to label graph"));
-                exit(EXIT_FAILURE);
+            // Check if DNAME edge was added due to another zone file
+            bool duplicate = false;
+            for (const EdgeDescriptor& edge : boost::make_iterator_range(out_edges(main_node, *this))) {
+                if (edge.m_target == second_node && (*this)[edge].type == dname) {
+                    duplicate = true;
+                }
             }
-            (*this)[e].type = dname;
+            if (!duplicate) {
+                EdgeDescriptor e;
+                bool b;
+                boost::tie(e, b) = boost::add_edge(main_node, second_node, *this);
+                if (!b) {
+                    Logger->critical(
+                        fmt::format("label-graph.cpp (AddResourceRecord) - Unable to add edge to label graph"));
+                    exit(EXIT_FAILURE);
+                }
+                (*this)[e].type = dname;
+            }
         }
         auto it = std::find_if(
             (*this)[main_node].zoneId_vertexId.begin(), (*this)[main_node].zoneId_vertexId.end(),
