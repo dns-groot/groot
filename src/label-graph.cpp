@@ -461,6 +461,11 @@ void label::Graph::SubDomainECGeneration(
     const Context &context,
     bool check_structural_delegations)
 {
+    // Breaking the EC generation if there are too many ECs due to mulitple DNAME loops
+    if (current_job.stats.ec_count > 1000) {
+        return;
+    }
+
     size_t len = 0;
     for (NodeLabel &l : parent_domain_name) {
         len += l.get().length() + 1;

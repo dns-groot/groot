@@ -109,7 +109,8 @@ tuple<zone::RRAddCode, boost::optional<zone::Graph::VertexDescriptor>> zone::Gra
     }
     VertexDescriptor node = AddNodes(closest_encloser, labels, index);
 
-    for (auto &rr : (*this)[node].rrs) {
+    // Disable checks for invalid zones EC generation
+    /*for (auto &rr : (*this)[node].rrs) {
         if (rr.get_type() == record.get_type()) {
             if (rr.get_ttl() == record.get_ttl() && rr.get_rdata() == record.get_rdata()) {
                 return {RRAddCode::DUPLICATE, {}};
@@ -123,7 +124,7 @@ tuple<zone::RRAddCode, boost::optional<zone::Graph::VertexDescriptor>> zone::Gra
         } else if (rr.get_type() == RRType::CNAME || record.get_type() == RRType::CNAME) {
             return {RRAddCode::CNAME_OTHER, node};
         }
-    }
+    }*/
     (*this)[node].rrs.push_back(record);
     if (record.get_type() == RRType::SOA) {
         origin_ = record.get_name();
