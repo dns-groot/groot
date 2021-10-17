@@ -10,8 +10,6 @@ GRoot
 &nbsp;
 <a href='https://hub.docker.com/r/dnsgt/groot'><img src='https://img.shields.io/docker/image-size/dnsgt/groot/latest?logo=docker&logoWidth=24&style=popout'></img></a> 
 &nbsp;
-<a href='https://microbadger.com/images/dnsgt/groot'><img src='https://img.shields.io/microbadger/layers/dnsgt/groot/latest?logo=docker&logoWidth=24&style=popout'></img></a>
-&nbsp;
 [![codecov](https://codecov.io/gh/dns-groot/groot/branch/master/graph/badge.svg?style=popout)](https://codecov.io/gh/dns-groot/groot)
 
 
