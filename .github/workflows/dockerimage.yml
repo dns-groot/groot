@@ -19,6 +19,11 @@ jobs:
     - name: Setup the environment
       run: |-
         bash setup.sh
+    
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v1
+      with:
+        languages: cpp, python
 
     - name: Build and test groot
       run: |-
@@ -29,6 +34,9 @@ jobs:
         cp -r ../test/TestFiles/ test/ 
         ctest --output-on-failure --extra-verbose
     
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v1
+
     - name: Generate coverage file
       run:  |-
         cd build

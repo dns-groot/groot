@@ -1,11 +1,11 @@
-FROM ubuntu:18.04
+FROM ubuntu:20.04
 
 LABEL maintainer="sivakesava@cs.ucla.edu"
 
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && \
-    apt-get install sudo
+    apt-get install sudo dos2unix
 
 ENV HOME /home/groot
 ENV INSIDE_DOCKER="yes"
@@ -18,6 +18,7 @@ USER groot
 WORKDIR $HOME
 
 COPY setup.sh setup.sh
+RUN sudo dos2unix setup.sh
 RUN bash setup.sh
 
 WORKDIR $HOME/groot

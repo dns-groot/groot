@@ -2,15 +2,16 @@ export DEBIAN_FRONTEND=noninteractive
 
 sudo apt-get update
 [[ "$INSIDE_DOCKER" == "yes" ]] && sudo apt-get upgrade -yq
-sudo apt-get install -yq apt-utils\
+sudo DEBIAN_FRONTEND="noninteractive" apt-get install -yq apt-utils\
                         binutils \
                         cmake curl \
                         g++ git \
                         libboost-all-dev \
                         patch \
-                        sudo \
+                        pkg-config \
                         tar time \
-                        unzip
+                        unzip \
+                        zip
 
 sudo apt-get autoremove -y --purge
 
