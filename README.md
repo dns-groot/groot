@@ -95,11 +95,11 @@ Check for any violations of the input properties by invoking GRoot as:
 
 For docker (Ubuntu):
 ```bash
-$ .~/groot/build/bin/groot ~/groot/test/TestFiles/cc.il.us/zone_files --jobs=~/groot/test/TestFiles/cc.il.us/jobs.json --output=output.json
+~/groot$ ./build/bin/groot test/TestFiles/cc.il.us/zone_files --jobs=test/TestFiles/cc.il.us/jobs.json --output=output.json
 ```
 For Windows:
 ```bash
-$ .~\groot\x64\Release\groot.exe ~\groot\test\TestFiles\cc.il.us\zone_files --jobs=~\groot\test\TestFiles\cc.il.us\jobs.json --output=output.json
+~\groot> .\x64\Release\groot.exe test\TestFiles\cc.il.us\zone_files --jobs=test\TestFiles\cc.il.us\jobs.json --output=output.json
 ```
 GRoot outputs any violations to the `output.json` file. 
 
