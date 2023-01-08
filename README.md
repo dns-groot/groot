@@ -6,7 +6,7 @@ GRoot
 -->
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=popout)](https://opensource.org/licenses/MIT)
 &nbsp;
-[![](https://img.shields.io/github/workflow/status/dns-groot/groot/Codecov%20and%20Docker%20Image%20CI/master?logo=docker&style=popout&label=docker+image)](https://github.com/dns-groot/groot/actions?query=workflow%3A%22Codecov+and+Docker+Image+CI%22)
+[![](https://img.shields.io/github/actions/workflow/status/dns-groot/groot/dockerimage.yml?logo=docker&style=popout&label=docker+image)](https://github.com/dns-groot/groot/actions?query=workflow%3A%22Codecov+and+Docker+Image+CI%22)
 &nbsp;
 <a href='https://hub.docker.com/r/dnsgt/groot'><img src='https://img.shields.io/docker/image-size/dnsgt/groot/latest?logo=docker&logoWidth=24&style=popout'></img></a> 
 &nbsp;
